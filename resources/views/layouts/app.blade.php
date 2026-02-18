@@ -129,6 +129,21 @@
                         </li>
 
                         <li class="nav-item dropdown">
+                            <a id="cashboxDropdown" class="nav-link dropdown-toggle {{ Request::is('cashbox*') ? 'active' : '' }}" 
+                            href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-funnel me-1"></i> Caja
+                            </a>
+                            <ul class="dropdown-menu shadow-sm" aria-labelledby="cashboxDropdown">
+                                <li>
+                                    <a class="dropdown-item py-2" href="{{ route('cashbox.index') }}">
+                                        <i class="bi bi-layers me-2 text-info"></i> Cuadre de Caja
+                                    </a>
+                                </li>
+
+                            </ul>
+                        </li>
+
+                        <li class="nav-item dropdown">
                             <a id="labDropdown" class="nav-link dropdown-toggle {{ Request::is('laboratorio*') ? 'active' : '' }}" 
                             href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-funnel me-1"></i> Laboratorio

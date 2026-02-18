@@ -49,3 +49,7 @@ Route::get('/api/search/products', [App\Http\Controllers\SearchController::class
 Route::get('/api/search/lab', [App\Http\Controllers\SearchController::class, 'lab']);
 
 Route::resource('lab-results', App\Http\Controllers\LabResultController::class)->names('lab-results');
+
+Route::get('/cashbox', [App\Http\Controllers\CashBoxController::class, 'index'])->name('cashbox.index');
+Route::post('/cashbox/expense', [App\Http\Controllers\CashBoxController::class, 'storeExpense'])->name('cashbox.expense');
+Route::put('/cashbox/expense/{expense}', [CashBoxController::class, 'updateExpense'])->name('cashbox.expense.update');
