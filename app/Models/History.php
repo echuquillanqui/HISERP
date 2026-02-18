@@ -29,9 +29,7 @@ class History extends Model
 
     public function labItems()
     {
-        // En lugar de buscar en la tabla lab_items, 
-        // buscamos en los detalles de la orden que generó esta historia
-        return $this->hasMany(OrderDetail::class, 'order_id', 'order_id');
+        return $this->hasMany(LabItem::class, 'history_id');
     }
 
     public function user() {

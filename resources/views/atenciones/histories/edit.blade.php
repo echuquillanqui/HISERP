@@ -347,21 +347,30 @@ function clinicalWorkstation() {
 
             // 3. Buscador Laboratorio (Múltiple)
             const tsLab = new TomSelect('#lab_select', {
-                ...remoteSettings,
-                valueField: 'name', // Cambiado de 'uid' a 'name' para guardar el nombre
+                valueField: 'name', 
                 labelField: 'name',
                 searchField: 'name',
                 plugins: ['remove_button'],
+                persist: false, // Evita que se queden cosas raras en memoria
+                create: true,   // Permite al médico escribir un examen que no esté en la lista
                 load: (q, cb) => {
                     fetch(`/api/search/lab?q=${q}`).then(r => r.json()).then(j => cb(j)).catch(() => cb());
                 }
             });
 
-            // Precarga de laboratorios ya guardados (si existen)
+            // Precarga de laboratorios ya guardados (limpia y segura)
             const savedLabs = JSON.parse(el.getAttribute('data-labs') || '[]');
+
             if(savedLabs.length > 0) {
-                savedLabs.forEach(uid => tsLab.addOption({uid: uid, name: uid}));
-                tsLab.setValue(savedLabs);
+                // 1. Limpiamos cualquier opción previa para evitar duplicados o basura
+                tsLab.clearOptions(); 
+                
+                savedLabs.forEach(examName => {
+                    // 2. Agregamos la opción usando 'name' como llave (coincidiendo con valueField)
+                    tsLab.addOption({ name: examName });
+                    // 3. Marcamos el ítem como seleccionado
+                    tsLab.addItem(examName);
+                });
             }
         },
         removeDx(i) { this.diagnostics.splice(i, 1); },

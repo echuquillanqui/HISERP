@@ -128,13 +128,16 @@ class HistoryController extends Controller
             }
 
             // 5. Sincronizar Laboratorios (LabItem)
-            $history->labItems()->delete();
+            $history->labItems()->delete(); // Esto borra lo anterior de la tabla lab_items
             if ($request->has('lab_exams')) {
                 foreach ($request->lab_exams as $examName) {
-                    \App\Models\LabItem::create([
-                        'history_id' => $history->id,
-                        'name' => $examName,
-                    ]);
+                    // Solo guardamos si no está vacío
+                    if (!empty($examName)) {
+                        \App\Models\LabItem::create([
+                            'history_id' => $history->id,
+                            'name' => $examName,
+                        ]);
+                    }
                 }
             }
 
