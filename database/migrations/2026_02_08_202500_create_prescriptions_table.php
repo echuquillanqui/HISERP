@@ -18,6 +18,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade'); // Médico
             $table->foreignId('history_id')->constrained()->onDelete('cascade'); // Vinculada a la atención
             $table->text('instrucciones_generales')->nullable();
+            $table->date('fecha_sig_cita')->nullable();
 
             $table->timestamps();
         });

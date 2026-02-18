@@ -151,6 +151,16 @@
                 @endforelse
             </tbody>
         </table>
+
+        <div style="background: #f8f9fa; border: 1px solid #dee2e6; color: #2c3e50; padding: 5px 12px; font-weight: 600; border-radius: 20px; display: inline-flex; align-items: center; margin-bottom: 10px; margin-top: 20px; font-size: 14px;">
+            <span class="badge rounded-pill me-2" style="background: #e67e22;">
+                <i class="bi bi-calendar-check"></i>
+            </span>
+            Próxima Cita: 
+            <span class="text-primary ms-1">
+                {{ $history->prescription?->fecha_sig_cita ? \Carbon\Carbon::parse($history->prescription->fecha_sig_cita)->format('d/m/Y') : 'Pendiente' }}
+            </span>
+        </div>
     </div>
 
     <div class="signature-container">

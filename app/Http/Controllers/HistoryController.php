@@ -109,7 +109,7 @@ class HistoryController extends Controller
             if ($request->filled('prescription')) {
                 $prescription = Prescription::updateOrCreate(
                     ['history_id' => $history->id],
-                    ['patient_id' => $history->patient_id, 'user_id' => auth()->id()]
+                    ['patient_id' => $history->patient_id, 'user_id' => auth()->id(), 'fecha_sig_cita'=> $request->fecha_sig_cita]
                 );
 
                 $prescription->items()->delete();

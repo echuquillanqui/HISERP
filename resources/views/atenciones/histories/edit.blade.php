@@ -163,6 +163,27 @@
                                     </template>
                                 </tbody>
                             </table>
+
+                            <div class="mt-4 p-3 border-top bg-light rounded">
+                                <div class="row align-items-center">
+                                    <div class="col-md-5">
+                                        <label class="fw-bold text-dark small">
+                                            <i class="bi bi-calendar-check text-success me-1"></i>PRÓXIMA CITA:
+                                        </label>
+                                        <div class="input-group input-group-sm mt-2">
+                                            <span class="input-group-text bg-white"><i class="bi bi-calendar-event"></i></span>
+                                            <input type="date" name="fecha_sig_cita" 
+                                                class="form-control" 
+                                                value="{{ old('fecha_sig_cita', $history->prescription->fecha_sig_cita ?? '') }}">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-7">
+                                        <p class="text-muted mb-0 small" style="margin-top: 20px;">
+                                            * Esta fecha aparecerá al final de la receta impresa.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="tab-pane fade" id="tab-lab">
