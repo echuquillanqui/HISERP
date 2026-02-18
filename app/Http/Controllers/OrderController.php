@@ -273,8 +273,18 @@ class OrderController extends Controller
 
     public function show(Order $order)
     {
-        $order->load(['patient', 'details.labResults.catalog', 'user']);
-        return view('atenciones.orders.show', compact('order'));
+        // 1. Cargamos las relaciones (incluyendo el producto dentro de details)
+        $order->load(['patient', 'details.itemable', 'user']);
+
+        // 2. Traemos la sucursal activa para el logo y datos (RUC, dirección, etc)
+        $branch = \App\Models\Branch::where('estado', true)->first();
+
+        // 3. Configuramos DomPDF para 80mm (226.7pt) y alto dinámico
+        // El alto 800 es suficiente para la mayoría de tickets
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('atenciones.orders.ticket', compact('order', 'branch'))
+                ->setPaper([0, 0, 226.77, 800], 'portrait');
+
+        return $pdf->stream("Ticket_ORD-{$order->id}.pdf");
     }
 
     private function createLabResult($orderDetailId, $catalog)
