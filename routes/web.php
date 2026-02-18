@@ -52,4 +52,5 @@ Route::resource('lab-results', App\Http\Controllers\LabResultController::class)-
 
 Route::get('/cashbox', [App\Http\Controllers\CashBoxController::class, 'index'])->name('cashbox.index');
 Route::post('/cashbox/expense', [App\Http\Controllers\CashBoxController::class, 'storeExpense'])->name('cashbox.expense');
-Route::put('/cashbox/expense/{expense}', [CashBoxController::class, 'updateExpense'])->name('cashbox.expense.update');
+Route::put('/cashbox/expense/{expense}', [App\Http\Controllers\CashBoxController::class, 'updateExpense'])->name('cashbox.expense.update');
+Route::get('/cashbox/pdf', [App\Http\Controllers\CashBoxController::class, 'exportPdf'])->name('cashbox.pdf');
