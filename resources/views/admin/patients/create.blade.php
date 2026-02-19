@@ -75,15 +75,15 @@
                             <div class="card-body p-4">
                                 <div class="mb-3">
                                     <label class="form-label small fw-bold">Teléfono / Celular</label>
-                                    <input type="text" name="phone" class="form-control" value="{{ old('phone') }}" placeholder="999 999 999">
+                                    <input type="text" name="phone" class="form-control" value="{{ old('phone', 'ninguno') }}" >
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label small fw-bold">Correo Electrónico</label>
-                                    <input type="email" name="email" class="form-control" value="{{ old('email') }}" placeholder="ejemplo@correo.com">
+                                    <input type="text" name="email" class="form-control" value="{{ old('email', 'ejemplo@correo.com') }}" >
                                 </div>
                                 <div class="mb-0">
                                     <label class="form-label small fw-bold">Dirección</label>
-                                    <textarea name="address" class="form-control" rows="3" placeholder="Dirección domiciliaria">{{ old('address') }}</textarea>
+                                    <textarea name="address" class="form-control" rows="3" placeholder="Dirección domiciliaria">{{ old('address', 'ninguna') }}</textarea>
                                 </div>
                             </div>
                         </div>
