@@ -77,9 +77,9 @@
             <img src="{{ public_path('storage/' . $branch->logo) }}" class="logo">
         @endif
         <br>
-        <span class="bold" style="font-size: 12px;">{{ $branch->razon_social ?? 'EMPRESA' }}</span><br>
-        {{ $branch->direccion ?? '' }}<br>
-        Tel: {{ $branch->telefono ?? '' }}<br>
+        <strong style="font-size: 12px;">{{ $branch->razon_social ?? 'EMPRESA' }}</strong><br>
+        <strong>{{ $branch->direccion ?? '' }}</strong><br>
+        <strong> Tel: {{ $branch->telefono ?? '' }}</strong><br>
     </div>
 
     <div class="divider"></div>
@@ -127,7 +127,6 @@
 
     <div class="text-center" style="margin-top: 5px;">
         <span class="bold">¡GRACIAS POR SU VISITA!</span><br>
-        Válido como comprobante de pago
     </div>
 
     <div style="margin-bottom: 20px;">.</div>
