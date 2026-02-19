@@ -82,7 +82,7 @@
                                     <input type="text" name="email" class="form-control" value="{{ old('email', 'ejemplo@correo.com') }}" >
                                 </div>
                                 <div class="mb-0">
-                                    <label class="form-label small fw-bold">Dirección</label>
+                                    <label class="form-label small fw-bold">Dirección actual</label>
                                     <textarea name="address" class="form-control" rows="3" placeholder="Dirección domiciliaria">{{ old('address', 'ninguna') }}</textarea>
                                 </div>
                             </div>
