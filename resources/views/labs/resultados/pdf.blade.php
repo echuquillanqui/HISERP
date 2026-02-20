@@ -98,36 +98,47 @@
         </table>
     </div>
 
-    @foreach($groupedLabs as $areaName => $items)
-        <div class="area-section">
-            <div class="area-title">{{ $areaName }}</div>
-            <table class="results-table">
-                <thead>
+
+@foreach($groupedLabs as $areaName => $items)
+    @php
+        // Convertimos a mayúsculas para asegurar la comparación
+        $areaUpper = strtoupper($areaName);
+    @endphp
+    
+    {{-- Si el área es Medicina o Adicionales, saltamos este ciclo --}}
+    @if($areaUpper === 'MEDICINA' || $areaUpper === 'ADICIONALES')
+        @continue
+    @endif
+
+    <div class="area-section">
+        <div class="area-title">{{ $areaName }}</div>
+        <table class="results-table">
+            <thead>
+                <tr>
+                    <th width="35%">PRUEBA / ANÁLISIS</th>
+                    <th width="20%">RESULTADO</th>
+                    <th width="15%">UNIDADES</th>
+                    <th width="30%">VALORES DE REFERENCIA</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($items as $res)
                     <tr>
-                        <th width="35%">PRUEBA / ANÁLISIS</th>
-                        <th width="20%">RESULTADO</th>
-                        <th width="15%">UNIDADES</th>
-                        <th width="30%">VALORES DE REFERENCIA</th>
+                        <td>
+                            <strong>{{ $res->catalog->name }}</strong>
+                            @if($res->observations)
+                                <div class="observations">Nota: {{ $res->observations }}</div>
+                            @endif
+                        </td>
+                        <td class="result-value">{{ $res->result_value ?? 'Pendiente' }}</td>
+                        <td>{{ $res->unit }}</td>
+                        <td style="font-size: 10px;">{!! nl2br(e($res->reference_range)) !!}</td>
                     </tr>
-                </thead>
-                <tbody>
-                    @foreach($items as $res)
-                        <tr>
-                            <td>
-                                <strong>{{ $res->catalog->name }}</strong>
-                                @if($res->observations)
-                                    <div class="observations">Nota: {{ $res->observations }}</div>
-                                @endif
-                            </td>
-                            <td class="result-value">{{ $res->result_value ?? 'Pendiente' }}</td>
-                            <td>{{ $res->unit }}</td>
-                            <td style="font-size: 10px;">{!! nl2br(e($res->reference_range)) !!}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    @endforeach
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+@endforeach
 
     <div class="signature-container" style="margin-top: 60px;">
         <div class="signature-line">

@@ -71,9 +71,16 @@ class LabResultController extends Controller
 
     $order = $resultados->first()->orderDetail->order;
 
+    // --- FILTRADO DE ÁREAS ---
+    // Agregamos este filtro para excluir Medicina y Adicionales antes de agrupar
+    $resultadosFiltrados = $resultados->filter(function($res) {
+        $areaNombre = strtoupper($res->catalog->area->name ?? '');
+        return !in_array($areaNombre, ['MEDICINA', 'ADICIONALES']);
+    });
+
     // --- AGRUPACIÓN POR ÁREA ---
-    // Usamos el nombre del área para crear los bloques en la vista
-    $resultadosAgrupados = $resultados->groupBy(function($res) {
+    // Usamos la colección filtrada para crear los bloques en la vista
+    $resultadosAgrupados = $resultadosFiltrados->groupBy(function($res) {
         return $res->catalog->area->name ?? 'GENERAL';
     });
 
