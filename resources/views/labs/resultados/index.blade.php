@@ -55,38 +55,42 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($orders as $order)
-    @php
-        // 1. Obtenemos todos los resultados de la orden
-        // 2. Filtramos para excluir MEDICINA y ADICIONALES (igual que en edit y pdf)
-        $allResults = $order->details->flatMap->labResults->filter(function($res) {
-            $areaNombre = strtoupper($res->catalog->area->name ?? '');
-            return !in_array($areaNombre, ['MEDICINA', 'ADICIONALES']);
-        });
+    @foreach($orders as $order)
+        @php
+            // 1. Obtenemos y filtramos los resultados
+            $allResults = $order->details->flatMap->labResults->filter(function($res) {
+                $areaNombre = strtoupper($res->catalog->area->name ?? '');
+                return !in_array($areaNombre, ['MEDICINA', 'ADICIONALES']);
+            });
 
-        // 3. Calculamos totales basados solo en los exámenes visibles
-        $total = $allResults->count();
-        $completed = $allResults->where('status', 'completado')->count();
-        $percent = $total > 0 ? ($completed / $total) * 100 : 0;
-    @endphp
-    
-    <tr>
-        <td class="ps-4 fw-bold text-primary">{{ $order->code }}</td>
-        <td>
-            <div class="fw-bold">{{ $order->patient->first_name }} {{ $order->patient->last_name }}</div>
-            <div class="small text-muted">{{ $order->patient->dni }}</div>
-        </td>
-        <td style="width: 200px;">
-            {{-- El contador ahora mostrará 0/2 si, por ejemplo, el 3er examen es de un área excluida --}}
-            <div class="small text-muted mb-1">{{ $completed }}/{{ $total }} Exámenes</div>
-            <div class="progress" style="height: 6px;">
-                <div class="progress-bar bg-success" style="width: {{ $percent }}%"></div>
-            </div>
-        </td>
-        <td class="text-center">
-            @if($total > 0)
+            $total = $allResults->count();
+        @endphp
+
+        {{-- SI NO HAY EXÁMENES VISIBLES, SALTAMOS ESTA ORDEN --}}
+        @if($total == 0)
+            @continue
+        @endif
+
+        @php
+            // 2. Solo si hay exámenes, calculamos el resto
+            $completed = $allResults->where('status', 'completado')->count();
+            $percent = ($completed / $total) * 100;
+        @endphp
+        
+        <tr>
+            <td class="ps-4 fw-bold text-primary">{{ $order->code }}</td>
+            <td>
+                <div class="fw-bold">{{ $order->patient->first_name }} {{ $order->patient->last_name }}</div>
+                <div class="small text-muted">{{ $order->patient->dni }}</div>
+            </td>
+            <td style="width: 200px;">
+                <div class="small text-muted mb-1">{{ $completed }}/{{ $total }} Exámenes</div>
+                <div class="progress" style="height: 6px;">
+                    <div class="progress-bar bg-success" style="width: {{ $percent }}%"></div>
+                </div>
+            </td>
+            <td class="text-center">
                 @php
-                    // Usamos el estado del primer resultado visible
                     $statusLab = $allResults->first()->status; 
                     $badgeColor = match($statusLab) {
                         'completado' => 'success',
@@ -97,24 +101,21 @@
                 <span class="badge bg-{{ $badgeColor }}-subtle text-{{ $badgeColor }} border border-{{ $badgeColor }} text-uppercase">
                     {{ $statusLab }}
                 </span>
-            @else
-                <span class="badge bg-secondary-subtle text-secondary border border-secondary">SIN EXÁMENES</span>
-            @endif
-        </td>
-        <td class="text-center">
-            <div class="btn-group">
-                <a href="{{ route('lab-results.edit', $order->id) }}" class="btn btn-sm btn-outline-primary shadow-sm mx-1">
-                    <i class="bi bi-pencil-square me-1"></i>
-                </a>
-                
-                <a href="{{ route('lab-results.show', $order->id) }}" target="_blank" class="btn btn-sm btn-outline-danger">
-                    <i class="bi bi-file-pdf"></i>
-                </a>
-            </div>
-        </td>
-    </tr>
-@endforeach
-                </tbody>
+            </td>
+            <td class="text-center">
+                <div class="btn-group">
+                    <a href="{{ route('lab-results.edit', $order->id) }}" class="btn btn-sm btn-outline-primary shadow-sm mx-1">
+                        <i class="bi bi-pencil-square me-1"></i>
+                    </a>
+                    
+                    <a href="{{ route('lab-results.show', $order->id) }}" target="_blank" class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-file-pdf"></i>
+                    </a>
+                </div>
+            </td>
+        </tr>
+    @endforeach
+</tbody>
             </table>
         </div>
     </div>

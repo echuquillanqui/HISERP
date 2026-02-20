@@ -55,94 +55,99 @@ class OrderController extends Controller
      * Actualizar la orden y sus detalles
      */
     public function update(Request $request, Order $order)
-{
-    $request->validate([
-        'patient_id' => 'required',
-        'payment_status' => 'required|in:pendiente,pagado,anulado',
-        'items' => 'required|array|min:1',
-        'total_amount' => 'required|numeric'
-    ]);
+    {
+        // 1. Definimos las mismas palabras clave que en el store para mantener la consistencia
+        $palabrasClave = ['HISTORIA', 'CONSULTA', 'EXTERNA', 'C. EXTERNA'];
 
-    try {
-        return DB::transaction(function () use ($request, $order) {
-            
-            // 1. Actualizar datos principales de la orden
-            $order->update([
-                'patient_id'       => $request->patient_id,
-                'payment_status'   => $request->payment_status,
-                'payment_method'   => $request->payment_method,
-                'operation_number' => $request->operation_number,
-                'total'            => $request->total_amount,
-            ]);
+        $request->validate([
+            'patient_id' => 'required',
+            'payment_status' => 'required|in:pendiente,pagado,anulado',
+            'items' => 'required|array|min:1',
+            'total_amount' => 'required|numeric'
+        ]);
 
-            $incomingItems = collect($request->input('items', []));
-            $generarRegistroHistoria = false; // Flag para rastrear si hay "HISTORIA"
-            
-            // 2. Mapear UIDs que vienen del formulario (tipo + id)
-            $incomingUids = $incomingItems->map(fn($item) => 
-                (($item['type'] === 'profile' || $item['type'] === 'perfil') ? 'profile' : 'catalog') . $item['id']
-            );
-
-            // 3. LIMPIEZA: Eliminar solo lo que el usuario quitó en la vista
-            foreach ($order->details as $detail) {
-                $currentUid = (str_contains($detail->itemable_type, 'Profile') ? 'profile' : 'catalog') . $detail->itemable_id;
+        try {
+            return DB::transaction(function () use ($request, $order, $palabrasClave) {
                 
-                if (!$incomingUids->contains($currentUid)) {
-                    $detail->delete(); 
-                }
-            }
+                // Actualizar datos principales de la orden
+                $order->update([
+                    'patient_id'       => $request->patient_id,
+                    'payment_status'   => $request->payment_status,
+                    'payment_method'   => $request->payment_method,
+                    'operation_number' => $request->operation_number,
+                    'total'            => $request->total_amount,
+                ]);
 
-            // 4. SINCRONIZACIÓN: Agregar nuevos y detectar Historia
-            foreach ($incomingItems as $item) {
-                $type = ($item['type'] === 'profile' || $item['type'] === 'perfil') ? 'profile' : 'catalog';
-                $modelType = ($type === 'profile') ? \App\Models\Profile::class : \App\Models\Catalog::class;
+                $incomingItems = collect($request->input('items', []));
+                $generarRegistroHistoria = false; 
+                
+                // Mapear UIDs para limpieza
+                $incomingUids = $incomingItems->map(fn($item) => 
+                    (($item['type'] === 'profile' || $item['type'] === 'perfil') ? 'profile' : 'catalog') . $item['id']
+                );
 
-                // Si el item se llama HISTORIA, marcamos para crear/actualizar registro
-                if (str_contains(strtoupper($item['name']), 'HISTORIA')) {
-                    $generarRegistroHistoria = true;
-                }
-
-                // Verificamos si ya existe para no duplicar ni perder resultados antiguos
-                $exists = $order->details()
-                    ->where('itemable_id', $item['id'])
-                    ->where('itemable_type', $modelType)
-                    ->exists();
-
-                if (!$exists) {
-                    $newDetail = OrderDetail::create([
-                        'order_id' => $order->id,
-                        'itemable_id' => $item['id'],
-                        'itemable_type' => $modelType,
-                        'name' => $item['name'],
-                        'price' => $item['price'],
-                    ]);
-
-                    // Generar resultados solo si NO es historia
-                    if (!str_contains(strtoupper($item['name']), 'HISTORIA')) {
-                        $this->createLabResultFromItem($newDetail, $item);
+                // LIMPIEZA: Eliminar lo que el usuario quitó
+                foreach ($order->details as $detail) {
+                    $currentUid = (str_contains($detail->itemable_type, 'Profile') ? 'profile' : 'catalog') . $detail->itemable_id;
+                    
+                    if (!$incomingUids->contains($currentUid)) {
+                        $detail->delete(); 
                     }
                 }
-            }
 
-            // 5. LÓGICA DE HISTORIA (Actualiza si existe, crea si es nueva, borra si se quitó)
-            if ($generarRegistroHistoria) {
-                \App\Models\History::updateOrCreate(
-                    ['order_id' => $order->id],
-                    [
-                        'patient_id' => $request->patient_id,
-                        'user_id' => auth()->id()
-                    ]
-                );
-            } else {
-                \App\Models\History::where('order_id', $order->id)->delete();
-            }
+                // SINCRONIZACIÓN: Agregar nuevos y detectar servicios administrativos
+                foreach ($incomingItems as $item) {
+                    $type = ($item['type'] === 'profile' || $item['type'] === 'perfil') ? 'profile' : 'catalog';
+                    $modelType = ($type === 'profile') ? \App\Models\Profile::class : \App\Models\Catalog::class;
+                    $nombreItemActual = strtoupper($item['name']);
 
-            return redirect()->route('orders.index')->with('success', 'Orden e Historia sincronizadas correctamente');
-        });
-    } catch (\Exception $e) {
-        return back()->withErrors(['error' => 'Error: ' . $e->getMessage()])->withInput();
+                    // 2. CAMBIO AQUÍ: Usamos la lógica flexible con el array de palabras clave
+                    $esAdministrativo = \Illuminate\Support\Str::contains($nombreItemActual, $palabrasClave);
+
+                    if ($esAdministrativo) {
+                        $generarRegistroHistoria = true;
+                    }
+
+                    $exists = $order->details()
+                        ->where('itemable_id', $item['id'])
+                        ->where('itemable_type', $modelType)
+                        ->exists();
+
+                    if (!$exists) {
+                        $newDetail = OrderDetail::create([
+                            'order_id' => $order->id,
+                            'itemable_id' => $item['id'],
+                            'itemable_type' => $modelType,
+                            'name' => $item['name'],
+                            'price' => $item['price'],
+                        ]);
+
+                        // 3. CAMBIO AQUÍ: Generar resultados solo si NO es administrativo
+                        if (!$esAdministrativo) {
+                            $this->createLabResultFromItem($newDetail, $item);
+                        }
+                    }
+                }
+
+                // LÓGICA DE HISTORIA
+                if ($generarRegistroHistoria) {
+                    \App\Models\History::updateOrCreate(
+                        ['order_id' => $order->id],
+                        [
+                            'patient_id' => $request->patient_id,
+                            'user_id' => auth()->id()
+                        ]
+                    );
+                } else {
+                    \App\Models\History::where('order_id', $order->id)->delete();
+                }
+
+                return redirect()->route('orders.index')->with('success', 'Orden e Historia sincronizadas correctamente');
+            });
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => 'Error: ' . $e->getMessage()])->withInput();
+        }
     }
-}
 
     // Función auxiliar para no repetir código de LabResults
     private function createLabResultFromItem($detail, $item) 
@@ -213,10 +218,8 @@ class OrderController extends Controller
      */
     public function store(Request $request)
     {
-        // PASO 1: Ver si los datos llegan al servidor
-        // Si al dar click ves una pantalla negra con datos, el formulario está bien.
-        // Si la página se recarga de frente, el problema es el Validador.
-        // dd($request->all()); 
+        // Definimos las palabras clave fuera para no repetir memoria
+        $palabrasClave = ['HISTORIA', 'CONSULTA', 'EXTERNA', 'C. EXTERNA'];
 
         $request->validate([
             'patient_id' => 'required',
@@ -225,13 +228,12 @@ class OrderController extends Controller
         ]);
 
         try {
-            return DB::transaction(function () use ($request) {
-                // Generar código único si no lo tienes en el request
+            return DB::transaction(function () use ($request, $palabrasClave) {
+                // Generar código único
                 $codigo = 'ORD-' . date('Ymd') . '-' . strtoupper(Str::random(4));
 
-                // PASO 2: Intentar crear la orden
                 $order = Order::create([
-                    'code' => $codigo, // Asegúrate que tu migración tenga 'code'
+                    'code' => $codigo,
                     'patient_id' => $request->patient_id,
                     'total' => $request->total_amount,
                     'payment_status' => $request->payment_status ?? 'pendiente',
@@ -244,7 +246,6 @@ class OrderController extends Controller
                 $generarRegistroHistoria = false;
 
                 foreach ($request->items as $item) {
-                    // PASO 3: Verificar los ítems
                     $detail = OrderDetail::create([
                         'order_id' => $order->id,
                         'itemable_id' => $item['id'],
@@ -253,10 +254,14 @@ class OrderController extends Controller
                         'price' => $item['price'],
                     ]);
 
-                    if (str_contains(strtoupper($item['name']), 'HISTORIA')) {
+                    // AJUSTE AQUÍ: Definimos el nombre actual del ítem en el ciclo
+                    $nombreItemActual = strtoupper($item['name']);
+
+                    // Verificamos si es un servicio administrativo (Historia/Consulta)
+                    if (Str::contains($nombreItemActual, $palabrasClave)) {
                         $generarRegistroHistoria = true;
                     } else {
-                        // Lógica de laboratorio
+                        // Si no es administrativo, procesamos como Laboratorio
                         if ($item['type'] === 'profile') {
                             $profile = \App\Models\Profile::with('catalogs')->find($item['id']);
                             foreach ($profile->catalogs as $catalogExam) {
@@ -269,6 +274,7 @@ class OrderController extends Controller
                     }
                 }
 
+                // Si se detectó algún ítem de historia/consulta, creamos el registro médico
                 if ($generarRegistroHistoria) {
                     \App\Models\History::create([
                         'patient_id' => $request->patient_id,
@@ -280,7 +286,7 @@ class OrderController extends Controller
                 return redirect()->route('orders.index')->with('success', 'Orden guardada con éxito');
             });
         } catch (\Exception $e) {
-            // PASO 4: Si algo falla, NO recargues, muestra el error real
+            // En producción, cambia dd() por un log y retorno con error
             dd("Error en el guardado: " . $e->getMessage(), $e);
         }
     }
