@@ -183,13 +183,27 @@ class OrderController extends Controller
     {
         $q = $request->input('q');
         
-        $catalogs = Catalog::where('name', 'LIKE', "%$q%")
-            ->limit(10)->get(['id', 'name', 'price'])
-            ->map(fn($i) => ['id' => $i->id, 'name' => $i->name, 'price' => $i->price, 'type' => 'catalog']);
+        // Cargamos la relación 'area' para Catálogos
+        $catalogs = Catalog::with('area')->where('name', 'LIKE', "%$q%")
+            ->limit(10)->get()
+            ->map(fn($i) => [
+                'id' => $i->id, 
+                'name' => $i->name, 
+                'area' => $i->area ? strtoupper($i->area->name) : 'SIN ÁREA', // Obtenemos el nombre del área
+                'price' => $i->price, 
+                'type' => 'catalog'
+            ]);
 
-        $profiles = Profile::where('name', 'LIKE', "%$q%")
-            ->limit(10)->get(['id', 'name', 'price'])
-            ->map(fn($i) => ['id' => $i->id, 'name' => $i->name, 'price' => $i->price, 'type' => 'profile']);
+        // Cargamos la relación 'area' para Perfiles
+        $profiles = Profile::with('area')->where('name', 'LIKE', "%$q%")
+            ->limit(10)->get()
+            ->map(fn($i) => [
+                'id' => $i->id, 
+                'name' => $i->name, 
+                'area' => $i->area ? strtoupper($i->area->name) : 'SIN ÁREA', // Obtenemos el nombre del área
+                'price' => $i->price, 
+                'type' => 'profile'
+            ]);
 
         return response()->json($catalogs->merge($profiles));
     }
@@ -296,5 +310,38 @@ class OrderController extends Controller
         'unit'            => $catalog->unit,
         'status'          => 'pendiente'
     ]);
+}
+
+/**
+ * Eliminar la orden y sus registros relacionados (Detalles, Resultados y Historia)
+ */
+public function destroy(Order $order)
+{
+    try {
+        return DB::transaction(function () use ($order) {
+            
+            // 1. Eliminar la Historia Clínica si existe
+            // La relación 'history' está definida en el modelo Order
+            if ($order->history) {
+                $order->history->delete();
+            }
+
+            // 2. Eliminar los detalles de la orden
+            // Al ejecutar delete() en cada detalle, se dispara el evento 'deleting' 
+            // definido en OrderDetail.php que limpia los LabResult asociados.
+            foreach ($order->details as $detail) {
+                $detail->delete(); 
+            }
+
+            // 3. Finalmente eliminar la orden principal
+            $order->delete();
+
+            return redirect()->route('orders.index')
+                ->with('success', 'Orden, resultados de laboratorio e historial eliminados correctamente.');
+        });
+    } catch (\Exception $e) {
+        // En caso de error, la transacción hace rollback automático
+        return back()->withErrors(['error' => 'Error al eliminar la orden: ' . $e->getMessage()]);
+    }
 }
 }

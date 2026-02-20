@@ -56,7 +56,7 @@
                                         <tr>
                                             <td>
                                                 <div class="fw-bold" x-text="item.name"></div>
-                                                <span class="badge bg-info text-uppercase" style="font-size: 0.6rem;" x-text="item.type"></span>
+                                                <span class="fw-bold text-uppercase" style="color: #0d6efd;" x-text="' [' + item.area + ']'"></span> </div>
                                                 <input type="hidden" :name="'items['+index+'][id]'" :value="item.id">
                                                 <input type="hidden" :name="'items['+index+'][type]'" :value="item.type">
                                                 <input type="hidden" :name="'items['+index+'][name]'" :value="item.name">
@@ -141,7 +141,21 @@ function orderSystem() {
             });
             // Buscador de Análisis
             const itemSelect = new TomSelect("#item_select", {
-                valueField: 'uid', labelField: 'name', searchField: 'name',
+                valueField: 'uid', 
+                labelField: 'name', 
+                searchField: 'name',
+                // Personalizamos la vista en el buscador
+                render: {
+                    option: function(data, escape) {
+                        return `<div>
+                            <span class="fw-bold">${escape(data.name)}</span>
+                            <span style="color: #0d6efd; font-size: 0.75rem; font-weight: bold;">[${escape(data.area)}]</span>
+                        </div>`;
+                    },
+                    item: function(data, escape) {
+                        return `<div>${escape(data.name)} <span style="color: #0d6efd; font-weight: bold;">[${escape(data.area)}]</span></div>`;
+                    }
+                },
                 load: (q, cb) => {
                     if(!q.length) return cb();
                     fetch(`/search-items?q=${encodeURIComponent(q)}`)

@@ -18,7 +18,7 @@ class DatabaseSeeder extends Seeder
             SpecialtySeeder::class,
             UserSeeder::class,
             AreaSeeder::class,
-            //ProductSeeder::class,
+            ProductSeeder::class,
             Cie10Seeder::class,
             PatientSeeder::class,
         ]);

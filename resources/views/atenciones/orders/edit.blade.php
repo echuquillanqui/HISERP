@@ -66,7 +66,7 @@
                                         <tr>
                                             <td>
                                                 <div class="fw-bold" x-text="item.name"></div>
-                                                <span class="badge bg-info text-uppercase" style="font-size: 0.6rem;" x-text="item.type"></span>
+                                                <span class="fw-bold" style="color: #0d6efd;" x-text="' [' + item.area + ']'"></span> </div>
                                                 <input type="hidden" :name="'items['+index+'][id]'" :value="item.id">
                                                 <input type="hidden" :name="'items['+index+'][type]'" :value="item.type">
                                                 <input type="hidden" :name="'items['+index+'][name]'" :value="item.name">
@@ -141,6 +141,8 @@ function orderSystem() {
                 id: "{{ $detail->itemable_id }}",
                 type: "{{ str_contains($detail->itemable_type, 'Profile') ? 'profile' : 'catalog' }}",
                 name: "{{ $detail->name }}",
+                // Accedemos al área a través de la relación polimórfica itemable
+                area: "{{ $detail->itemable && $detail->itemable->area ? strtoupper($detail->itemable->area->name) : 'SIN ÁREA' }}",
                 price: "{{ $detail->price }}",
                 uid: "{{ (str_contains($detail->itemable_type, 'Profile') ? 'profile' : 'catalog') . $detail->itemable_id }}"
             },
