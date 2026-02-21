@@ -35,6 +35,7 @@ Route::resource('profiles', App\Http\Controllers\ProfileController::class);
 Route::get('api/areas/{area}/details', [App\Http\Controllers\AreaController::class, 'getDetails']);
 Route::post('profiles/{profile}/sync', [App\Http\Controllers\ProfileController::class, 'toggleExam'])->name('profiles.sync');
 Route::resource('orders', App\Http\Controllers\OrderController::class);
+Route::get('/check-patient-history/{patient}', [App\Http\Controllers\OrderController::class, 'checkHistory']);
 // Si lo pones en web.php
 Route::get('/search-patients', [App\Http\Controllers\OrderController::class, 'searchPatients'])->name('patients.search');
 Route::get('/search-items', [App\Http\Controllers\OrderController::class, 'searchItems'])->name('items.search');

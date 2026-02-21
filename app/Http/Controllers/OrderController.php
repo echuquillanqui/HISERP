@@ -216,9 +216,13 @@ class OrderController extends Controller
     /**
      * Guardar nueva Orden
      */
+    // ... dentro de OrderController.php
+
+/**
+ * Guardar nueva Orden
+ */
     public function store(Request $request)
     {
-        // Definimos las palabras clave fuera para no repetir memoria
         $palabrasClave = ['HISTORIA', 'CONSULTA', 'EXTERNA', 'C. EXTERNA'];
 
         $request->validate([
@@ -227,15 +231,23 @@ class OrderController extends Controller
             'total_amount' => 'required|numeric',
         ]);
 
-        try {
-            return DB::transaction(function () use ($request, $palabrasClave) {
-                // Generar código único
-                $codigo = 'ORD-' . date('Ymd') . '-' . strtoupper(Str::random(4));
+        // LÓGICA NUEVA: Verificar historia en los últimos 30 días
+        $tieneHistoriaReciente = \App\Models\History::where('patient_id', $request->patient_id)
+            ->where('created_at', '>=', now()->subDays(30))
+            ->exists();
 
+        try {
+            return DB::transaction(function () use ($request, $palabrasClave, $tieneHistoriaReciente) {
+                $codigo = 'ORD-' . date('Ymd') . '-' . strtoupper(Str::random(4));
+                
+                // Inicializamos el total real de la orden (por si cambia el precio a 0)
+                $totalReal = 0;
+
+                // Primero creamos la orden con total 0, luego lo actualizamos o calculamos antes
                 $order = Order::create([
                     'code' => $codigo,
                     'patient_id' => $request->patient_id,
-                    'total' => $request->total_amount,
+                    'total' => 0, // Se actualizará al final del ciclo
                     'payment_status' => $request->payment_status ?? 'pendiente',
                     'payment_method' => $request->payment_method ?? 'efectivo',
                     'operation_number' => $request->operation_number,
@@ -246,22 +258,25 @@ class OrderController extends Controller
                 $generarRegistroHistoria = false;
 
                 foreach ($request->items as $item) {
+                    $nombreItemActual = strtoupper($item['name']);
+                    $esAdministrativo = Str::contains($nombreItemActual, $palabrasClave);
+                    
+                    // REGLA DE NEGOCIO: Si es administrativo y tiene historia reciente, precio = 0
+                    $precioAplicado = ($esAdministrativo && $tieneHistoriaReciente) ? 0 : $item['price'];
+                    $totalReal += $precioAplicado;
+
                     $detail = OrderDetail::create([
                         'order_id' => $order->id,
                         'itemable_id' => $item['id'],
                         'itemable_type' => ($item['type'] === 'catalog') ? \App\Models\Catalog::class : \App\Models\Profile::class,
                         'name' => $item['name'],
-                        'price' => $item['price'],
+                        'price' => $precioAplicado,
                     ]);
 
-                    // AJUSTE AQUÍ: Definimos el nombre actual del ítem en el ciclo
-                    $nombreItemActual = strtoupper($item['name']);
-
-                    // Verificamos si es un servicio administrativo (Historia/Consulta)
-                    if (Str::contains($nombreItemActual, $palabrasClave)) {
+                    if ($esAdministrativo) {
                         $generarRegistroHistoria = true;
                     } else {
-                        // Si no es administrativo, procesamos como Laboratorio
+                        // Procesar Laboratorio...
                         if ($item['type'] === 'profile') {
                             $profile = \App\Models\Profile::with('catalogs')->find($item['id']);
                             foreach ($profile->catalogs as $catalogExam) {
@@ -274,7 +289,9 @@ class OrderController extends Controller
                     }
                 }
 
-                // Si se detectó algún ítem de historia/consulta, creamos el registro médico
+                // Actualizamos el total definitivo de la orden
+                $order->update(['total' => $totalReal]);
+
                 if ($generarRegistroHistoria) {
                     \App\Models\History::create([
                         'patient_id' => $request->patient_id,
@@ -286,8 +303,7 @@ class OrderController extends Controller
                 return redirect()->route('orders.index')->with('success', 'Orden guardada con éxito');
             });
         } catch (\Exception $e) {
-            // En producción, cambia dd() por un log y retorno con error
-            dd("Error en el guardado: " . $e->getMessage(), $e);
+            dd("Error: " . $e->getMessage());
         }
     }
 
@@ -308,46 +324,66 @@ class OrderController extends Controller
     }
 
     private function createLabResult($orderDetailId, $catalog)
-{
-    LabResult::create([
-        'lab_item_id'     => $orderDetailId,
-        'catalog_id'      => $catalog->id,
-        'reference_range' => $catalog->reference_range,
-        'unit'            => $catalog->unit,
-        'status'          => 'pendiente'
-    ]);
-}
+    {
+        LabResult::create([
+            'lab_item_id'     => $orderDetailId,
+            'catalog_id'      => $catalog->id,
+            'reference_range' => $catalog->reference_range,
+            'unit'            => $catalog->unit,
+            'status'          => 'pendiente'
+        ]);
+    }
 
 /**
  * Eliminar la orden y sus registros relacionados (Detalles, Resultados y Historia)
  */
-public function destroy(Order $order)
-{
-    try {
-        return DB::transaction(function () use ($order) {
-            
-            // 1. Eliminar la Historia Clínica si existe
-            // La relación 'history' está definida en el modelo Order
-            if ($order->history) {
-                $order->history->delete();
-            }
+    public function destroy(Order $order)
+    {
+        try {
+            return DB::transaction(function () use ($order) {
+                
+                // 1. Eliminar la Historia Clínica si existe
+                // La relación 'history' está definida en el modelo Order
+                if ($order->history) {
+                    $order->history->delete();
+                }
 
-            // 2. Eliminar los detalles de la orden
-            // Al ejecutar delete() en cada detalle, se dispara el evento 'deleting' 
-            // definido en OrderDetail.php que limpia los LabResult asociados.
-            foreach ($order->details as $detail) {
-                $detail->delete(); 
-            }
+                // 2. Eliminar los detalles de la orden
+                // Al ejecutar delete() en cada detalle, se dispara el evento 'deleting' 
+                // definido en OrderDetail.php que limpia los LabResult asociados.
+                foreach ($order->details as $detail) {
+                    $detail->delete(); 
+                }
 
-            // 3. Finalmente eliminar la orden principal
-            $order->delete();
+                // 3. Finalmente eliminar la orden principal
+                $order->delete();
 
-            return redirect()->route('orders.index')
-                ->with('success', 'Orden, resultados de laboratorio e historial eliminados correctamente.');
-        });
-    } catch (\Exception $e) {
-        // En caso de error, la transacción hace rollback automático
-        return back()->withErrors(['error' => 'Error al eliminar la orden: ' . $e->getMessage()]);
+                return redirect()->route('orders.index')
+                    ->with('success', 'Orden, resultados de laboratorio e historial eliminados correctamente.');
+            });
+        } catch (\Exception $e) {
+            // En caso de error, la transacción hace rollback automático
+            return back()->withErrors(['error' => 'Error al eliminar la orden: ' . $e->getMessage()]);
+        }
     }
-}
+
+    public function checkHistory(Patient $patient)
+    {
+        $lastHistory = \App\Models\History::where('patient_id', $patient->id)
+            ->latest()
+            ->first();
+
+        if (!$lastHistory) {
+            return response()->json(['has_history' => false]);
+        }
+
+        $daysDiff = now()->diffInDays($lastHistory->created_at);
+
+        return response()->json([
+            'has_history' => true,
+            'days' => $daysDiff,
+            'date' => $lastHistory->created_at->format('d/m/Y'),
+            'is_free' => $daysDiff <= 30
+        ]);
+    }
 }
