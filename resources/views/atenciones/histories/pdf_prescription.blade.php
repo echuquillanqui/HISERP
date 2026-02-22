@@ -132,8 +132,11 @@
             <tbody>
                 @forelse($history->prescriptionItems as $item)
                     <tr>
-                        <td class="med-name">
-                            <span style="color: #e67e22;">*</span> {{ $item->product->name ?? 'PRODUCTO' }}
+                        <td style="padding: 10px; border-bottom: 1px solid #eee;">
+                            <strong style="color: #2c3e50; font-size: 13px;">{{ $item->product->name }}</strong><br>
+                            <small style="color: #7f8c8d;">
+                                {{ $item->product->concentration }} | {{ $item->product->presentation }}
+                            </small>
                         </td>
                         <td style="text-transform: uppercase;">
                             {{ $item->indicaciones ?? 'SEGÚN CRITERIO MÉDICO' }}

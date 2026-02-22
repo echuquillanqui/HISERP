@@ -34,9 +34,16 @@
             font-weight: bold; border-radius: 4px; margin-bottom: 10px; 
             text-transform: uppercase; font-size: 12px;
         }
-        .exam-item { 
-            padding: 7px 0 7px 15px; border-bottom: 1px solid #eee; 
-            font-size: 13px; display: block;
+        .exams-2-columns {
+            width: 100%;
+            column-count: 2;   /* Esto activa las dos columnas */
+            column-gap: 30px;  /* Espacio entre columnas */
+        }
+
+        .exam-item {
+            break-inside: avoid; /* Evita que un examen se corte entre columnas */
+            page-break-inside: avoid;
+            margin-bottom: 5px;
         }
         .check-mark { color: #3498db; font-weight: bold; margin-right: 10px; font-size: 16px; }
 
@@ -112,22 +119,21 @@
 
     @forelse($groupedLabs as $areaName => $items)
         <div class="area-section">
-            <div class="area-title">EXAMENES SOLICITADOS</div>
+            <div class="area-title">Solicitud de Examenes</div>
             
-            @foreach($items as $lab)
-                <div class="exam-item">
-                    <span class="check-mark">*</span>
-                    @php
-                        // Obtenemos el nombre desde itemable o directamente del item
-                        $name = $lab->itemable->name ?? ($lab->name ?? 'EXAMEN');
-
-                        // LIMPIEZA: Quitamos [PERFIL], [EXAMEN], [examen]
-                        $search = ['[PERFIL]', '[EXAMEN]', '[examen]'];
-                        $cleanName = trim(str_ireplace($search, '', $name));
-                    @endphp
-                    <strong>{{ strtoupper($cleanName) }}</strong>
-                </div>
-            @endforeach
+            <div class="exams-2-columns">
+                @foreach($items as $lab)
+                    <div class="exam-item">
+                        <span class="check-mark">*</span>
+                        @php
+                            $name = $lab->itemable->name ?? ($lab->name ?? 'EXAMEN');
+                            $search = ['[PERFIL]', '[EXAMEN]', '[examen]'];
+                            $cleanName = trim(str_ireplace($search, '', $name));
+                        @endphp
+                        <strong>{{ strtoupper($cleanName) }}</strong>
+                    </div>
+                @endforeach
+            </div> 
         </div>
     @empty
         <div style="text-align: center; margin-top: 50px; color: #999;">

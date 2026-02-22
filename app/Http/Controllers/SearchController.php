@@ -33,7 +33,7 @@ class SearchController extends Controller
         if (!$q) return response()->json([]);
 
         return Product::where('name', 'like', "%$q%")
-            ->select('id', 'name', 'presentation')
+            ->select('id', 'name', 'concentration', 'presentation')
             ->limit(10)
             ->get();
     }

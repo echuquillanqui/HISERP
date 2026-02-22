@@ -64,6 +64,8 @@
      data-prescription="{{ $history->prescription ? $history->prescription->items->map(fn($i) => [
          'product_id' => $i->product_id, // DEBE SER product_id
          'name' => $i->product->name ?? 'N/A', 
+         'concentration' => $i->product->concentration ?? '',
+        'presentation'  => $i->product->presentation ?? '',
          'qty' => $i->cantidad, 
          'notes' => $i->indicaciones
      ])->toJson() : '[]' }}"
@@ -149,20 +151,62 @@
                                 <label class="fw-bold text-success">Buscar Medicamento</label>
                                 <select id="product_select" class="form-control"></select>
                             </div>
-                            <table class="table">
-                                <thead><tr><th>Nombre</th><th width="100px">Cant.</th><th>Indicaciones</th><th></th></tr></thead>
-                                <tbody>
-                                    <template x-for="(item, index) in prescription" :key="index">
-                                        <tr>
-                                            <td x-text="item.name"></td>
-                                            <td><input type="text" :name="'prescription['+index+'][qty]'" x-model="item.qty" class="form-control form-control-sm"></td>
-                                            <td><input type="text" :name="'prescription['+index+'][notes]'" x-model="item.notes" class="form-control form-control-sm"></td>
-                                            <input type="hidden" :name="'prescription['+index+'][product_id]'" :value="item.product_id">
-                                            <td><button type="button" @click="removeRx(index)" class="btn btn-sm text-danger">×</button></td>
-                                        </tr>
-                                    </template>
-                                </tbody>
-                            </table>
+                            <table class="table align-middle">
+                            <thead>
+        <tr class="table-light">
+            <th>Medicamento / Detalles</th>
+            <th width="120px">Cant.</th>
+            <th>Indicaciones (Dosis, Frecuencia, etc.)</th>
+            <th width="50px"></th>
+        </tr>
+    </thead>
+    <tbody>
+        <template x-for="(item, index) in prescription" :key="index">
+            <tr>
+                <td>
+                    <div class="fw-bold text-primary" x-text="item.name"></div>
+                    <div class="small text-muted">
+                        <span x-show="item.concentration" x-text="item.concentration"></span>
+                        <span x-show="item.concentration && item.presentation"> - </span>
+                        <span x-show="item.presentation" x-text="item.presentation"></span>
+                        <span x-show="!item.concentration && !item.presentation" class="fst-italic">Sin especificar</span>
+                    </div>
+                    <input type="hidden" :name="'prescription['+index+'][product_id]'" :value="item.product_id">
+                </td>
+
+                <td>
+                    <input type="text" 
+                           :name="'prescription['+index+'][qty]'" 
+                           x-model="item.qty" 
+                           placeholder="Ej: 10"
+                           class="form-control form-control-sm border-primary-subtle">
+                </td>
+
+                <td>
+                    <input type="text" 
+                           :name="'prescription['+index+'][notes]'" 
+                           x-model="item.notes" 
+                           placeholder="Ej: 1 tableta cada 8 horas por 3 días"
+                           class="form-control form-control-sm border-primary-subtle">
+                </td>
+
+                <td class="text-end">
+                    <button type="button" @click="removeRx(index)" class="btn btn-sm btn-light text-danger shadow-sm">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </td>
+            </tr>
+        </template>
+        
+        <template x-if="prescription.length === 0">
+            <tr>
+                <td colspan="4" class="text-center py-4 text-muted">
+                    <i class="bi bi-capsule me-2"></i> No hay medicamentos añadidos a la receta.
+                </td>
+            </tr>
+        </template>
+    </tbody>
+                        </table>
 
                             <div class="mt-4 p-3 border-top bg-light rounded">
                                 <div class="row align-items-center">
@@ -257,7 +301,7 @@ function clinicalWorkstation() {
     const el = document.getElementById('clinical-app');
     return {
         diagnostics: JSON.parse(el.getAttribute('data-diagnostics') || '[]'),
-        prescription: JSON.parse(el.getAttribute('data-prescription') || '[]'),
+        prescription: el.getAttribute('data-prescription') ? JSON.parse(el.getAttribute('data-prescription')) : [],
 
         // --- NUEVAS VARIABLES PARA IMC ---
         peso: "{{ $history->peso }}",
@@ -343,26 +387,48 @@ function clinicalWorkstation() {
             });
 
             // 2. Buscador Productos
-            new TomSelect('#product_select', {
-                ...remoteSettings,
+            const tsProduct = new TomSelect('#product_select', {
                 valueField: 'id',
                 labelField: 'name',
-                searchField: 'name',
-                load: (q, cb) => {
-                    fetch(`/api/search/products?q=${q}`).then(r => r.json()).then(j => cb(j)).catch(() => cb());
+                searchField: ['name', 'concentration'],
+                options: [],
+                render: {
+                    option: function(data, escape) {
+                    // Creamos una cadena con los detalles solo si existen
+                    let detalles = [data.concentration, data.presentation]
+                        .filter(info => info && info.trim() !== '') // Quitamos nulos o vacíos
+                        .join(' - '); // Los unimos con un guion
+
+                    return `<div>
+                        <div class="fw-bold">${escape(data.name)}</div>
+                        ${detalles ? `<small class="text-muted">${escape(detalles)}</small>` : '<small class="text-muted text-italic">Sin detalles</small>'}
+                    </div>`;
                 },
-                onChange: (v) => {
-                    if(!v) return;
-                    let ts = document.getElementById('product_select').tomselect;
-                    let item = ts.options[v];
-                    
+                item: function(data, escape) {
+                    let extra = data.concentration ? ` (${escape(data.concentration)})` : '';
+                    return `<div>${escape(data.name)}${extra}</div>`;
+                }
+                },
+                load: (q, cb) => {
+                    fetch(`/api/search/products?q=${q}`)
+                        .then(r => r.json())
+                        .then(j => cb(j))
+                        .catch(() => cb());
+                },
+                onChange: (id) => {
+                    if(!id) return;
+                    const item = tsProduct.options[id];
+                    // Agregamos a la receta con los campos de la migración
                     this.prescription.push({
-                        product_id: v,   // USAR SIEMPRE product_id
-                        name: item.name, 
-                        qty: '1', 
-                        notes: ''
+                        product_id: item.id,
+                        name: item.name,
+                        concentration: item.concentration,
+                        presentation: item.presentation,
+                        dose: '',
+                        frequency: '',
+                        duration: ''
                     });
-                    ts.clear();
+                    tsProduct.clear();
                 }
             });
 
