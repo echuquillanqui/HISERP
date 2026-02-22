@@ -144,6 +144,21 @@
                         </li>
 
                         <li class="nav-item dropdown">
+                            <a id="KardexDropdown" class="nav-link dropdown-toggle {{ Request::is('kardex*') ? 'active' : '' }}" 
+                            href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-funnel me-1"></i> Almacén
+                            </a>
+                            <ul class="dropdown-menu shadow-sm" aria-labelledby="KardexDropdown">
+                                <li>
+                                    <a class="dropdown-item py-2" href="{{ route('products.index') }}">
+                                        <i class="bi bi-layers me-2 text-info"></i> Productos
+                                    </a>
+                                </li>
+
+                            </ul>
+                        </li>
+
+                        <li class="nav-item dropdown">
                             <a id="labDropdown" class="nav-link dropdown-toggle {{ Request::is('laboratorio*') ? 'active' : '' }}" 
                             href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-funnel me-1"></i> Laboratorio

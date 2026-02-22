@@ -31,6 +31,8 @@ Route::resource('patients', App\Http\Controllers\PatientController::class)->midd
 Route::resource('areas', App\Http\Controllers\AreaController::class)->middleware('auth');
 Route::resource('catalogs', App\Http\Controllers\CatalogController::class);
 Route::resource('profiles', App\Http\Controllers\ProfileController::class);
+Route::resource('products', App\Http\Controllers\ProductController::class);
+Route::get('/api/products/search', [App\Http\Controllers\ProductController::class, 'search'])->name('products.search');
 
 Route::get('api/areas/{area}/details', [App\Http\Controllers\AreaController::class, 'getDetails']);
 Route::post('profiles/{profile}/sync', [App\Http\Controllers\ProfileController::class, 'toggleExam'])->name('profiles.sync');
