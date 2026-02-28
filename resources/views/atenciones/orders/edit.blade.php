@@ -167,13 +167,24 @@ function orderSystem() {
             patientSelect.setValue("{{ $order->patient_id }}");
 
             const itemSelect = new TomSelect("#item_select", {
-                valueField: 'uid', labelField: 'name', searchField: 'name',
+                valueField: 'uid',
+                labelField: 'display_name',
+                searchField: ['name', 'area', 'display_name'],
                 load: (q, cb) => {
                     if(!q.length) return cb();
                     fetch(`/search-items?q=${encodeURIComponent(q)}`)
                         .then(r=>r.json())
-                        .then(j=>cb(j.map(i=>({...i, uid: i.type+i.id}))))
+                        .then(j=>cb(j.map(i=>({
+                            ...i,
+                            uid: i.type+i.id,
+                            area: i.area || 'SIN ÁREA',
+                            display_name: `${i.name} [${i.area || 'SIN ÁREA'}]`
+                        }))))
                         .catch(()=>cb());
+                },
+                render: {
+                    option: (data, escape) => `<div>${escape(data.name)} <span class="text-primary fw-bold">[${escape(data.area || 'SIN ÁREA')}]</span></div>`,
+                    item: (data, escape) => `<div>${escape(data.name)} <span class="text-primary fw-bold">[${escape(data.area || 'SIN ÁREA')}]</span></div>`
                 },
                 onChange: (v) => {
                     if(!v) return;
