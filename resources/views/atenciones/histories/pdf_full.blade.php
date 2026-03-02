@@ -163,9 +163,16 @@
 </div>
 
     <div style="margin-top: 60px; text-align: center;">
-        <div style="width: 220px; border-top: 1.5px solid #2c3e50; margin: 0 auto; padding-top: 5px;">
-            <strong>DR. {{ strtoupper($history->user->name) }}</strong><br>
-            <span style="font-size: 9px; color: #666;">Firma y Sello del Médico Evaluador</span>
+        
+        <div class="firma-contenedor" style="text-align: center;">
+            @if($history->user->firma)
+                    {{-- Verificamos si el archivo existe físicamente para evitar errores --}}
+                <img src="{{ public_path('storage/' . $history->user->firma) }}" style="width: 180px;">
+                <br>
+            @else
+                <span style="color: #999; font-size: 10px;">FIRMA NO DISPONIBLE</span>  
+            @endif
+                
         </div>
     </div>
 

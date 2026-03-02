@@ -161,12 +161,12 @@
                         <li class="nav-item dropdown">
                             <a id="labDropdown" class="nav-link dropdown-toggle {{ Request::is('laboratorio*') ? 'active' : '' }}" 
                             href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="bi bi-funnel me-1"></i> Laboratorio
+                                <i class="bi bi-funnel me-1"></i> Catalogo Lab
                             </a>
                             <ul class="dropdown-menu shadow-sm" aria-labelledby="labDropdown">
                                 <li>
                                     <a class="dropdown-item py-2" href="{{ route('areas.index') }}">
-                                        <i class="bi bi-layers me-2 text-info"></i> Catalogo
+                                        <i class="bi bi-layers me-2 text-info"></i> Examenes
                                     </a>
                                 </li>
 
@@ -191,8 +191,7 @@
                                 </li>
                                 <li>
                                     <a class="dropdown-item py-2" href="{{ route('lab-results.index') }}">
-                                         <i class="bi bi-list
-                                        <i class="bi bi-list-check me-2 text-info"></i> Resultados
+                                         <i class="bi bi-droplet text-info"></i> Laboratorio
                                     </a>
                                 </li>
                             </ul>

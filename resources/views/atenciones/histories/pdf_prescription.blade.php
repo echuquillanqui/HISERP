@@ -167,10 +167,7 @@
     </div>
 
     <div class="signature-container">
-        <div class="signature-line">
-            <strong style="font-size: 14px;">DR. {{ strtoupper($history->user->name) }}</strong><br>
-            <span style="font-size: 11px; color: #666;">Firma y Sello Médico</span>
-        </div>
+        <img src="{{ public_path('storage/' . $history->user->firma) }}" style="width: 180px;">
     </div>
 
     <div class="footer">

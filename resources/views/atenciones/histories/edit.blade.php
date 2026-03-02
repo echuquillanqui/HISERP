@@ -232,7 +232,7 @@
 
                         <div class="tab-pane fade" id="tab-lab">
                             <div class="bg-light p-4 rounded border">
-                                <label class="fw-bold text-info mb-2">Solicitar Exámenes / Perfiles</label>
+                                <label class="fw-bold text-info mb-2">Solicitar Exámenes Auxiliares</label>
                                 <select id="lab_select" name="lab_exams[]" multiple></select>
                             </div>
                         </div>
