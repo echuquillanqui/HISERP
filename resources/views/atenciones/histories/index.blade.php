@@ -80,19 +80,19 @@
                                         <i class="bi bi-file-earmark-medical"></i> Historia
                                     </a>
                                     
-                                    @if($history->prescription)
+                                   
                                         <a href="{{ route('histories.print-prescription', $history->id) }}" 
                                         target="_blank" class="btn btn-sm btn-outline-success">
                                             <i class="bi bi-capsule"></i> Receta
                                         </a>
-                                    @endif
+                                    
 
-                                    @if($history->labItems->count() > 0)
-                                        <a href="{{ route('histories.print-lab', $history->id) }}" 
-                                        target="_blank" class="btn btn-sm btn-outline-info mx-1">
+                                    
+                                        <a href="{{ route('histories.print', $history->id) }}" 
+                                            target="_blank" class="btn btn-sm btn-outline-info mx-1">
                                             <i class="bi bi-droplet"></i> Lab
                                         </a>
-                                    @endif
+                                   
                                 </div>
                             </td>
                             <td class="text-end pe-4">

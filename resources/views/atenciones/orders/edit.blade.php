@@ -57,7 +57,9 @@
                                 <thead class="table-light">
                                     <tr class="small text-muted">
                                         <th>DESCRIPCIÓN</th>
-                                        <th class="text-end">PRECIO</th>
+                                        <th class="text-center">CANT.</th>
+                                        <th class="text-end">PRECIO UNIT.</th>
+                                        <th class="text-end">SUBTOTAL</th>
                                         <th class="text-center">ACCION</th>
                                     </tr>
                                 </thead>
@@ -70,9 +72,15 @@
                                                 <input type="hidden" :name="'items['+index+'][id]'" :value="item.id">
                                                 <input type="hidden" :name="'items['+index+'][type]'" :value="item.type">
                                                 <input type="hidden" :name="'items['+index+'][name]'" :value="item.name">
-                                                <input type="hidden" :name="'items['+index+'][price]'" :value="item.price">
+                                                <input type="hidden" :name="'items['+index+'][unit_price]'" :value="item.unit_price">
+                                                <input type="hidden" :name="'items['+index+'][quantity]'" :value="item.quantity">
+                                                <input type="hidden" :name="'items['+index+'][price]'" :value="subtotal(item)">
                                             </td>
-                                            <td class="text-end fw-bold">S/ <span x-text="parseFloat(item.price).toFixed(2)"></span></td>
+                                            <td class="text-center" style="max-width: 100px;">
+                                                <input type="number" min="1" class="form-control form-control-sm text-center" x-model.number="item.quantity">
+                                            </td>
+                                            <td class="text-end fw-bold">S/ <span x-text="parseFloat(item.unit_price).toFixed(2)"></span></td>
+                                            <td class="text-end fw-bold">S/ <span x-text="subtotal(item).toFixed(2)"></span></td>
                                             <td class="text-center">
                                                 <button type="button" @click="remove(index)" class="btn btn-sm btn-outline-danger border-0">
                                                     <i class="bi bi-trash3-fill"></i>
@@ -143,7 +151,8 @@ function orderSystem() {
                 name: "{{ $detail->name }}",
                 // Accedemos al área a través de la relación polimórfica itemable
                 area: "{{ $detail->itemable && $detail->itemable->area ? strtoupper($detail->itemable->area->name) : 'SIN ÁREA' }}",
-                price: "{{ $detail->price }}",
+                quantity: {{ $detail->quantity ?? 1 }},
+                unit_price: {{ $detail->quantity ? ($detail->price / $detail->quantity) : $detail->price }},
                 uid: "{{ (str_contains($detail->itemable_type, 'Profile') ? 'profile' : 'catalog') . $detail->itemable_id }}"
             },
             @endforeach
@@ -189,13 +198,24 @@ function orderSystem() {
                 onChange: (v) => {
                     if(!v) return;
                     const item = itemSelect.options[v];
-                    if(!this.cart.find(i=>i.uid === item.uid)) this.cart.push(item);
+                    if(!this.cart.find(i=>i.uid === item.uid)) {
+                        this.cart.push({
+                            ...item,
+                            quantity: 1,
+                            unit_price: parseFloat(item.unit_price ?? item.price ?? 0)
+                        });
+                    }
                     itemSelect.clear();
                 }
             });
         },
         remove(i) { this.cart.splice(i, 1); },
-        total() { return this.cart.reduce((s, i) => s + parseFloat(i.price || 0), 0); }
+        subtotal(item) {
+            const cantidad = Math.max(1, parseInt(item.quantity || 1, 10));
+            item.quantity = cantidad;
+            return cantidad * parseFloat(item.unit_price || 0);
+        },
+        total() { return this.cart.reduce((s, i) => s + this.subtotal(i), 0); }
     }
 }
 </script>

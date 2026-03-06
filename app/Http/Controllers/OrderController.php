@@ -63,6 +63,7 @@ class OrderController extends Controller
             'patient_id' => 'required',
             'payment_status' => 'required|in:pendiente,pagado,anulado',
             'items' => 'required|array|min:1',
+            'items.*.quantity' => 'nullable|integer|min:1',
             'total_amount' => 'required|numeric'
         ]);
 
@@ -96,10 +97,13 @@ class OrderController extends Controller
                 }
 
                 // SINCRONIZACIÓN: Agregar nuevos y detectar servicios administrativos
+                $totalReal = 0;
+
                 foreach ($incomingItems as $item) {
                     $type = ($item['type'] === 'profile' || $item['type'] === 'perfil') ? 'profile' : 'catalog';
                     $modelType = ($type === 'profile') ? \App\Models\Profile::class : \App\Models\Catalog::class;
                     $nombreItemActual = strtoupper($item['name']);
+                    $cantidad = max(1, (int) ($item['quantity'] ?? 1));
 
                     // 2. CAMBIO AQUÍ: Usamos la lógica flexible con el array de palabras clave
                     $esAdministrativo = \Illuminate\Support\Str::contains($nombreItemActual, $palabrasClave);
@@ -108,26 +112,39 @@ class OrderController extends Controller
                         $generarRegistroHistoria = true;
                     }
 
-                    $exists = $order->details()
+                    $precioUnitario = (float) ($item['unit_price'] ?? $item['price'] ?? 0);
+                    $precioAplicado = $precioUnitario * $cantidad;
+                    $totalReal += $precioAplicado;
+
+                    $detail = $order->details()
                         ->where('itemable_id', $item['id'])
                         ->where('itemable_type', $modelType)
-                        ->exists();
+                        ->first();
 
-                    if (!$exists) {
+                    if (!$detail) {
                         $newDetail = OrderDetail::create([
                             'order_id' => $order->id,
                             'itemable_id' => $item['id'],
                             'itemable_type' => $modelType,
                             'name' => $item['name'],
-                            'price' => $item['price'],
+                            'quantity' => $cantidad,
+                            'price' => $precioAplicado,
                         ]);
-
-                        // 3. CAMBIO AQUÍ: Generar resultados solo si NO es administrativo
-                        if (!$esAdministrativo) {
-                            $this->createLabResultFromItem($newDetail, $item);
+                        if (!$esAdministrativo) 
+                            {
+                                $this->createLabResultFromItem($newDetail, $item);
+                            }
+                        } else {
+                            $detail->update([
+                                'name' => $item['name'],
+                                'quantity' => $cantidad,
+                                'price' => $precioAplicado,
+                            ]);
                         }
                     }
-                }
+                
+
+                $order->update(['total' => $totalReal]);
 
                 // LÓGICA DE HISTORIA
                 if ($generarRegistroHistoria) {
@@ -228,6 +245,7 @@ class OrderController extends Controller
         $request->validate([
             'patient_id' => 'required',
             'items' => 'required|array|min:1',
+            'items.*.quantity' => 'nullable|integer|min:1',
             'total_amount' => 'required|numeric',
         ]);
 
@@ -260,9 +278,12 @@ class OrderController extends Controller
                 foreach ($request->items as $item) {
                     $nombreItemActual = strtoupper($item['name']);
                     $esAdministrativo = Str::contains($nombreItemActual, $palabrasClave);
+                    $cantidad = max(1, (int) ($item['quantity'] ?? 1));
+                    $precioUnitario = (float) ($item['unit_price'] ?? $item['price'] ?? 0);
                     
                     // REGLA DE NEGOCIO: Si es administrativo y tiene historia reciente, precio = 0
-                    $precioAplicado = ($esAdministrativo && $tieneHistoriaReciente) ? 0 : $item['price'];
+                    $precioUnitarioAplicado = ($esAdministrativo && $tieneHistoriaReciente) ? 0 : $precioUnitario;
+                    $precioAplicado = $precioUnitarioAplicado * $cantidad;
                     $totalReal += $precioAplicado;
 
                     $detail = OrderDetail::create([
@@ -270,6 +291,7 @@ class OrderController extends Controller
                         'itemable_id' => $item['id'],
                         'itemable_type' => ($item['type'] === 'catalog') ? \App\Models\Catalog::class : \App\Models\Profile::class,
                         'name' => $item['name'],
+                        'quantity' => $cantidad,
                         'price' => $precioAplicado,
                     ]);
 
