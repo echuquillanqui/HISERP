@@ -96,14 +96,22 @@
     <table class="table-bordered">
     <thead>
         <tr>
-            <th align="center" style="font-size: 10px; width: 70%;">EXAMENES</th>
-            <th align="center" style="font-size: 10px; width: 30%;">IMPORTE</th>
+            <th align="center" style="font-size: 10px; width: 50%;">EXAMENES</th>
+            <th align="center" style="font-size: 10px; width: 15%;">CANT.</th>
+            <th align="center" style="font-size: 10px; width: 35%;">IMPORTE</th>
         </tr>
     </thead>
     <tbody>
         @foreach($order->details as $detail)
             <tr class="item-row">
-                <td align="center" class="bold">{{ $detail->name }}</td>
+                <td align="center" class="bold">
+                    {{ $detail->name }}
+                    <br>
+                    <span style="font-weight: normal; font-size: 10px;">S/. {{ number_format(($detail->quantity ?? 1) > 0 ? ($detail->price / ($detail->quantity ?? 1)) : $detail->price, 2) }}</span>
+                </td>
+                <td align="center" class="price-text">
+                    {{ $detail->quantity ?? 1 }}
+                </td>
                 <td align="center" class="price-text">
                     S/. {{ number_format($detail->price, 2) }}
                 </td>
