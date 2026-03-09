@@ -299,36 +299,36 @@
             </div>
         </div>
     </form>
-</div>
 
-<div class="modal fade" id="quickProductModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Nuevo medicamento rápido</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <label class="form-label">Nombre *</label>
-                    <input type="text" class="form-control" x-model="newProduct.name" placeholder="Ej: Amoxicilina">
+    <div class="modal fade" id="quickProductModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nuevo medicamento rápido</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Concentración</label>
-                    <input type="text" class="form-control" x-model="newProduct.concentration" placeholder="Ej: 500 mg">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre *</label>
+                        <input type="text" class="form-control" x-model="newProduct.name" placeholder="Ej: Amoxicilina">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Concentración</label>
+                        <input type="text" class="form-control" x-model="newProduct.concentration" placeholder="Ej: 500 mg">
+                    </div>
+                    <div>
+                        <label class="form-label">Presentación</label>
+                        <input type="text" class="form-control" x-model="newProduct.presentation" placeholder="Ej: cápsulas">
+                    </div>
+                    <small class="text-muted d-block mt-2">Al guardar, se agregará automáticamente a la receta actual.</small>
                 </div>
-                <div>
-                    <label class="form-label">Presentación</label>
-                    <input type="text" class="form-control" x-model="newProduct.presentation" placeholder="Ej: cápsulas">
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success" @click="saveQuickProduct()" :disabled="savingProduct">
+                        <span x-show="!savingProduct">Guardar y usar</span>
+                        <span x-show="savingProduct">Guardando...</span>
+                    </button>
                 </div>
-                <small class="text-muted d-block mt-2">Al guardar, se agregará automáticamente a la receta actual.</small>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-success" @click="saveQuickProduct()" :disabled="savingProduct">
-                    <span x-show="!savingProduct">Guardar y usar</span>
-                    <span x-show="savingProduct">Guardando...</span>
-                </button>
             </div>
         </div>
     </div>
