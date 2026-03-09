@@ -147,56 +147,63 @@
                         </div>
 
                         <div class="tab-pane fade" id="tab-rx">
-                            <div class="mb-4">
-                                <label class="fw-bold text-success">Buscar Medicamento</label>
-                                <select id="product_select" class="form-control"></select>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-8">
+                                    <label class="fw-bold text-success">Buscar Medicamento</label>
+                                    <select id="product_select" class="form-control"></select>
+                                </div>
+                                <div class="col-md-4 d-grid align-content-end">
+                                    <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#quickProductModal">
+                                        <i class="bi bi-plus-circle me-1"></i> Agregar nuevo medicamento
+                                    </button>
+                                </div>
                             </div>
                             <table class="table align-middle">
                             <thead>
-        <tr class="table-light">
-            <th>Medicamento / Detalles</th>
-            <th width="120px">Cant.</th>
-            <th>Indicaciones (Dosis, Frecuencia, etc.)</th>
-            <th width="50px"></th>
-        </tr>
-    </thead>
-    <tbody>
-        <template x-for="(item, index) in prescription" :key="index">
-            <tr>
-                <td>
-                    <div class="fw-bold text-primary" x-text="item.name"></div>
-                    <div class="small text-muted">
-                        <span x-show="item.concentration" x-text="item.concentration"></span>
-                        <span x-show="item.concentration && item.presentation"> - </span>
-                        <span x-show="item.presentation" x-text="item.presentation"></span>
-                        <span x-show="!item.concentration && !item.presentation" class="fst-italic">Sin especificar</span>
-                    </div>
-                    <input type="hidden" :name="'prescription['+index+'][product_id]'" :value="item.product_id">
-                </td>
+                                <tr class="table-light">
+                                    <th>Medicamento / Detalles</th>
+                                    <th width="120px">Cant.</th>
+                                    <th>Indicaciones (Dosis, Frecuencia, etc.)</th>
+                                    <th width="50px"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            <template x-for="(item, index) in prescription" :key="index">
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold text-primary" x-text="item.name"></div>
+                                        <div class="small text-muted">
+                                            <span x-show="item.concentration" x-text="item.concentration"></span>
+                                            <span x-show="item.concentration && item.presentation"> - </span>
+                                            <span x-show="item.presentation" x-text="item.presentation"></span>
+                                            <span x-show="!item.concentration && !item.presentation" class="fst-italic">Sin especificar</span>
+                                        </div>
+                                        <input type="hidden" :name="'prescription['+index+'][product_id]'" :value="item.product_id">
+                                    </td>
 
-                <td>
-                    <input type="text" 
-                           :name="'prescription['+index+'][qty]'" 
-                           x-model="item.qty" 
-                           placeholder="Ej: 10"
-                           class="form-control form-control-sm border-primary-subtle">
-                </td>
+                                    <td>
+                                        <input type="text" 
+                                            :name="'prescription['+index+'][qty]'" 
+                                            x-model="item.qty" 
+                                            placeholder="Ej: 10"
+                                            class="form-control form-control-sm border-primary-subtle">
+                                    </td>
 
-                <td>
-                    <input type="text" 
-                           :name="'prescription['+index+'][notes]'" 
-                           x-model="item.notes" 
-                           placeholder="Ej: 1 tableta cada 8 horas por 3 días"
-                           class="form-control form-control-sm border-primary-subtle">
-                </td>
+                                    <td>
+                                        <input type="text" 
+                                            :name="'prescription['+index+'][notes]'" 
+                                            x-model="item.notes" 
+                                            placeholder="Ej: 1 tableta cada 8 horas por 3 días"
+                                            class="form-control form-control-sm border-primary-subtle">
+                                    </td>
 
-                <td class="text-end">
-                    <button type="button" @click="removeRx(index)" class="btn btn-sm btn-light text-danger shadow-sm">
-                        <i class="bi bi-x-lg"></i>
-                    </button>
-                </td>
-            </tr>
-        </template>
+                                    <td class="text-end">
+                                        <button type="button" @click="removeRx(index)" class="btn btn-sm btn-light text-danger shadow-sm">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
         
         <template x-if="prescription.length === 0">
             <tr>
@@ -294,7 +301,38 @@
     </form>
 </div>
 
-
+<div class="modal fade" id="quickProductModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nuevo medicamento rápido</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Nombre *</label>
+                    <input type="text" class="form-control" x-model="newProduct.name" placeholder="Ej: Amoxicilina">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Concentración</label>
+                    <input type="text" class="form-control" x-model="newProduct.concentration" placeholder="Ej: 500 mg">
+                </div>
+                <div>
+                    <label class="form-label">Presentación</label>
+                    <input type="text" class="form-control" x-model="newProduct.presentation" placeholder="Ej: cápsulas">
+                </div>
+                <small class="text-muted d-block mt-2">Al guardar, se agregará automáticamente a la receta actual.</small>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" @click="saveQuickProduct()" :disabled="savingProduct">
+                    <span x-show="!savingProduct">Guardar y usar</span>
+                    <span x-show="savingProduct">Guardando...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
 function clinicalWorkstation() {
@@ -302,6 +340,10 @@ function clinicalWorkstation() {
     return {
         diagnostics: JSON.parse(el.getAttribute('data-diagnostics') || '[]'),
         prescription: el.getAttribute('data-prescription') ? JSON.parse(el.getAttribute('data-prescription')) : [],
+        tsProduct: null,
+        quickProductModal: null,
+        savingProduct: false,
+        newProduct: { name: '', concentration: '', presentation: '' },
 
         // --- NUEVAS VARIABLES PARA IMC ---
         peso: "{{ $history->peso }}",
@@ -387,7 +429,7 @@ function clinicalWorkstation() {
             });
 
             // 2. Buscador Productos
-            const tsProduct = new TomSelect('#product_select', {
+            this.tsProduct = new TomSelect('#product_select', {
                 valueField: 'id',
                 labelField: 'name',
                 searchField: ['name', 'concentration'],
@@ -417,7 +459,7 @@ function clinicalWorkstation() {
                 },
                 onChange: (id) => {
                     if(!id) return;
-                    const item = tsProduct.options[id];
+                    const item = this.tsProduct.options[id];
                     // Agregamos a la receta con los campos de la migración
                     this.prescription.push({
                         product_id: item.id,
@@ -428,9 +470,11 @@ function clinicalWorkstation() {
                         frequency: '',
                         duration: ''
                     });
-                    tsProduct.clear();
+                    this.tsProduct.clear();
                 }
             });
+
+            this.quickProductModal = new bootstrap.Modal(document.getElementById('quickProductModal'));
 
             // 3. Buscador Laboratorio (Múltiple)
             const tsLab = new TomSelect('#lab_select', {
@@ -461,7 +505,41 @@ function clinicalWorkstation() {
             }
         },
         removeDx(i) { this.diagnostics.splice(i, 1); },
-        removeRx(i) { this.prescription.splice(i, 1); }
+        removeRx(i) { this.prescription.splice(i, 1); },
+
+        async saveQuickProduct() {
+            if (!this.newProduct.name || !this.newProduct.name.trim()) {
+                alert('Debe ingresar al menos el nombre del medicamento.');
+                return;
+            }
+
+            this.savingProduct = true;
+            try {
+                const response = await fetch('/api/search/products/quick-store', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify(this.newProduct)
+                });
+
+                if (!response.ok) {
+                    throw new Error('No se pudo registrar el medicamento');
+                }
+
+                const product = await response.json();
+                this.tsProduct.addOption(product);
+                this.tsProduct.addItem(String(product.id));
+
+                this.quickProductModal.hide();
+                this.newProduct = { name: '', concentration: '', presentation: '' };
+            } catch (error) {
+                alert(error.message);
+            } finally {
+                this.savingProduct = false;
+            }
+        }
     }
 }
 </script>

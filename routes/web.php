@@ -52,6 +52,7 @@ Route::controller(App\Http\Controllers\HistoryController::class)->group(function
 Route::get('/api/search/cie10', [App\Http\Controllers\SearchController::class, 'cie10']);
 Route::get('/api/search/products', [App\Http\Controllers\SearchController::class, 'products']);
 Route::get('/api/search/lab', [App\Http\Controllers\SearchController::class, 'lab']);
+Route::post('/api/search/products/quick-store', [App\Http\Controllers\SearchController::class, 'quickStoreProduct']);
 
 Route::resource('lab-results', App\Http\Controllers\LabResultController::class)->names('lab-results');
 

@@ -6,6 +6,7 @@ use App\Models\Cie10;
 use App\Models\Product;
 use App\Models\Catalog;
 use App\Models\Profile;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 
 class SearchController extends Controller
@@ -57,5 +58,33 @@ class SearchController extends Controller
             ->map(fn($item) => ['uid' => 'profile-' . $item->id, 'name' => '[PERFIL] ' . $item->name]);
 
         return $exams->concat($profiles)->take(10);
+    }
+
+    public function quickStoreProduct(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'concentration' => 'nullable|string|max:255',
+            'presentation' => 'nullable|string|max:255',
+        ]);
+
+        $product = Product::create([
+            'code' => 'AUTO-' . Str::upper(Str::random(8)),
+            'name' => $validated['name'],
+            'concentration' => $validated['concentration'] ?? null,
+            'presentation' => $validated['presentation'] ?? null,
+            'stock' => 0,
+            'min_stock' => 0,
+            'purchase_price' => 0,
+            'selling_price' => 0,
+            'is_active' => true,
+        ]);
+
+        return response()->json([
+            'id' => $product->id,
+            'name' => $product->name,
+            'concentration' => $product->concentration,
+            'presentation' => $product->presentation,
+        ], 201);
     }
 }
