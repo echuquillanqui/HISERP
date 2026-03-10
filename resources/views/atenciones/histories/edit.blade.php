@@ -66,19 +66,33 @@
     }
 </style>
 
+@php
+    $initialDiagnostics = $history->diagnostics->map(fn($d) => [
+        'cie10_id' => $d->cie10_id,
+        'codigo' => $d->cie10->codigo ?? 'S/C',
+        'descripcion' => $d->diagnostico,
+        'tratamiento' => $d->tratamiento,
+    ])->values();
+
+    $initialPrescription = optional($history->prescription)->items?->map(fn($i) => [
+        'product_id' => $i->product_id,
+        'name' => $i->product->name ?? 'N/A',
+        'concentration' => $i->product->concentration ?? '',
+        'presentation' => $i->product->presentation ?? '',
+        'qty' => $i->cantidad,
+        'notes' => $i->indicaciones,
+    ])->values() ?? collect();
+
+    $initialLabs = $history->labItems->pluck('name')->values();
+@endphp
+
 <div class="container-fluid py-4" 
      id="clinical-app"
-     x-data="clinicalWorkstation()" 
-     data-diagnostics="{{ $history->diagnostics->map(fn($d) => ['cie10_id' => $d->cie10_id, 'codigo' => $d->cie10->codigo ?? 'S/C', 'descripcion' => $d->diagnostico, 'tratamiento' => $d->tratamiento])->toJson() }}"
-     data-prescription="{{ $history->prescription ? $history->prescription->items->map(fn($i) => [
-         'product_id' => $i->product_id, // DEBE SER product_id
-         'name' => $i->product->name ?? 'N/A', 
-         'concentration' => $i->product->concentration ?? '',
-        'presentation'  => $i->product->presentation ?? '',
-         'qty' => $i->cantidad, 
-         'notes' => $i->indicaciones
-     ])->toJson() : '[]' }}"
-     data-labs="{{ $history->labItems->pluck('name')->toJson() }}">
+     x-data='clinicalWorkstation(@js([
+        "diagnostics" => $initialDiagnostics,
+        "prescription" => $initialPrescription,
+        "labs" => $initialLabs,
+     ]))'>
 
     <form action="{{ route('histories.update', $history->id) }}" method="POST">
         @csrf
@@ -351,13 +365,9 @@
                                                         <span class="badge text-bg-light border">Sin receta</span>
                                                     @endif
 
-                                                    @if($item->labItems->isNotEmpty())
-                                                        <a href="{{ route('histories.print', $item->id) }}" target="_blank" class="btn btn-sm btn-outline-info">
-                                                            <i class="bi bi-file-earmark-bar-graph me-1"></i>Laboratorio
-                                                        </a>
-                                                    @else
-                                                        <span class="badge text-bg-light border">Sin laboratorio</span>
-                                                    @endif
+                                                    <a href="{{ route('histories.print', $item->id) }}" target="_blank" class="btn btn-sm btn-outline-info">
+                                                        <i class="bi bi-file-earmark-bar-graph me-1"></i>Laboratorio
+                                                    </a>
                                                 </div>
                                             </div>
                                         @empty
@@ -408,11 +418,11 @@
 </div>
 
 <script>
-function clinicalWorkstation() {
-    const el = document.getElementById('clinical-app');
+function clinicalWorkstation(initialData = {}) {
     return {
-        diagnostics: JSON.parse(el.getAttribute('data-diagnostics') || '[]'),
-        prescription: el.getAttribute('data-prescription') ? JSON.parse(el.getAttribute('data-prescription')) : [],
+        diagnostics: Array.isArray(initialData.diagnostics) ? initialData.diagnostics : [],
+        prescription: Array.isArray(initialData.prescription) ? initialData.prescription : [],
+        labs: Array.isArray(initialData.labs) ? initialData.labs : [],
         tsProduct: null,
         quickProductModal: null,
         savingProduct: false,
@@ -539,9 +549,8 @@ function clinicalWorkstation() {
                         name: item.name,
                         concentration: item.concentration,
                         presentation: item.presentation,
-                        dose: '',
-                        frequency: '',
-                        duration: ''
+                        qty: 1,
+                        notes: ''
                     });
                     this.tsProduct.clear();
                 }
@@ -563,7 +572,7 @@ function clinicalWorkstation() {
             });
 
             // Precarga de laboratorios ya guardados (limpia y segura)
-            const savedLabs = JSON.parse(el.getAttribute('data-labs') || '[]');
+            const savedLabs = this.labs;
 
             if(savedLabs.length > 0) {
                 // 1. Limpiamos cualquier opción previa para evitar duplicados o basura
