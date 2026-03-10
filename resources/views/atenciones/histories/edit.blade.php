@@ -145,8 +145,8 @@
                                             <input type="text" name="alergias" class="form-control" value="{{ $history->alergias }}">
                                         </div>
                                     </div>
-
-                            <div class="col-lg-4 order-1 order-lg-2">
+                                </div>
+                                <div class="col-lg-4 order-1 order-lg-2">
                                     <div class="section-card p-3 p-lg-4 mb-4">
                                         <div class="d-flex align-items-center justify-content-between mb-3">
                                             <h6 class="mb-0 fw-bold text-primary">
@@ -156,7 +156,7 @@
                                         </div>
                                                 
 
-                            <div class="row g-3 vitals-grid">
+                                        <div class="row g-3 vitals-grid">
                                             <div class="col-6 col-md-4 col-lg-6"><label class="small text-muted">P.A. (mmHg)</label><input type="text" name="pa" class="form-control" value="{{ $history->pa }}"></div>
                                             <div class="col-6 col-md-4 col-lg-6"><label class="small text-muted">F.C. (LPM)</label><input type="text" name="fc" class="form-control" value="{{ $history->fc }}"></div>
                                             <div class="col-6 col-md-4 col-lg-6"><label class="small text-muted">T° (°C)</label><input type="text" name="temp" class="form-control" value="{{ $history->temp }}"></div>
