@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 
 
 class HistoryController extends Controller
@@ -165,20 +166,22 @@ class HistoryController extends Controller
     public function printHistory(History $history) 
     {
         $branch = \App\Models\Branch::where('estado', true)->first();
-        $history->load(['patient', 'user', 'diagnostics.cie10']);
+        $history->load(['patient', 'user', 'diagnostics.cie10', 'order.details.itemable.area']);
+        $orderLabExams = $this->getOrderLabExams($history);
 
-        return \Barryvdh\DomPDF\Facade\Pdf::loadView('atenciones.histories.pdf_full', compact('history', 'branch'))
-                    ->setPaper('a4')->stream("Historia_{$history->id}.pdf");
+        return \Barryvdh\DomPDF\Facade\Pdf::loadView('atenciones.histories.pdf_full', compact('history', 'branch', 'orderLabExams'))
+            ->setPaper('a4')->stream("Historia_{$history->id}.pdf");
     }
 
     // Imprimir Receta
     public function printPrescription(History $history) 
     {
         // Cargamos los ítems y sus productos relacionados
-        $history->load(['patient', 'user', 'prescriptionItems.product']); 
+        $history->load(['patient', 'user', 'prescriptionItems.product', 'order.details.itemable.area']); 
         $branch = \App\Models\Branch::where('estado', true)->first();
+        $orderLabExams = $this->getOrderLabExams($history);
 
-        return \Barryvdh\DomPDF\Facade\Pdf::loadView('atenciones.histories.pdf_prescription', compact('history', 'branch'))
+        return \Barryvdh\DomPDF\Facade\Pdf::loadView('atenciones.histories.pdf_prescription', compact('history', 'branch', 'orderLabExams'))
                     ->setPaper('a4')
                     ->stream("Receta_{$history->id}.pdf");
     }
@@ -186,7 +189,8 @@ class HistoryController extends Controller
     // Imprimir Laboratorio
     public function printLab(History $history) 
     {
-        $history->load(['patient', 'user', 'labItems.itemable.area']);
+        $history->load(['patient', 'user', 'labItems.itemable.area', 'order.details.itemable.area']);
+        $orderLabExams = $this->getOrderLabExams($history);
         
         // Obtenemos la sucursal activa
         $branch = \App\Models\Branch::where('estado', true)->first();
@@ -195,9 +199,33 @@ class HistoryController extends Controller
             return $item->itemable->area->name ?? 'GENERAL';
         });
 
-        return \Barryvdh\DomPDF\Facade\Pdf::loadView('atenciones.histories.pdf_lab', compact('history', 'groupedLabs', 'branch'))
+        if ($groupedLabs->isEmpty() && $orderLabExams->isNotEmpty()) {
+            $groupedLabs = collect(['GENERAL' => $orderLabExams->map(fn ($examName) => (object) ['name' => $examName])]);
+        }
+
+        return \Barryvdh\DomPDF\Facade\Pdf::loadView('atenciones.histories.pdf_lab', compact('history', 'groupedLabs', 'branch', 'orderLabExams'))
                     ->setPaper('a4')
                     ->stream();
     }
-    
+
+    private function getOrderLabExams(History $history): Collection
+    {
+        if (!$history->order) {
+            return collect();
+        }
+
+        return $history->order->details
+            ->filter(function ($detail) {
+                $areaName = strtoupper($detail->itemable->area->name ?? '');
+                return !in_array($areaName, ['MEDICINA', 'ADICIONALES']);
+            })
+            ->map(function ($detail) {
+                $name = $detail->itemable->name ?? $detail->name ?? '';
+                $search = ['[PERFIL]', '[EXAMEN]', '[examen]'];
+                return trim(str_ireplace($search, '', $name));
+            })
+            ->filter()
+            ->unique()
+            ->values();
+    }
 }
