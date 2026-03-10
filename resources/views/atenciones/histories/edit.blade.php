@@ -55,52 +55,28 @@
         border-radius: 0 0 8px 8px;
         background: #fff;
     }
-
-    .vitals-grid .form-control {
-        border-radius: 10px;
-    }
-    .section-card {
-        border: 1px solid #e9ecef;
-        border-radius: 14px;
-        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-    }
 </style>
-
-@php
-    $initialDiagnostics = collect($history->diagnostics ?? [])->map(fn($d) => [
-        'cie10_id' => $d->cie10_id,
-        'codigo' => $d->cie10->codigo ?? 'S/C',
-        'descripcion' => $d->diagnostico,
-        'tratamiento' => $d->tratamiento,
-    ])->values();
-
-    $initialPrescription = collect(optional($history->prescription)->items ?? [])->map(fn($i) => [
-        'product_id' => $i->product_id,
-        'name' => $i->product->name ?? 'N/A',
-        'concentration' => $i->product->concentration ?? '',
-        'presentation' => $i->product->presentation ?? '',
-        'qty' => $i->cantidad,
-        'notes' => $i->indicaciones,
-    ])->values() ?? collect();
-
-    $initialLabs = collect($history->labItems ?? [])->pluck('name')->values();
-@endphp
 
 <div class="container-fluid py-4" 
      id="clinical-app"
-     x-data='clinicalWorkstation(@js([
-        "diagnostics" => $initialDiagnostics,
-        "prescription" => $initialPrescription,
-        "labs" => $initialLabs,
-     ]))'
-     x-init="init()">
+     x-data="clinicalWorkstation()" 
+     data-diagnostics="{{ $history->diagnostics->map(fn($d) => ['cie10_id' => $d->cie10_id, 'codigo' => $d->cie10->codigo ?? 'S/C', 'descripcion' => $d->diagnostico, 'tratamiento' => $d->tratamiento])->toJson() }}"
+     data-prescription="{{ $history->prescription ? $history->prescription->items->map(fn($i) => [
+         'product_id' => $i->product_id, // DEBE SER product_id
+         'name' => $i->product->name ?? 'N/A', 
+         'concentration' => $i->product->concentration ?? '',
+        'presentation'  => $i->product->presentation ?? '',
+         'qty' => $i->cantidad, 
+         'notes' => $i->indicaciones
+     ])->toJson() : '[]' }}"
+     data-labs="{{ $history->labItems->pluck('name')->toJson() }}">
 
     <form action="{{ route('histories.update', $history->id) }}" method="POST">
         @csrf
         @method('PUT')
 
         <div class="row">
-            <div class="col-12">
+            <div class="col-lg-8">
                 <div class="card shadow-sm border-0 mb-4">
                     <div class="card-header bg-white p-0">
                         <ul class="nav nav-tabs nav-fill border-0" id="myTab" role="tablist">
@@ -108,81 +84,40 @@
                             <li class="nav-item"><a class="nav-link py-3" data-bs-toggle="tab" href="#tab-dx">2. DIAGNÓSTICOS</a></li>
                             <li class="nav-item"><a class="nav-link py-3" data-bs-toggle="tab" href="#tab-rx">3. RECETA</a></li>
                             <li class="nav-item"><a class="nav-link py-3" data-bs-toggle="tab" href="#tab-lab">4. LABORATORIO</a></li>
-                            <li class="nav-item"><a class="nav-link py-3" data-bs-toggle="tab" href="#tab-history-files">5. HISTORIAL</a></li>
                         </ul>
                     </div>
                     
                     <div class="card-body p-4 tab-content">
                         <div class="tab-pane fade show active" id="tab-anamnesis">
-                            <div class="row g-4">
-                                <div class="col-lg-8 order-2 order-lg-1">
-                                    <div class="row mb-4">
-                                        <div class="col-md-12">
-                                            <label class="fw-bold mb-2">Relato de la consulta (Anamnesis)</label>
-                                            <textarea name="anamnesis" class="form-control" rows="6" required>{{ $history->anamnesis }}</textarea>
-                                        </div>
-                                    </div>
-
-                                    <div class="row mb-4">
-                                        <div class="col-md-6">
-                                            <label class="fw-bold mb-2">Antecedentes Familiares</label>
-                                            <textarea name="antecedentes_familiares" class="form-control" rows="3">{{ $history->antecedentes_familiares }}</textarea>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="fw-bold mb-2">Otros Antecedentes / Especificar</label>
-                                            <textarea name="antecedentes_otros" class="form-control" rows="3">{{ $history->antecedentes_otros }}</textarea>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md-12">
-                                            <label class="fw-bold mb-2">Examen Físico Detallado</label>
-                                            <textarea name="examen_fisico_detalle" class="form-control" rows="3">{{ $history->examen_fisico_detalle }}</textarea>
-                                        </div>
-                                    </div>
-
-                                    <div class="row mb-4">
-                                        <div class="col-md-12">
-                                            <label class="fw-bold mb-2">Alergias</label>
-                                            <input type="text" name="alergias" class="form-control" value="{{ $history->alergias }}">
-                                        </div>
-                                    </div>
+                            <div class="row mb-4">
+                                <div class="col-md-12">
+                                    <label class="fw-bold mb-2">Relato de la consulta (Anamnesis)</label>
+                                    <textarea name="anamnesis" class="form-control" rows="6" required>{{ $history->anamnesis }}</textarea>
                                 </div>
-                                <div class="col-lg-4 order-1 order-lg-2">
-                                    <div class="section-card p-3 p-lg-4 mb-4">
-                                        <div class="d-flex align-items-center justify-content-between mb-3">
-                                            <h6 class="mb-0 fw-bold text-primary">
-                                                <i class="bi bi-heart-pulse me-2"></i>Signos Vitales
-                                            </h6>
-                                            <span class="badge bg-light text-primary border">Registro clínico</span>
-                                        </div>
-                                                
+                            </div>
 
-                                        <div class="row g-3 vitals-grid">
-                                            <div class="col-6 col-md-4 col-lg-6"><label class="small text-muted">P.A. (mmHg)</label><input type="text" name="pa" class="form-control" value="{{ $history->pa }}"></div>
-                                            <div class="col-6 col-md-4 col-lg-6"><label class="small text-muted">F.C. (LPM)</label><input type="text" name="fc" class="form-control" value="{{ $history->fc }}"></div>
-                                            <div class="col-6 col-md-4 col-lg-6"><label class="small text-muted">T° (°C)</label><input type="text" name="temp" class="form-control" value="{{ $history->temp }}"></div>
-                                            <div class="col-6 col-md-4 col-lg-6"><label class="small text-muted">F.R. (RPM)</label><input type="text" name="fr" class="form-control" value="{{ $history->fr }}"></div>
-                                            <div class="col-6 col-md-4 col-lg-6"><label class="small text-muted">SO2 (%)</label><input type="text" name="so2" class="form-control" value="{{ $history->so2 }}"></div>
-                                            <div class="col-6 col-md-4 col-lg-6"><label class="small text-muted">Peso (Kg)</label><input type="number" step="0.1" name="peso" x-model="peso" value="{{ old('peso', $history->peso) }}" class="form-control" placeholder="Kg"></div>
-                                            <div class="col-6 col-md-4 col-lg-6"><label class="small text-muted">Talla (cm)</label><input type="number" name="talla" x-model="talla" value="{{ old('talla', $history->talla) }}" class="form-control" placeholder="cm"></div>
-                                            <div class="col-6 col-md-8 col-lg-6 d-flex align-items-end">
-                                                <input type="hidden" name="imc" :value="imc" value="{{ old('imc', $history->imc) }}">
-                                                <div class="p-2 rounded text-center fw-bold w-100" :class="imcClass" style="border: 1px solid rgba(0,0,0,0.1)">
-                                                    IMC: <span x-text="imc"></span><br>
-                                                    <small x-text="imcStatus"></small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <label class="fw-bold mb-2">Antecedentes Familiares</label>
+                                    <textarea name="antecedentes_familiares" class="form-control" rows="3">{{ $history->antecedentes_familiares }}</textarea>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="fw-bold mb-2">Otros Antecedentes / Especificar</label>
+                                    <textarea name="antecedentes_otros" class="form-control" rows="3">{{ $history->antecedentes_otros }}</textarea>
+                                </div>
+                            </div>
 
-                                    <div class="section-card p-3">
-                                        <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-person-walking me-2"></i>Hábitos</h6>
-                                        <div class="row g-2">
-                                            <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" name="habito_tabaco" id="tabaco" value="1" {{ $history->habito_tabaco ? 'checked' : '' }}><label class="form-check-label" for="tabaco">Tabaco</label></div></div>
-                                            <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" name="habito_alcohol" id="alcohol" value="1" {{ $history->habito_alcohol ? 'checked' : '' }}><label class="form-check-label" for="alcohol">Alcohol</label></div></div>
-                                            <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" name="habito_coca" id="coca" value="1" {{ $history->habito_coca ? 'checked' : '' }}><label class="form-check-label" for="coca">Coca</label></div></div>
-                                        </div>
-                                    </div>
+                            <div class="row mb-4">
+                                <div class="col-md-12">
+                                    <label class="fw-bold mb-2">Alergias</label>
+                                    <input type="text" name="alergias" class="form-control" value="{{ $history->alergias }}">
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <label class="fw-bold mb-2">Examen Físico Detallado</label>
+                                    <textarea name="examen_fisico_detalle" class="form-control" rows="3">{{ $history->examen_fisico_detalle }}</textarea>
                                 </div>
                             </div>
                         </div>
@@ -247,8 +182,7 @@
                                     </td>
 
                                     <td>
-                                        <input type="number" 
-                                            min="1"
+                                        <input type="text" 
                                             :name="'prescription['+index+'][qty]'" 
                                             x-model="item.qty" 
                                             placeholder="Ej: 10"
@@ -271,14 +205,14 @@
                                 </tr>
                             </template>
         
-                        <template x-if="prescription.length === 0">
-                            <tr>
-                                <td colspan="4" class="text-center py-4 text-muted">
-                                    <i class="bi bi-capsule me-2"></i> No hay medicamentos añadidos a la receta.
-                                </td>
-                            </tr>
-                        </template>
-                        </tbody>
+        <template x-if="prescription.length === 0">
+            <tr>
+                <td colspan="4" class="text-center py-4 text-muted">
+                    <i class="bi bi-capsule me-2"></i> No hay medicamentos añadidos a la receta.
+                </td>
+            </tr>
+        </template>
+    </tbody>
                         </table>
 
                             <div class="mt-4 p-3 border-top bg-light rounded">
@@ -309,114 +243,59 @@
                                 <select id="lab_select" name="lab_exams[]" multiple></select>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
 
-                        <div class="tab-pane fade" id="tab-history-files">
-                            <div class="row g-3">
-                                <div class="col-lg-6">
-                                    <div class="border rounded p-3 bg-light h-100">
-                                        <h6 class="fw-bold mb-3">Atenciones del paciente</h6>
-                                        <div class="list-group shadow-sm">
-                                            @forelse(($patientHistories ?? collect()) as $item)
-                                                <div class="list-group-item d-flex justify-content-between align-items-start {{ $item->id === $history->id ? 'active border-primary' : '' }}">
-                                                    <div class="me-2">
-                                                        <div class="fw-semibold">Historia #{{ $item->id }}</div>
-                                                        <small class="{{ $item->id === $history->id ? 'text-white-50' : 'text-muted' }}">
-                                                            {{ optional($item->created_at)->format('d/m/Y H:i') }}
-                                                            @if($item->user)
-                                                                · Dr(a). {{ $item->user->name }}
-                                                            @endif
-                                                        </small>
-                                                    </div>
-                                                    @if($item->id === $history->id)
-                                                        <span class="badge bg-primary">Actual</span>
-                                                    @endif
-                                                </div>
-                                            @empty
-                                                <div class="list-group-item text-muted">No hay atenciones registradas para este paciente.</div>
-                                            @endforelse
-                                        </div>
-
-                                        @if(isset($patientHistories) && method_exists($patientHistories, 'hasPages') && $patientHistories->hasPages())
-                                            <div class="mt-3">
-                                                {{ $patientHistories->appends(request()->except('histories_page'))->links() }}
-                                            </div>
-                                        @endif
-                                    </div>
-                                </div>
-
-                                <div class="col-lg-6">
-                                    <div class="border rounded p-3 h-100 mb-3">
-                                        <h6 class="fw-bold mb-3">Resultados de laboratorio (orden asociada)</h6>
-                                        @if(($orderLabResults ?? collect())->isNotEmpty())
-                                            <div class="table-responsive">
-                                                <table class="table table-sm align-middle mb-0">
-                                                    <thead>
-                                                        <tr>
-                                                            <th>Examen</th>
-                                                            <th>Resultado</th>
-                                                            <th>Observación</th>
-                                                            <th>Estado</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        @foreach($orderLabResults as $result)
-                                                            <tr>
-                                                                <td>
-                                                                    <div class="fw-semibold">{{ $result->catalog->name ?? 'Examen' }}</div>
-                                                                    <small class="text-muted">{{ $result->catalog->area->name ?? 'GENERAL' }}</small>
-                                                                </td>
-                                                                <td>{{ $result->result_value ?: '—' }}</td>
-                                                                <td>{{ $result->observations ?: '—' }}</td>
-                                                                <td>
-                                                                    <span class="badge {{ $result->status === 'completado' ? 'bg-success' : ($result->status === 'procesando' ? 'bg-info text-dark' : 'bg-warning text-dark') }} text-uppercase">
-                                                                        {{ $result->status ?? 'pendiente' }}
-                                                                    </span>
-                                                                </td>
-                                                            </tr>
-                                                        @endforeach
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        @else
-                                            <p class="text-muted mb-0">No hay resultados de laboratorio cargados para esta orden.</p>
-                                        @endif
-                                    </div>
-                                    <div class="border rounded p-3 h-100">
-                                        <h6 class="fw-bold mb-3">PDFs por atención</h6>
-                                        @forelse(($patientHistories ?? collect()) as $item)
-                                            <div class="border rounded p-2 mb-2">
-                                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                                    <span class="fw-semibold">Historia #{{ $item->id }}</span>
-                                                    <small class="text-muted">{{ optional($item->created_at)->format('d/m/Y') }}</small>
-                                                </div>
-
-                                                <div class="d-flex flex-wrap gap-2">
-                                                    <a href="{{ route('histories.print_history', $item->id) }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                                        <i class="bi bi-file-earmark-medical me-1"></i>Historia
-                                                    </a>
-
-                                                    @if($item->prescription)
-                                                        <a href="{{ route('histories.print-prescription', $item->id) }}" target="_blank" class="btn btn-sm btn-outline-success">
-                                                            <i class="bi bi-file-earmark-text me-1"></i>Receta
-                                                        </a>
-                                                    @else
-                                                        <span class="badge text-bg-light border">Sin receta</span>
-                                                    @endif
-
-                                                    <a href="{{ route('histories.print', $item->id) }}" target="_blank" class="btn btn-sm btn-outline-info">
-                                                        <i class="bi bi-file-earmark-bar-graph me-1"></i>Laboratorio
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        @empty
-                                            <p class="text-muted mb-0">No hay PDFs disponibles.</p>
-                                        @endforelse
-                                    </div>
+            <div class="col-lg-4">
+                <div class="card shadow-sm border-0 mb-3">
+                    <div class="card-header bg-dark text-white text-center fw-bold py-2 small">SIGNOS VITALES</div>
+                    <div class="card-body bg-light">
+                        <div class="row g-2 small">
+                            <div class="col-4"><label>P.A. (mmHg)</label><input type="text" name="pa" class="form-control form-control-sm" value="{{ $history->pa }}"></div>
+                            <div class="col-4"><label>F.C. (LPM)</label><input type="text" name="fc" class="form-control form-control-sm" value="{{ $history->fc }}"></div>
+                            <div class="col-4"><label>T° (°C)</label><input type="text" name="temp" class="form-control form-control-sm" value="{{ $history->temp }}"></div>
+                            <div class="col-6"><label>F.R. (RPM)</label><input type="text" name="fr" class="form-control form-control-sm" value="{{ $history->fr }}"></div>
+                            <div class="col-6"><label>SO2 (%)</label><input type="text" name="so2" class="form-control form-control-sm" value="{{ $history->so2 }}"></div>
+                            <div class="col-6">
+                                <label>Peso (Kg)</label>
+                                <input type="number" step="0.1" name="peso" x-model="peso" class="form-control form-control-sm" placeholder="Kg">
+                            </div>
+                            <div class="col-6">
+                                <label>Talla (cm)</label>
+                                <input type="number" name="talla" x-model="talla" class="form-control form-control-sm" placeholder="cm">
+                            </div>
+                            <div class="col-12 mt-2">
+                                <input type="hidden" name="imc" :value="imc">
+                                
+                                <div class="p-2 rounded text-center fw-bold" :class="imcClass" style="border: 1px solid rgba(0,0,0,0.1)">
+                                    IMC: <span x-text="imc"></span> <br>
+                                    <small x-text="imcStatus"></small>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-secondary text-white text-center fw-bold py-1 small">HÁBITOS</div>
+                    <div class="card-body py-2">
+                        <div class="form-check small">
+                            <input class="form-check-input" type="checkbox" name="habito_tabaco" id="tabaco" value="1" {{ $history->habito_tabaco ? 'checked' : '' }}>
+                            <label class="form-check-label" for="tabaco">Tabaco</label>
+                        </div>
+                        <div class="form-check small">
+                            <input class="form-check-input" type="checkbox" name="habito_alcohol" id="alcohol" value="1" {{ $history->habito_alcohol ? 'checked' : '' }}>
+                            <label class="form-check-label" for="alcohol">Alcohol</label>
+                        </div>
+                        <div class="form-check small">
+                            <input class="form-check-input" type="checkbox" name="habito_coca" id="coca" value="1" {{ $history->habito_coca ? 'checked' : '' }}>
+                            <label class="form-check-label" for="coca">Coca</label>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg w-100 shadow mb-3">GUARDAR TODO</button>
             </div>
         </div>
     </form>
@@ -456,33 +335,19 @@
 </div>
 
 <script>
-function clinicalWorkstation(initialData = {}) {
+function clinicalWorkstation() {
+    const el = document.getElementById('clinical-app');
     return {
-        diagnostics: Array.isArray(initialData.diagnostics) ? initialData.diagnostics : [],
-        prescription: Array.isArray(initialData.prescription) ? initialData.prescription : [],
-        labs: Array.isArray(initialData.labs) ? initialData.labs : [],
+        diagnostics: JSON.parse(el.getAttribute('data-diagnostics') || '[]'),
+        prescription: el.getAttribute('data-prescription') ? JSON.parse(el.getAttribute('data-prescription')) : [],
         tsProduct: null,
         quickProductModal: null,
         savingProduct: false,
         newProduct: { name: '', concentration: '', presentation: '' },
 
         // --- NUEVAS VARIABLES PARA IMC ---
-        peso: {{ is_numeric($history->peso) ? (float) $history->peso : 0 }},
-        talla: {{ is_numeric($history->talla) ? (float) $history->talla : 0 }},
-
-        async requestJson(url, options = {}) {
-            const response = await fetch(url, options);
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-
-            const contentType = response.headers.get('content-type') || '';
-            if (!contentType.includes('application/json')) {
-                throw new Error('Respuesta inválida del servidor.');
-            }
-
-            return response.json();
-        },
+        peso: "{{ $history->peso }}",
+        talla: "{{ $history->talla }}",
 
         get imc() {
             if (!this.peso || !this.talla || this.talla == 0) return '0.00';
@@ -509,10 +374,6 @@ function clinicalWorkstation(initialData = {}) {
         },
         
         init() {
-            if (typeof TomSelect === 'undefined') {
-                console.warn('TomSelect no está disponible en esta página.');
-                return;
-            }
             // Configuración común para que NO cargue todo de golpe
             const remoteSettings = {
                 valueField: 'id',
@@ -524,21 +385,18 @@ function clinicalWorkstation(initialData = {}) {
             };
 
             // 1. Buscador CIE10
-            const cie10El = document.getElementById('cie10_select');
-            if (cie10El) new TomSelect('#cie10_select', {
+            new TomSelect('#cie10_select', {
                 valueField: 'id',
                 labelField: 'descripcion',
                 searchField: ['codigo', 'descripcion'],
                 preload: false, // ¡ESTO EVITA QUE CARGUE TODO AL INICIO!
                 loadThrottle: 400,
                 shouldLoad: (query) => query.length >= 2, // Espera a 2 caracteres
-                load: async (q, cb) => {
-                    try {
-                        const j = await this.requestJson(`/api/search/cie10?q=${encodeURIComponent(q)}`);
-                        cb(j);
-                    } catch (error) {
-                        cb();
-                    }
+                load: (q, cb) => {
+                    fetch(`/api/search/cie10?q=${q}`)
+                        .then(r => r.json())
+                        .then(j => cb(j))
+                        .catch(() => cb());
                 },
                 // Esto mejora visualmente cómo se ve el resultado en la lista
                 render: {
@@ -571,8 +429,7 @@ function clinicalWorkstation(initialData = {}) {
             });
 
             // 2. Buscador Productos
-            const productEl = document.getElementById('product_select');
-            if (productEl) this.tsProduct = new TomSelect('#product_select', {
+            this.tsProduct = new TomSelect('#product_select', {
                 valueField: 'id',
                 labelField: 'name',
                 searchField: ['name', 'concentration'],
@@ -594,62 +451,46 @@ function clinicalWorkstation(initialData = {}) {
                     return `<div>${escape(data.name)}${extra}</div>`;
                 }
                 },
-                load: async (q, cb) => {
-                    try {
-                        const j = await this.requestJson(`/api/search/products?q=${encodeURIComponent(q)}`);
-                        cb(j);
-                    } catch (error) {
-                        cb();
-                    }
+                load: (q, cb) => {
+                    fetch(`/api/search/products?q=${q}`)
+                        .then(r => r.json())
+                        .then(j => cb(j))
+                        .catch(() => cb());
                 },
                 onChange: (id) => {
                     if(!id) return;
                     const item = this.tsProduct.options[id];
-                    if (this.prescription.some((rx) => String(rx.product_id) === String(item.id))) {
-                        this.tsProduct.clear();
-                        return;
-                    }
                     // Agregamos a la receta con los campos de la migración
                     this.prescription.push({
                         product_id: item.id,
                         name: item.name,
                         concentration: item.concentration,
                         presentation: item.presentation,
-                        qty: 1,
-                        notes: ''
+                        dose: '',
+                        frequency: '',
+                        duration: ''
                     });
                     this.tsProduct.clear();
                 }
             });
 
-            if (window.bootstrap?.Modal) {
-                this.quickProductModal = new bootstrap.Modal(document.getElementById('quickProductModal'));
-            }
-            this.quickProductModal = (window.bootstrap && modalEl) ? new bootstrap.Modal(modalEl) : null;
+            this.quickProductModal = new bootstrap.Modal(document.getElementById('quickProductModal'));
 
             // 3. Buscador Laboratorio (Múltiple)
-            const labEl = document.getElementById('lab_select');
-            if (!labEl) return;
             const tsLab = new TomSelect('#lab_select', {
                 valueField: 'name', 
                 labelField: 'name',
                 searchField: 'name',
                 plugins: ['remove_button'],
                 persist: false, // Evita que se queden cosas raras en memoria
-                loadThrottle: 400,
-                shouldLoad: (query) => query.length >= 2,
-                reate: false,
-                load: async (q, cb) => {
-                    try {
-                        const j = await this.requestJson(`/api/search/lab?q=${encodeURIComponent(q)}`);
-                        cb(j);
-                    } catch (error) {
-                        cb();
-                    }
+                create: true,   // Permite al médico escribir un examen que no esté en la lista
+                load: (q, cb) => {
+                    fetch(`/api/search/lab?q=${q}`).then(r => r.json()).then(j => cb(j)).catch(() => cb());
+                }
             });
 
             // Precarga de laboratorios ya guardados (limpia y segura)
-            const savedLabs = this.labs;
+            const savedLabs = JSON.parse(el.getAttribute('data-labs') || '[]');
 
             if(savedLabs.length > 0) {
                 // 1. Limpiamos cualquier opción previa para evitar duplicados o basura
@@ -674,24 +515,24 @@ function clinicalWorkstation(initialData = {}) {
 
             this.savingProduct = true;
             try {
-                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-                if (!csrfToken) {
-                    throw new Error('No se encontró el token CSRF en el layout principal.');
-                }
-
-                const product = await this.requestJson('/api/search/products/quick-store', {
+                const response = await fetch('/api/search/products/quick-store', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                     },
                     body: JSON.stringify(this.newProduct)
                 });
 
+                if (!response.ok) {
+                    throw new Error('No se pudo registrar el medicamento');
+                }
+
+                const product = await response.json();
                 this.tsProduct.addOption(product);
                 this.tsProduct.addItem(String(product.id));
 
-                this.quickProductModal?.hide();
+                this.quickProductModal.hide();
                 this.newProduct = { name: '', concentration: '', presentation: '' };
             } catch (error) {
                 alert(error.message);
