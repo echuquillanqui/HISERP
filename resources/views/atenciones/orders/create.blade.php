@@ -27,8 +27,16 @@
         <div class="row g-4">
             <div class="col-lg-8">
                 <div class="card border-0 shadow-sm mb-4">
-                    <div class="card-header bg-white py-3 border-bottom text-primary fw-bold">
-                        DATOS DEL PACIENTE
+                    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                        <span class="text-primary fw-bold">DATOS DEL PACIENTE</span>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-primary" @click="openPatientModal('create')">
+                                <i class="bi bi-person-plus me-1"></i> Nuevo paciente
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" @click="openPatientModal('edit')" :disabled="!selectedPatientId">
+                                <i class="bi bi-pencil-square me-1"></i> Editar seleccionado
+                            </button>
+                        </div>
                     </div>
                     <div class="card-body">
                         <select id="patient_select" name="patient_id" required></select>
@@ -54,7 +62,7 @@
                         BÚSQUEDA DE EXÁMENES Y PERFILES
                     </div>
                     <div class="card-body">
-                        <select id="item_select" class="mb-4" placeholder="Buscar examen..."></select>
+                        <select id="item_select" class="mb-4" placeholder="Buscar exámenes y perfiles... (mínimo 2 letras)"></select>
                         
                         <div class="table-responsive">
                             <table class="table align-middle">
@@ -143,13 +151,44 @@
             </div>
         </div>
     </form>
+
+    <div class="modal fade" id="patientModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" x-text="patientModalMode === 'create' ? 'Nuevo paciente' : 'Editar paciente'"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-4"><label class="form-label small fw-bold">DNI *</label><input type="text" class="form-control" x-model="patientForm.dni"></div>
+                        <div class="col-md-4"><label class="form-label small fw-bold">Nombres *</label><input type="text" class="form-control" x-model="patientForm.first_name"></div>
+                        <div class="col-md-4"><label class="form-label small fw-bold">Apellidos *</label><input type="text" class="form-control" x-model="patientForm.last_name"></div>
+                        <div class="col-md-4"><label class="form-label small fw-bold">Fecha nacimiento</label><input type="date" class="form-control" x-model="patientForm.birth_date"></div>
+                        <div class="col-md-4"><label class="form-label small fw-bold">Género</label><select class="form-select" x-model="patientForm.gender"><option value="">Seleccione...</option><option value="M">Masculino</option><option value="F">Femenino</option><option value="Otro">Otro</option></select></div>
+                        <div class="col-md-4"><label class="form-label small fw-bold">Teléfono</label><input type="text" class="form-control" x-model="patientForm.phone"></div>
+                        <div class="col-md-6"><label class="form-label small fw-bold">Correo</label><input type="email" class="form-control" x-model="patientForm.email"></div>
+                        <div class="col-md-6"><label class="form-label small fw-bold">Dirección</label><input type="text" class="form-control" x-model="patientForm.address"></div>
+                    </div>
+                    <template x-if="patientFormError"><div class="alert alert-danger mt-3 mb-0 py-2" x-text="patientFormError"></div></template>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" :disabled="patientFormLoading" @click="savePatientFromModal()">
+                        <span x-show="!patientFormLoading">Guardar</span>
+                        <span x-show="patientFormLoading">Guardando...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
 function orderSystem() {
     return {
         cart: [
-            // Si es la vista de edición, cargamos los detalles existentes
+
             @if(isset($order))
                 @foreach($order->details as $detail)
                 {
@@ -164,64 +203,80 @@ function orderSystem() {
                 @endforeach
             @endif
         ],
-        historyInfo: null, // Estado inicial
+        historyInfo: null,
+        selectedPatientId: null,
+        patientSelect: null,
+        itemSelect: null,
+        itemSearchController: null,
+        patientModal: null,
+        patientModalMode: 'create',
+        patientFormLoading: false,
+        patientFormError: '',
+        patientForm: { id: null, dni: '', first_name: '', last_name: '', birth_date: '', gender: '', phone: '', email: '', address: '' },
 
         init() {
+            this.patientModal = new bootstrap.Modal(document.getElementById('patientModal'));
+            this.initPatientSelect();
+            this.initItemSelect();
+        },
+        initPatientSelect() {
             const self = this;
 
             // Buscador de Pacientes
-            const patientSelect = new TomSelect("#patient_select", {
+            this.patientSelect = new TomSelect('#patient_select', {
                 valueField: 'id', labelField: 'display', searchField: ['dni', 'display'],
+                preload: true,
+                maxOptions: 20,
+                loadThrottle: 350,
+                shouldLoad: (q) => q.length >= 2 || q.length === 0,
                 load: (q, cb) => {
-                    if(!q.length) return cb();
-                    fetch(`/search-patients?q=${encodeURIComponent(q)}`)
-                        .then(r=>r.json())
-                        .then(j=>cb(j.map(p=>({...p, display: p.dni+' - '+p.last_name+' '+p.first_name}))))
-                        .catch(()=>cb());
-                },
-                onChange: (id) => {
-                    if(!id) {
-                        self.historyInfo = null;
-                        return;
-                    }
-                    // Consultar historial
-                    fetch(`/check-patient-history/${id}`)
+                    fetch(`/search-patients?q=${encodeURIComponent(q || '')}`)
                         .then(r => r.json())
-                        .then(data => {
-                            if(data.has_history) {
-                                self.historyInfo = data;
-                                self.applyHistoryDiscount(data.is_free);
-                            } else {
-                                self.historyInfo = null;
-                            }
-                        });
-                }
+                        .then(j => cb(j.map(p => ({...p, display: `${p.dni} - ${p.last_name} ${p.first_name}`}))))
+                        .catch(() => cb());
+                },
+                onChange: (id) => this.onPatientChange(id)
             });
 
-            // Precarga si es edición
             @if(isset($order))
-                patientSelect.addOption({
-                    id: "{{ $order->patient_id }}", 
+                this.patientSelect.addOption({
+                    id: "{{ $order->patient_id }}"
                     display: "{{ $order->patient->dni }} - {{ $order->patient->last_name }} {{ $order->patient->first_name }}"
                 });
-                patientSelect.setValue("{{ $order->patient_id }}");
+                this.patientSelect.setValue("{{ $order->patient_id }}");
             @endif
 
             // Buscador de Análisis
-            const itemSelect = new TomSelect("#item_select", {
+            },
+        onPatientChange(id) {
+            this.selectedPatientId = id || null;
+            if(!id) { this.historyInfo = null; return; }
+            fetch(`/check-patient-history/${id}`)
+                .then(r => r.json())
+                .then(data => {
+                    if(data.has_history) {
+                        this.historyInfo = data;
+                        this.applyHistoryDiscount(data.is_free);
+                    } else {
+                        this.historyInfo = null;
+                    }
+                });
+        },
+        initItemSelect() {
+            this.itemSelect = new TomSelect('#item_select', {
                 valueField: 'uid',
                 labelField: 'display_name',
                 searchField: ['name', 'area', 'display_name'],
+                maxOptions: 30,
+                loadThrottle: 350,
+                shouldLoad: (q) => q.length >= 2,
                 load: (q, cb) => {
-                    if(!q.length) return cb();
-                    fetch(`/search-items?q=${encodeURIComponent(q)}`)
-                        .then(r=>r.json())
-                        .then(j=>cb(j.map(i=>({
-                            ...i,
-                            uid: i.type+i.id,
-                            display_name: `${i.name} [${i.area || 'SIN ÁREA'}]`
-                        }))))
-                        .catch(()=>cb());
+                    if (this.itemSearchController) this.itemSearchController.abort();
+                    this.itemSearchController = new AbortController();
+                    fetch(`/search-items?q=${encodeURIComponent(q)}`, { signal: this.itemSearchController.signal })
+                        .then(r => r.json())
+                        .then(j => cb(j.map(i => ({ ...i, uid: i.type+i.id, display_name: `${i.name} [${i.area || 'SIN ÁREA'}]` }))))
+                        .catch(() => cb());
                 },
                 render: {
                     option: (data, escape) => `<div>${escape(data.name)} <span class="text-primary fw-bold">[${escape(data.area || 'SIN ÁREA')}]</span></div>`,
@@ -229,41 +284,72 @@ function orderSystem() {
                 },
                 onChange: (v) => {
                     if(!v) return;
-                    const item = itemSelect.options[v];
+                    const item = this.itemSelect.options[v];
                     if(!this.cart.find(i=>i.uid === item.uid)) {
-                        // Aplicar descuento si ya sabemos que es gratis antes de añadirlo
+                        
                         if(this.historyInfo && this.historyInfo.is_free) {
                             const palabras = ['HISTORIA', 'CONSULTA', 'EXTERNA', 'C. EXTERNA'];
-                            if(palabras.some(p => item.name.toUpperCase().includes(p))) {
-                                item.unit_price = 0;
-                            }
+                            if(palabras.some(p => item.name.toUpperCase().includes(p))) item.unit_price = 0;
                         }
-                        this.cart.push({
-                            ...item,
-                            quantity: 1,
-                            unit_price: parseFloat(item.unit_price ?? item.price ?? 0)
-                        });
+                        this.cart.push({ ...item, quantity: 1, unit_price: parseFloat(item.unit_price ?? item.price ?? 0) });
                     }
-                    itemSelect.clear();
+                    this.itemSelect.clear();
                 }
             });
+        },
+
+        openPatientModal(mode) {
+            this.patientModalMode = mode;
+            this.patientFormError = '';
+            if (mode === 'create') {
+                this.patientForm = { id: null, dni: '', first_name: '', last_name: '', birth_date: '', gender: '', phone: '', email: '', address: '' };
+                this.patientModal.show();
+                return;
+            }
+            if (!this.selectedPatientId) return;
+            fetch(`/orders/patients/${this.selectedPatientId}`)
+                .then(r => r.json())
+                .then(patient => {
+                    this.patientForm = {
+                        id: patient.id, dni: patient.dni ?? '', first_name: patient.first_name ?? '', last_name: patient.last_name ?? '',
+                        birth_date: patient.birth_date ?? '', gender: patient.gender ?? '', phone: patient.phone ?? '',
+                        email: patient.email ?? '', address: patient.address ?? ''
+                    };
+                    this.patientModal.show();
+                });
+        },
+        savePatientFromModal() {
+            this.patientFormError = '';
+            this.patientFormLoading = true;
+            const isEdit = this.patientModalMode === 'edit' && this.patientForm.id;
+            const url = isEdit ? `/orders/patients/${this.patientForm.id}` : '/orders/patients';
+            const method = isEdit ? 'PUT' : 'POST';
+            fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                body: JSON.stringify(this.patientForm)
+            }).then(async r => {
+                const data = await r.json();
+                if (!r.ok) throw data;
+                const display = `${data.dni} - ${data.last_name} ${data.first_name}`;
+                this.patientSelect.addOption({ ...data, display });
+                this.patientSelect.setValue(String(data.id));
+                this.selectedPatientId = String(data.id);
+                this.patientModal.hide();
+            }).catch(err => {
+                this.patientFormError = err?.message || Object.values(err?.errors || {}).flat()[0] || 'No se pudo guardar el paciente.';
+            }).finally(() => this.patientFormLoading = false);
         },
 
         applyHistoryDiscount(isFree) {
             const palabras = ['HISTORIA', 'CONSULTA', 'EXTERNA', 'C. EXTERNA'];
             this.cart.forEach(item => {
-                if (isFree && palabras.some(p => item.name.toUpperCase().includes(p))) {
-                    item.unit_price = 0;
-                }
+                if (isFree && palabras.some(p => item.name.toUpperCase().includes(p))) item.unit_price = 0;
             });
         },
 
         remove(i) { this.cart.splice(i, 1); },
-        subtotal(item) {
-            const cantidad = Math.max(1, parseInt(item.quantity || 1, 10));
-            item.quantity = cantidad;
-            return cantidad * parseFloat(item.unit_price || 0);
-        },
+        subtotal(item) { const cantidad = Math.max(1, parseInt(item.quantity || 1, 10)); item.quantity = cantidad; return cantidad * parseFloat(item.unit_price || 0); },
         total() { return this.cart.reduce((s, i) => s + this.subtotal(i), 0); }
     }
 }

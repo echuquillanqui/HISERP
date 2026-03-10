@@ -12,6 +12,7 @@ use App\Models\OrderDetail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 
@@ -203,31 +204,90 @@ class OrderController extends Controller
      */
     public function searchItems(Request $request)
     {
-        $q = $request->input('q');
-        
-        // Cargamos la relación 'area' para Catálogos
-        $catalogs = Catalog::with('area')->where('name', 'LIKE', "%$q%")
-            ->limit(10)->get()
-            ->map(fn($i) => [
-                'id' => $i->id, 
-                'name' => $i->name, 
-                'area' => $i->area ? strtoupper($i->area->name) : 'SIN ÁREA', // Obtenemos el nombre del área
-                'price' => $i->price, 
-                'type' => 'catalog'
-            ]);
+        $q = trim((string) $request->input('q', ''));
 
-        // Cargamos la relación 'area' para Perfiles
-        $profiles = Profile::with('area')->where('name', 'LIKE', "%$q%")
-            ->limit(10)->get()
-            ->map(fn($i) => [
-                'id' => $i->id, 
-                'name' => $i->name, 
-                'area' => $i->area ? strtoupper($i->area->name) : 'SIN ÁREA', // Obtenemos el nombre del área
-                'price' => $i->price, 
-                'type' => 'profile'
-            ]);
+        if (mb_strlen($q) < 2) {
+            return response()->json([]);
+        }
 
-        return response()->json($catalogs->merge($profiles));
+        $cacheKey = 'search_items:' . md5(mb_strtolower($q));
+
+        $result = Cache::remember($cacheKey, now()->addSeconds(45), function () use ($q) {
+            $catalogs = Catalog::query()
+                ->select(['catalogs.id', 'catalogs.name', 'catalogs.price', 'areas.name as area_name'])
+                ->leftJoin('areas', 'areas.id', '=', 'catalogs.area_id')
+                ->where('catalogs.name', 'LIKE', "%{$q}%")
+                ->orderBy('catalogs.name')
+                ->limit(8)
+                ->get()
+                ->map(fn($i) => [
+                    'id' => $i->id,
+                    'name' => $i->name,
+                    'area' => $i->area_name ? strtoupper($i->area_name) : 'SIN ÁREA',
+                    'price' => $i->price,
+                    'type' => 'catalog',
+                ]);
+
+            $profiles = Profile::query()
+                ->select(['profiles.id', 'profiles.name', 'profiles.price', 'areas.name as area_name'])
+                ->leftJoin('areas', 'areas.id', '=', 'profiles.area_id')
+                ->where('profiles.name', 'LIKE', "%{$q}%")
+                ->orderBy('profiles.name')
+                ->limit(8)
+                ->get()
+                ->map(fn($i) => [
+                    'id' => $i->id,
+                    'name' => $i->name,
+                    'area' => $i->area_name ? strtoupper($i->area_name) : 'SIN ÁREA',
+                    'price' => $i->price,
+                    'type' => 'profile',
+                ]);
+
+            return $catalogs->merge($profiles)->values();
+        });
+
+        return response()->json($result);
+    }
+
+    public function getPatient(Patient $patient)
+    {
+        return response()->json($patient);
+    }
+
+    public function quickStorePatient(Request $request)
+    {
+        $validated = $request->validate([
+            'dni' => 'required|string|unique:patients,dni',
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'birth_date' => 'nullable|date',
+            'gender' => 'nullable|in:M,F,Otro',
+            'phone' => 'nullable|string',
+            'email' => 'nullable|email|max:255',
+            'address' => 'nullable|string',
+        ]);
+
+        $patient = Patient::create($validated);
+
+        return response()->json($patient, 201);
+    }
+
+    public function quickUpdatePatient(Request $request, Patient $patient)
+    {
+        $validated = $request->validate([
+            'dni' => 'required|string|unique:patients,dni,' . $patient->id,
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'birth_date' => 'nullable|date',
+            'gender' => 'nullable|in:M,F,Otro',
+            'phone' => 'nullable|string',
+            'email' => 'nullable|email|max:255',
+            'address' => 'nullable|string',
+        ]);
+
+        $patient->update($validated);
+
+        return response()->json($patient);
     }
 
     /**

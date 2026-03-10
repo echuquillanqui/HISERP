@@ -41,6 +41,9 @@ Route::get('/check-patient-history/{patient}', [App\Http\Controllers\OrderContro
 // Si lo pones en web.php
 Route::get('/search-patients', [App\Http\Controllers\OrderController::class, 'searchPatients'])->name('patients.search');
 Route::get('/search-items', [App\Http\Controllers\OrderController::class, 'searchItems'])->name('items.search');
+Route::get('/orders/patients/{patient}', [App\Http\Controllers\OrderController::class, 'getPatient'])->name('orders.patients.show');
+Route::post('/orders/patients', [App\Http\Controllers\OrderController::class, 'quickStorePatient'])->name('orders.patients.store');
+Route::put('/orders/patients/{patient}', [App\Http\Controllers\OrderController::class, 'quickUpdatePatient'])->name('orders.patients.update');
 Route::resource('histories', App\Http\Controllers\HistoryController::class);
 // Rutas adicionales para Impresión de Documentos (PDF)
 Route::controller(App\Http\Controllers\HistoryController::class)->group(function () {
