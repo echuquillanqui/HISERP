@@ -84,6 +84,7 @@
                             <li class="nav-item"><a class="nav-link py-3" data-bs-toggle="tab" href="#tab-dx">2. DIAGNÓSTICOS</a></li>
                             <li class="nav-item"><a class="nav-link py-3" data-bs-toggle="tab" href="#tab-rx">3. RECETA</a></li>
                             <li class="nav-item"><a class="nav-link py-3" data-bs-toggle="tab" href="#tab-lab">4. LABORATORIO</a></li>
+                            <li class="nav-item"><a class="nav-link py-3" data-bs-toggle="tab" href="#tab-history-files">5. HISTORIAL</a></li>
                         </ul>
                     </div>
                     
@@ -241,6 +242,80 @@
                             <div class="bg-light p-4 rounded border">
                                 <label class="fw-bold text-info mb-2">Solicitar Exámenes Auxiliares</label>
                                 <select id="lab_select" name="lab_exams[]" multiple></select>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="tab-history-files">
+                            <div class="row g-3">
+                                <div class="col-lg-6">
+                                    <div class="border rounded p-3 bg-light h-100">
+                                        <h6 class="fw-bold mb-3">Atenciones del paciente</h6>
+                                        <div class="list-group shadow-sm">
+                                            @forelse($patientHistories as $item)
+                                                <div class="list-group-item d-flex justify-content-between align-items-start {{ $item->id === $history->id ? 'active border-primary' : '' }}">
+                                                    <div class="me-2">
+                                                        <div class="fw-semibold">Historia #{{ $item->id }}</div>
+                                                        <small class="{{ $item->id === $history->id ? 'text-white-50' : 'text-muted' }}">
+                                                            {{ optional($item->created_at)->format('d/m/Y H:i') }}
+                                                            @if($item->user)
+                                                                · Dr(a). {{ $item->user->name }}
+                                                            @endif
+                                                        </small>
+                                                    </div>
+                                                    @if($item->id === $history->id)
+                                                        <span class="badge bg-primary">Actual</span>
+                                                    @endif
+                                                </div>
+                                            @empty
+                                                <div class="list-group-item text-muted">No hay atenciones registradas para este paciente.</div>
+                                            @endforelse
+                                        </div>
+
+                                        @if($patientHistories->hasPages())
+                                            <div class="mt-3">
+                                                {{ $patientHistories->appends(request()->except('histories_page'))->links() }}
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                <div class="col-lg-6">
+                                    <div class="border rounded p-3 h-100">
+                                        <h6 class="fw-bold mb-3">PDFs por atención</h6>
+                                        @forelse($patientHistories as $item)
+                                            <div class="border rounded p-2 mb-2">
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <span class="fw-semibold">Historia #{{ $item->id }}</span>
+                                                    <small class="text-muted">{{ optional($item->created_at)->format('d/m/Y') }}</small>
+                                                </div>
+
+                                                <div class="d-flex flex-wrap gap-2">
+                                                    <a href="{{ route('histories.print_history', $item->id) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                        <i class="bi bi-file-earmark-medical me-1"></i>Historia
+                                                    </a>
+
+                                                    @if($item->prescription)
+                                                        <a href="{{ route('histories.print-prescription', $item->id) }}" target="_blank" class="btn btn-sm btn-outline-success">
+                                                            <i class="bi bi-file-earmark-text me-1"></i>Receta
+                                                        </a>
+                                                    @else
+                                                        <span class="badge text-bg-light border">Sin receta</span>
+                                                    @endif
+
+                                                    @if($item->labItems->isNotEmpty())
+                                                        <a href="{{ route('histories.print', $item->id) }}" target="_blank" class="btn btn-sm btn-outline-info">
+                                                            <i class="bi bi-file-earmark-bar-graph me-1"></i>Laboratorio
+                                                        </a>
+                                                    @else
+                                                        <span class="badge text-bg-light border">Sin laboratorio</span>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        @empty
+                                            <p class="text-muted mb-0">No hay PDFs disponibles.</p>
+                                        @endforelse
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

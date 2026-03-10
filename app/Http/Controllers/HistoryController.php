@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 
+
 class HistoryController extends Controller
 {
     /**
@@ -44,7 +45,13 @@ class HistoryController extends Controller
         // Cargamos las relaciones necesarias para que el formulario tenga datos
         $history->load(['patient', 'order', 'diagnostics', 'prescription.items.product']);
         
-        return view('atenciones.histories.edit', compact('history'));
+        $patientHistories = History::with(['user', 'order', 'prescription', 'labItems'])
+            ->where('patient_id', $history->patient_id)
+            ->latest()
+            ->paginate(10, ['*'], 'histories_page')
+            ->withQueryString();
+
+            return view('atenciones.histories.edit', compact('history', 'patientHistories'));
     }
 
     /**
