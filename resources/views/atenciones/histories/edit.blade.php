@@ -67,14 +67,14 @@
 </style>
 
 @php
-    $initialDiagnostics = $history->diagnostics->map(fn($d) => [
+    $initialDiagnostics = collect($history->diagnostics ?? [])->map(fn($d) => [
         'cie10_id' => $d->cie10_id,
         'codigo' => $d->cie10->codigo ?? 'S/C',
         'descripcion' => $d->diagnostico,
         'tratamiento' => $d->tratamiento,
     ])->values();
 
-    $initialPrescription = optional($history->prescription)->items?->map(fn($i) => [
+    $initialPrescription = collect(optional($history->prescription)->items ?? [])->map(fn($i) => [
         'product_id' => $i->product_id,
         'name' => $i->product->name ?? 'N/A',
         'concentration' => $i->product->concentration ?? '',
@@ -83,7 +83,7 @@
         'notes' => $i->indicaciones,
     ])->values() ?? collect();
 
-    $initialLabs = $history->labItems->pluck('name')->values();
+    $initialLabs = collect($history->labItems ?? [])->pluck('name')->values();
 @endphp
 
 <div class="container-fluid py-4" 
@@ -92,7 +92,8 @@
         "diagnostics" => $initialDiagnostics,
         "prescription" => $initialPrescription,
         "labs" => $initialLabs,
-     ]))'>
+     ]))'
+     x-init="init()">
 
     <form action="{{ route('histories.update', $history->id) }}" method="POST">
         @csrf
@@ -162,10 +163,10 @@
                                             <div class="col-6 col-md-4 col-lg-6"><label class="small text-muted">T° (°C)</label><input type="text" name="temp" class="form-control" value="{{ $history->temp }}"></div>
                                             <div class="col-6 col-md-4 col-lg-6"><label class="small text-muted">F.R. (RPM)</label><input type="text" name="fr" class="form-control" value="{{ $history->fr }}"></div>
                                             <div class="col-6 col-md-4 col-lg-6"><label class="small text-muted">SO2 (%)</label><input type="text" name="so2" class="form-control" value="{{ $history->so2 }}"></div>
-                                            <div class="col-6 col-md-4 col-lg-6"><label class="small text-muted">Peso (Kg)</label><input type="number" step="0.1" name="peso" x-model="peso" class="form-control" placeholder="Kg"></div>
-                                            <div class="col-6 col-md-4 col-lg-6"><label class="small text-muted">Talla (cm)</label><input type="number" name="talla" x-model="talla" class="form-control" placeholder="cm"></div>
+                                            <div class="col-6 col-md-4 col-lg-6"><label class="small text-muted">Peso (Kg)</label><input type="number" step="0.1" name="peso" x-model="peso" value="{{ old('peso', $history->peso) }}" class="form-control" placeholder="Kg"></div>
+                                            <div class="col-6 col-md-4 col-lg-6"><label class="small text-muted">Talla (cm)</label><input type="number" name="talla" x-model="talla" value="{{ old('talla', $history->talla) }}" class="form-control" placeholder="cm"></div>
                                             <div class="col-6 col-md-8 col-lg-6 d-flex align-items-end">
-                                                <input type="hidden" name="imc" :value="imc">
+                                                <input type="hidden" name="imc" :value="imc" value="{{ old('imc', $history->imc) }}">
                                                 <div class="p-2 rounded text-center fw-bold w-100" :class="imcClass" style="border: 1px solid rgba(0,0,0,0.1)">
                                                     IMC: <span x-text="imc"></span><br>
                                                     <small x-text="imcStatus"></small>
@@ -246,7 +247,8 @@
                                     </td>
 
                                     <td>
-                                        <input type="text" 
+                                        <input type="number" 
+                                            min="1"
                                             :name="'prescription['+index+'][qty]'" 
                                             x-model="item.qty" 
                                             placeholder="Ej: 10"
@@ -314,7 +316,7 @@
                                     <div class="border rounded p-3 bg-light h-100">
                                         <h6 class="fw-bold mb-3">Atenciones del paciente</h6>
                                         <div class="list-group shadow-sm">
-                                            @forelse($patientHistories as $item)
+                                            @forelse(($patientHistories ?? collect()) as $item)
                                                 <div class="list-group-item d-flex justify-content-between align-items-start {{ $item->id === $history->id ? 'active border-primary' : '' }}">
                                                     <div class="me-2">
                                                         <div class="fw-semibold">Historia #{{ $item->id }}</div>
@@ -334,7 +336,7 @@
                                             @endforelse
                                         </div>
 
-                                        @if($patientHistories->hasPages())
+                                        @if(isset($patientHistories) && method_exists($patientHistories, 'hasPages') && $patientHistories->hasPages())
                                             <div class="mt-3">
                                                 {{ $patientHistories->appends(request()->except('histories_page'))->links() }}
                                             </div>
@@ -343,9 +345,45 @@
                                 </div>
 
                                 <div class="col-lg-6">
+                                    <div class="border rounded p-3 h-100 mb-3">
+                                        <h6 class="fw-bold mb-3">Resultados de laboratorio (orden asociada)</h6>
+                                        @if(($orderLabResults ?? collect())->isNotEmpty())
+                                            <div class="table-responsive">
+                                                <table class="table table-sm align-middle mb-0">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Examen</th>
+                                                            <th>Resultado</th>
+                                                            <th>Observación</th>
+                                                            <th>Estado</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach($orderLabResults as $result)
+                                                            <tr>
+                                                                <td>
+                                                                    <div class="fw-semibold">{{ $result->catalog->name ?? 'Examen' }}</div>
+                                                                    <small class="text-muted">{{ $result->catalog->area->name ?? 'GENERAL' }}</small>
+                                                                </td>
+                                                                <td>{{ $result->result_value ?: '—' }}</td>
+                                                                <td>{{ $result->observations ?: '—' }}</td>
+                                                                <td>
+                                                                    <span class="badge {{ $result->status === 'completado' ? 'bg-success' : ($result->status === 'procesando' ? 'bg-info text-dark' : 'bg-warning text-dark') }} text-uppercase">
+                                                                        {{ $result->status ?? 'pendiente' }}
+                                                                    </span>
+                                                                </td>
+                                                            </tr>
+                                                        @endforeach
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        @else
+                                            <p class="text-muted mb-0">No hay resultados de laboratorio cargados para esta orden.</p>
+                                        @endif
+                                    </div>
                                     <div class="border rounded p-3 h-100">
                                         <h6 class="fw-bold mb-3">PDFs por atención</h6>
-                                        @forelse($patientHistories as $item)
+                                        @forelse(($patientHistories ?? collect()) as $item)
                                             <div class="border rounded p-2 mb-2">
                                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                                     <span class="fw-semibold">Historia #{{ $item->id }}</span>
@@ -429,8 +467,22 @@ function clinicalWorkstation(initialData = {}) {
         newProduct: { name: '', concentration: '', presentation: '' },
 
         // --- NUEVAS VARIABLES PARA IMC ---
-        peso: "{{ $history->peso }}",
-        talla: "{{ $history->talla }}",
+        peso: {{ is_numeric($history->peso) ? (float) $history->peso : 0 }},
+        talla: {{ is_numeric($history->talla) ? (float) $history->talla : 0 }},
+
+        async requestJson(url, options = {}) {
+            const response = await fetch(url, options);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                throw new Error('Respuesta inválida del servidor.');
+            }
+
+            return response.json();
+        },
 
         get imc() {
             if (!this.peso || !this.talla || this.talla == 0) return '0.00';
@@ -457,6 +509,10 @@ function clinicalWorkstation(initialData = {}) {
         },
         
         init() {
+            if (typeof TomSelect === 'undefined') {
+                console.warn('TomSelect no está disponible en esta página.');
+                return;
+            }
             // Configuración común para que NO cargue todo de golpe
             const remoteSettings = {
                 valueField: 'id',
@@ -468,18 +524,21 @@ function clinicalWorkstation(initialData = {}) {
             };
 
             // 1. Buscador CIE10
-            new TomSelect('#cie10_select', {
+            const cie10El = document.getElementById('cie10_select');
+            if (cie10El) new TomSelect('#cie10_select', {
                 valueField: 'id',
                 labelField: 'descripcion',
                 searchField: ['codigo', 'descripcion'],
                 preload: false, // ¡ESTO EVITA QUE CARGUE TODO AL INICIO!
                 loadThrottle: 400,
                 shouldLoad: (query) => query.length >= 2, // Espera a 2 caracteres
-                load: (q, cb) => {
-                    fetch(`/api/search/cie10?q=${q}`)
-                        .then(r => r.json())
-                        .then(j => cb(j))
-                        .catch(() => cb());
+                load: async (q, cb) => {
+                    try {
+                        const j = await this.requestJson(`/api/search/cie10?q=${encodeURIComponent(q)}`);
+                        cb(j);
+                    } catch (error) {
+                        cb();
+                    }
                 },
                 // Esto mejora visualmente cómo se ve el resultado en la lista
                 render: {
@@ -512,7 +571,8 @@ function clinicalWorkstation(initialData = {}) {
             });
 
             // 2. Buscador Productos
-            this.tsProduct = new TomSelect('#product_select', {
+            const productEl = document.getElementById('product_select');
+            if (productEl) this.tsProduct = new TomSelect('#product_select', {
                 valueField: 'id',
                 labelField: 'name',
                 searchField: ['name', 'concentration'],
@@ -534,15 +594,21 @@ function clinicalWorkstation(initialData = {}) {
                     return `<div>${escape(data.name)}${extra}</div>`;
                 }
                 },
-                load: (q, cb) => {
-                    fetch(`/api/search/products?q=${q}`)
-                        .then(r => r.json())
-                        .then(j => cb(j))
-                        .catch(() => cb());
+                load: async (q, cb) => {
+                    try {
+                        const j = await this.requestJson(`/api/search/products?q=${encodeURIComponent(q)}`);
+                        cb(j);
+                    } catch (error) {
+                        cb();
+                    }
                 },
                 onChange: (id) => {
                     if(!id) return;
                     const item = this.tsProduct.options[id];
+                    if (this.prescription.some((rx) => String(rx.product_id) === String(item.id))) {
+                        this.tsProduct.clear();
+                        return;
+                    }
                     // Agregamos a la receta con los campos de la migración
                     this.prescription.push({
                         product_id: item.id,
@@ -556,19 +622,30 @@ function clinicalWorkstation(initialData = {}) {
                 }
             });
 
-            this.quickProductModal = new bootstrap.Modal(document.getElementById('quickProductModal'));
+            if (window.bootstrap?.Modal) {
+                this.quickProductModal = new bootstrap.Modal(document.getElementById('quickProductModal'));
+            }
+            this.quickProductModal = (window.bootstrap && modalEl) ? new bootstrap.Modal(modalEl) : null;
 
             // 3. Buscador Laboratorio (Múltiple)
+            const labEl = document.getElementById('lab_select');
+            if (!labEl) return;
             const tsLab = new TomSelect('#lab_select', {
                 valueField: 'name', 
                 labelField: 'name',
                 searchField: 'name',
                 plugins: ['remove_button'],
                 persist: false, // Evita que se queden cosas raras en memoria
-                create: true,   // Permite al médico escribir un examen que no esté en la lista
-                load: (q, cb) => {
-                    fetch(`/api/search/lab?q=${q}`).then(r => r.json()).then(j => cb(j)).catch(() => cb());
-                }
+                loadThrottle: 400,
+                shouldLoad: (query) => query.length >= 2,
+                reate: false,
+                load: async (q, cb) => {
+                    try {
+                        const j = await this.requestJson(`/api/search/lab?q=${encodeURIComponent(q)}`);
+                        cb(j);
+                    } catch (error) {
+                        cb();
+                    }
             });
 
             // Precarga de laboratorios ya guardados (limpia y segura)
@@ -597,24 +674,24 @@ function clinicalWorkstation(initialData = {}) {
 
             this.savingProduct = true;
             try {
-                const response = await fetch('/api/search/products/quick-store', {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                if (!csrfToken) {
+                    throw new Error('No se encontró el token CSRF en el layout principal.');
+                }
+
+                const product = await this.requestJson('/api/search/products/quick-store', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                        'X-CSRF-TOKEN': csrfToken
                     },
                     body: JSON.stringify(this.newProduct)
                 });
 
-                if (!response.ok) {
-                    throw new Error('No se pudo registrar el medicamento');
-                }
-
-                const product = await response.json();
                 this.tsProduct.addOption(product);
                 this.tsProduct.addItem(String(product.id));
 
-                this.quickProductModal.hide();
+                this.quickProductModal?.hide();
                 this.newProduct = { name: '', concentration: '', presentation: '' };
             } catch (error) {
                 alert(error.message);

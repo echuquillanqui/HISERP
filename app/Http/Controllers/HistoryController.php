@@ -44,7 +44,14 @@ class HistoryController extends Controller
     public function edit(History $history)
     {
         // Cargamos las relaciones necesarias para que el formulario tenga datos
-        $history->load(['patient', 'order.details.itemable.area', 'diagnostics.cie10', 'labItems', 'prescription.items.product']);
+        $history->load([
+            'patient',
+            'order.details.itemable.area',
+            'order.details.labResults.catalog.area',
+            'diagnostics.cie10',
+            'labItems',
+            'prescription.items.product'
+        ]);
         
         $patientHistories = History::with(['user', 'order', 'prescription', 'labItems'])
             ->where('patient_id', $history->patient_id)
@@ -52,7 +59,13 @@ class HistoryController extends Controller
             ->paginate(10, ['*'], 'histories_page')
             ->withQueryString();
 
-            return view('atenciones.histories.edit', compact('history', 'patientHistories'));
+        $orderLabResults = optional($history->order)
+            ?->details
+            ->flatMap(fn($detail) => $detail->labResults)
+            ->sortBy(fn($result) => $result->catalog->name ?? '')
+            ->values();
+
+        return view('atenciones.histories.edit', compact('history', 'patientHistories', 'orderLabResults'));
     }
 
     /**
