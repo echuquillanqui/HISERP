@@ -55,6 +55,15 @@
         border-radius: 0 0 8px 8px;
         background: #fff;
     }
+
+    .vitals-grid .form-control {
+        border-radius: 10px;
+    }
+    .section-card {
+        border: 1px solid #e9ecef;
+        border-radius: 14px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    }
 </style>
 
 <div class="container-fluid py-4" 
@@ -76,7 +85,7 @@
         @method('PUT')
 
         <div class="row">
-            <div class="col-lg-8">
+            <div class="col-12">
                 <div class="card shadow-sm border-0 mb-4">
                     <div class="card-header bg-white p-0">
                         <ul class="nav nav-tabs nav-fill border-0" id="myTab" role="tablist">
@@ -90,6 +99,31 @@
                     
                     <div class="card-body p-4 tab-content">
                         <div class="tab-pane fade show active" id="tab-anamnesis">
+                            <div class="section-card p-3 p-lg-4 mb-4">
+                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                    <h6 class="mb-0 fw-bold text-primary">
+                                        <i class="bi bi-heart-pulse me-2"></i>Signos Vitales
+                                    </h6>
+                                    <span class="badge bg-light text-primary border">Registro clínico</span>
+                                </div>
+
+                                <div class="row g-3 vitals-grid">
+                                    <div class="col-6 col-md-4 col-lg-3"><label class="small text-muted">P.A. (mmHg)</label><input type="text" name="pa" class="form-control" value="{{ $history->pa }}"></div>
+                                    <div class="col-6 col-md-4 col-lg-3"><label class="small text-muted">F.C. (LPM)</label><input type="text" name="fc" class="form-control" value="{{ $history->fc }}"></div>
+                                    <div class="col-6 col-md-4 col-lg-3"><label class="small text-muted">T° (°C)</label><input type="text" name="temp" class="form-control" value="{{ $history->temp }}"></div>
+                                    <div class="col-6 col-md-4 col-lg-3"><label class="small text-muted">F.R. (RPM)</label><input type="text" name="fr" class="form-control" value="{{ $history->fr }}"></div>
+                                    <div class="col-6 col-md-4 col-lg-3"><label class="small text-muted">SO2 (%)</label><input type="text" name="so2" class="form-control" value="{{ $history->so2 }}"></div>
+                                    <div class="col-6 col-md-4 col-lg-3"><label class="small text-muted">Peso (Kg)</label><input type="number" step="0.1" name="peso" x-model="peso" class="form-control" placeholder="Kg"></div>
+                                    <div class="col-6 col-md-4 col-lg-3"><label class="small text-muted">Talla (cm)</label><input type="number" name="talla" x-model="talla" class="form-control" placeholder="cm"></div>
+                                    <div class="col-6 col-md-8 col-lg-3 d-flex align-items-end">
+                                        <input type="hidden" name="imc" :value="imc">
+                                        <div class="p-2 rounded text-center fw-bold w-100" :class="imcClass" style="border: 1px solid rgba(0,0,0,0.1)">
+                                            IMC: <span x-text="imc"></span><br>
+                                            <small x-text="imcStatus"></small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="row mb-4">
                                 <div class="col-md-12">
                                     <label class="fw-bold mb-2">Relato de la consulta (Anamnesis)</label>
@@ -119,6 +153,15 @@
                                 <div class="col-md-12">
                                     <label class="fw-bold mb-2">Examen Físico Detallado</label>
                                     <textarea name="examen_fisico_detalle" class="form-control" rows="3">{{ $history->examen_fisico_detalle }}</textarea>
+                                </div>
+                            </div>
+
+                            <div class="section-card p-3 mt-4">
+                                <h6 class="fw-bold text-secondary mb-3"><i class="bi bi-person-walking me-2"></i>Hábitos</h6>
+                                <div class="row">
+                                    <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" name="habito_tabaco" id="tabaco" value="1" {{ $history->habito_tabaco ? 'checked' : '' }}><label class="form-check-label" for="tabaco">Tabaco</label></div></div>
+                                    <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" name="habito_alcohol" id="alcohol" value="1" {{ $history->habito_alcohol ? 'checked' : '' }}><label class="form-check-label" for="alcohol">Alcohol</label></div></div>
+                                    <div class="col-md-4"><div class="form-check"><input class="form-check-input" type="checkbox" name="habito_coca" id="coca" value="1" {{ $history->habito_coca ? 'checked' : '' }}><label class="form-check-label" for="coca">Coca</label></div></div>
                                 </div>
                             </div>
                         </div>
@@ -320,57 +363,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <div class="col-lg-4">
-                <div class="card shadow-sm border-0 mb-3">
-                    <div class="card-header bg-dark text-white text-center fw-bold py-2 small">SIGNOS VITALES</div>
-                    <div class="card-body bg-light">
-                        <div class="row g-2 small">
-                            <div class="col-4"><label>P.A. (mmHg)</label><input type="text" name="pa" class="form-control form-control-sm" value="{{ $history->pa }}"></div>
-                            <div class="col-4"><label>F.C. (LPM)</label><input type="text" name="fc" class="form-control form-control-sm" value="{{ $history->fc }}"></div>
-                            <div class="col-4"><label>T° (°C)</label><input type="text" name="temp" class="form-control form-control-sm" value="{{ $history->temp }}"></div>
-                            <div class="col-6"><label>F.R. (RPM)</label><input type="text" name="fr" class="form-control form-control-sm" value="{{ $history->fr }}"></div>
-                            <div class="col-6"><label>SO2 (%)</label><input type="text" name="so2" class="form-control form-control-sm" value="{{ $history->so2 }}"></div>
-                            <div class="col-6">
-                                <label>Peso (Kg)</label>
-                                <input type="number" step="0.1" name="peso" x-model="peso" class="form-control form-control-sm" placeholder="Kg">
-                            </div>
-                            <div class="col-6">
-                                <label>Talla (cm)</label>
-                                <input type="number" name="talla" x-model="talla" class="form-control form-control-sm" placeholder="cm">
-                            </div>
-                            <div class="col-12 mt-2">
-                                <input type="hidden" name="imc" :value="imc">
-                                
-                                <div class="p-2 rounded text-center fw-bold" :class="imcClass" style="border: 1px solid rgba(0,0,0,0.1)">
-                                    IMC: <span x-text="imc"></span> <br>
-                                    <small x-text="imcStatus"></small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card shadow-sm border-0 mb-4">
-                    <div class="card-header bg-secondary text-white text-center fw-bold py-1 small">HÁBITOS</div>
-                    <div class="card-body py-2">
-                        <div class="form-check small">
-                            <input class="form-check-input" type="checkbox" name="habito_tabaco" id="tabaco" value="1" {{ $history->habito_tabaco ? 'checked' : '' }}>
-                            <label class="form-check-label" for="tabaco">Tabaco</label>
-                        </div>
-                        <div class="form-check small">
-                            <input class="form-check-input" type="checkbox" name="habito_alcohol" id="alcohol" value="1" {{ $history->habito_alcohol ? 'checked' : '' }}>
-                            <label class="form-check-label" for="alcohol">Alcohol</label>
-                        </div>
-                        <div class="form-check small">
-                            <input class="form-check-input" type="checkbox" name="habito_coca" id="coca" value="1" {{ $history->habito_coca ? 'checked' : '' }}>
-                            <label class="form-check-label" for="coca">Coca</label>
-                        </div>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn btn-primary btn-lg w-100 shadow mb-3">GUARDAR TODO</button>
             </div>
         </div>
     </form>
