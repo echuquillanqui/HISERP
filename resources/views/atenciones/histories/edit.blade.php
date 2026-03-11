@@ -249,7 +249,7 @@
 
             <div class="col-lg-4">
                 <div class="card shadow-sm border-0 mb-3">
-                    <div class="card-header bg-dark text-white text-center fw-bold py-2 small">SIGNOS VITALES</div>
+                    <div class="card-header bg-dark text-white text-left fw-bold py-2 medium">PACIENTE: {{ $history->patient->last_name }}, {{ $history->patient->first_name }} - {{ $history->patient->age }} años</div>
                     <div class="card-body bg-light">
                         <div class="row g-2 small">
                             <div class="col-4"><label>P.A. (mmHg)</label><input type="text" name="pa" class="form-control form-control-sm" value="{{ $history->pa }}"></div>
