@@ -125,6 +125,12 @@
                                         <i class="bi bi-person-vcard me-2 text-primary"></i> Pacientes
                                     </a>
                                 </li>
+
+                                <li>
+                                    <a class="dropdown-item py-2" href="{{ route('templates.index') }}">
+                                        <i class="bi bi-file-earmark-medical me-2 text-primary"></i> Plantilla x Servicio
+                                    </a>
+                                </li>
                             </ul>
                         </li>
 
@@ -161,12 +167,18 @@
                         <li class="nav-item dropdown">
                             <a id="labDropdown" class="nav-link dropdown-toggle {{ Request::is('laboratorio*') ? 'active' : '' }}" 
                             href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="bi bi-funnel me-1"></i> Catalogo Lab
+                                <i class="bi bi-funnel me-1"></i> Catalogo
                             </a>
                             <ul class="dropdown-menu shadow-sm" aria-labelledby="labDropdown">
                                 <li>
                                     <a class="dropdown-item py-2" href="{{ route('areas.index') }}">
-                                        <i class="bi bi-layers me-2 text-info"></i> Examenes
+                                        <i class="bi bi-layers me-2 text-info"></i> Laboratorio
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <a class="dropdown-item py-2" href="{{ route('services.index') }}">
+                                        <i class="bi bi-layers me-2 text-info"></i> Servicios
                                     </a>
                                 </li>
 
@@ -192,6 +204,12 @@
                                 <li>
                                     <a class="dropdown-item py-2" href="{{ route('lab-results.index') }}">
                                          <i class="bi bi-droplet text-info"></i> Laboratorio
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <a class="dropdown-item py-2" href="{{ route('serviceresults.index') }}">
+                                         <i class="bi bi-list-check text-info"></i> Monitor de áreas
                                     </a>
                                 </li>
                             </ul>

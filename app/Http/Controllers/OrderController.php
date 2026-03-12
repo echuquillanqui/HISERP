@@ -2,18 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Order;
-use App\Models\History;
-use App\Models\Patient;
-use App\Models\Catalog;
-use App\Models\Profile;
-use App\Models\LabResult;
-use App\Models\OrderDetail;
+use App\Models\{Order, History, Patient, Catalog, Profile, LabResult, OrderDetail, Service, Branch};
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\{DB, Log, Cache, Auth};
 use Illuminate\Support\Str;
+
 
 
 
@@ -55,115 +48,78 @@ class OrderController extends Controller
     /**
      * Actualizar la orden y sus detalles
      */
+    /**
+     * Actualizar la orden y sus detalles de forma segura
+     */
     public function update(Request $request, Order $order)
     {
-        // 1. Definimos las mismas palabras clave que en el store para mantener la consistencia
         $palabrasClave = ['HISTORIA', 'CONSULTA', 'EXTERNA', 'C. EXTERNA'];
 
         $request->validate([
-            'patient_id' => 'required',
-            'payment_status' => 'required|in:pendiente,pagado,anulado',
             'items' => 'required|array|min:1',
-            'items.*.quantity' => 'nullable|integer|min:1',
-            'total_amount' => 'required|numeric'
         ]);
 
         try {
             return DB::transaction(function () use ($request, $order, $palabrasClave) {
                 
-                // Actualizar datos principales de la orden
-                $order->update([
-                    'patient_id'       => $request->patient_id,
-                    'payment_status'   => $request->payment_status,
-                    'payment_method'   => $request->payment_method,
-                    'operation_number' => $request->operation_number,
-                    'total'            => $request->total_amount,
-                ]);
-
-                $incomingItems = collect($request->input('items', []));
-                $generarRegistroHistoria = false; 
-                
-                // Mapear UIDs para limpieza
-                $incomingUids = $incomingItems->map(fn($item) => 
-                    (($item['type'] === 'profile' || $item['type'] === 'perfil') ? 'profile' : 'catalog') . $item['id']
-                );
-
-                // LIMPIEZA: Eliminar lo que el usuario quitó
-                foreach ($order->details as $detail) {
-                    $currentUid = (str_contains($detail->itemable_type, 'Profile') ? 'profile' : 'catalog') . $detail->itemable_id;
-                    
-                    if (!$incomingUids->contains($currentUid)) {
-                        $detail->delete(); 
-                    }
-                }
-
-                // SINCRONIZACIÓN: Agregar nuevos y detectar servicios administrativos
                 $totalReal = 0;
+                $detallesIdsActuales = [];
 
-                foreach ($incomingItems as $item) {
-                    $type = ($item['type'] === 'profile' || $item['type'] === 'perfil') ? 'profile' : 'catalog';
-                    $modelType = ($type === 'profile') ? \App\Models\Profile::class : \App\Models\Catalog::class;
-                    $nombreItemActual = strtoupper($item['name']);
-                    $cantidad = max(1, (int) ($item['quantity'] ?? 1));
+                foreach ($request->items as $item) {
+                    // 1. IDENTIFICACIÓN ESTRICTA (EVITAMOS ASIGNACIONES ERRÓNEAS)
+                    $tipo = strtolower($item['type'] ?? '');
+                    $modelType = null;
 
-                    // 2. CAMBIO AQUÍ: Usamos la lógica flexible con el array de palabras clave
-                    $esAdministrativo = \Illuminate\Support\Str::contains($nombreItemActual, $palabrasClave);
-
-                    if ($esAdministrativo) {
-                        $generarRegistroHistoria = true;
+                    if ($tipo === 'service') {
+                        $modelType = \App\Models\Service::class;
+                    } elseif ($tipo === 'catalog') {
+                        $modelType = \App\Models\Catalog::class;
+                    } elseif ($tipo === 'profile') {
+                        $modelType = \App\Models\Profile::class;
                     }
 
-                    $precioUnitario = (float) ($item['unit_price'] ?? $item['price'] ?? 0);
-                    $precioAplicado = $precioUnitario * $cantidad;
-                    $totalReal += $precioAplicado;
-
-                    $detail = $order->details()
-                        ->where('itemable_id', $item['id'])
-                        ->where('itemable_type', $modelType)
-                        ->first();
-
-                    if (!$detail) {
-                        $newDetail = OrderDetail::create([
-                            'order_id' => $order->id,
-                            'itemable_id' => $item['id'],
-                            'itemable_type' => $modelType,
-                            'name' => $item['name'],
-                            'quantity' => $cantidad,
-                            'price' => $precioAplicado,
-                        ]);
-                        if (!$esAdministrativo) 
-                            {
-                                $this->createLabResultFromItem($newDetail, $item);
-                            }
-                        } else {
-                            $detail->update([
-                                'name' => $item['name'],
-                                'quantity' => $cantidad,
-                                'price' => $precioAplicado,
-                            ]);
-                        }
+                    if (!$modelType) {
+                        Log::error("Tipo de ítem no reconocido: " . $tipo . " para el ítem: " . $item['name']);
+                        continue; 
                     }
-                
 
-                $order->update(['total' => $totalReal]);
-
-                // LÓGICA DE HISTORIA
-                if ($generarRegistroHistoria) {
-                    \App\Models\History::updateOrCreate(
-                        ['order_id' => $order->id],
+                    // 2. ACTUALIZACIÓN O CREACIÓN SEGURA
+                    $detail = OrderDetail::updateOrCreate(
                         [
-                            'patient_id' => $request->patient_id,
-                            'user_id' => auth()->id()
+                            'order_id'      => $order->id,
+                            'itemable_id'   => $item['id'],
+                            'itemable_type' => $modelType // Se asegura de mantener el tipo correcto
+                        ],
+                        [
+                            'name'     => $item['name'],
+                            'quantity' => (int)($item['quantity'] ?? 1),
+                            'price'    => (float)($item['price'] ?? 0)
                         ]
                     );
-                } else {
-                    \App\Models\History::where('order_id', $order->id)->delete();
+
+                    $detallesIdsActuales[] = $detail->id;
+                    $totalReal += $detail->price;
+
+                    // 3. SINCRONIZACIÓN DE LABORATORIO (Solo si no es servicio ni administrativo)
+                    $esAdministrativo = Str::contains(strtoupper($item['name']), $palabrasClave);
+                    if ($tipo !== 'service' && !$esAdministrativo) {
+                        $this->sincronizarResultadosLab($detail, $item);
+                    }
                 }
 
-                return redirect()->route('orders.index')->with('success', 'Orden e Historia sincronizadas correctamente');
+                // 4. ELIMINACIÓN DE ÍTEMS QUE YA NO ESTÁN EN EL REQUEST
+                OrderDetail::where('order_id', $order->id)
+                    ->whereNotIn('id', $detallesIdsActuales)
+                    ->delete();
+
+                // 5. ACTUALIZAR TOTAL
+                $order->update(['total' => $totalReal]);
+
+                return redirect()->route('orders.index')->with('success', 'Orden actualizada correctamente.');
             });
         } catch (\Exception $e) {
-            return back()->withErrors(['error' => 'Error: ' . $e->getMessage()])->withInput();
+            Log::error("Error crítico en actualización de orden ID {$order->id}: " . $e->getMessage());
+            return back()->withErrors(['error' => 'Error al actualizar: ' . $e->getMessage()]);
         }
     }
 
@@ -226,6 +182,8 @@ class OrderController extends Controller
                     'area' => $i->area_name ? strtoupper($i->area_name) : 'SIN ÁREA',
                     'price' => $i->price,
                     'type' => 'catalog',
+                    'reference_range' => $i->reference_range, // ASEGÚRATE DE ENVIARLO
+                    'unit' => $i->unit
                 ]);
 
             $profiles = Profile::query()
@@ -243,7 +201,21 @@ class OrderController extends Controller
                     'type' => 'profile',
                 ]);
 
-            return $catalogs->merge($profiles)->values();
+
+            $services = Service::query()
+    ->where('nombre', 'LIKE', "%{$q}%")
+    ->get()
+    ->map(function($service) {
+        return [
+            'id'    => $service->id,
+            'name'  => $service->nombre,
+            'price' => $service->precio,
+            'type'  => 'service',
+            'area'  => null // <--- Opcional: Esto indica explícitamente que no tiene área
+        ];
+    });
+
+            return $catalogs->merge($profiles)->merge($services)->values();
         });
 
         return response()->json($result);
@@ -294,10 +266,6 @@ class OrderController extends Controller
      * Guardar nueva Orden
      */
     // ... dentro de OrderController.php
-
-/**
- * Guardar nueva Orden
- */
     public function store(Request $request)
     {
         $palabrasClave = ['HISTORIA', 'CONSULTA', 'EXTERNA', 'C. EXTERNA'];
@@ -305,34 +273,25 @@ class OrderController extends Controller
         $request->validate([
             'patient_id' => 'required',
             'items' => 'required|array|min:1',
-            'items.*.quantity' => 'nullable|integer|min:1',
             'total_amount' => 'required|numeric',
         ]);
 
-        // LÓGICA NUEVA: Verificar historia en los últimos 30 días
-        $tieneHistoriaReciente = \App\Models\History::where('patient_id', $request->patient_id)
+        $tieneHistoriaReciente = History::where('patient_id', $request->patient_id)
             ->where('created_at', '>=', now()->subDays(30))
             ->exists();
 
         try {
             return DB::transaction(function () use ($request, $palabrasClave, $tieneHistoriaReciente) {
-                $codigo = 'ORD-' . date('Ymd') . '-' . strtoupper(Str::random(4));
                 
-                // Inicializamos el total real de la orden (por si cambia el precio a 0)
-                $totalReal = 0;
-
-                // Primero creamos la orden con total 0, luego lo actualizamos o calculamos antes
                 $order = Order::create([
-                    'code' => $codigo,
+                    'code' => 'ORD-' . date('Ymd') . '-' . strtoupper(Str::random(4)),
                     'patient_id' => $request->patient_id,
-                    'total' => 0, // Se actualizará al final del ciclo
+                    'total' => 0,
                     'payment_status' => $request->payment_status ?? 'pendiente',
-                    'payment_method' => $request->payment_method ?? 'efectivo',
-                    'operation_number' => $request->operation_number,
-                    'user_id' => auth()->id(),
-                    'ip_address' => $request->ip(),
+                    'user_id' => Auth::id(),
                 ]);
 
+                $totalReal = 0;
                 $generarRegistroHistoria = false;
 
                 foreach ($request->items as $item) {
@@ -341,43 +300,41 @@ class OrderController extends Controller
                     $cantidad = max(1, (int) ($item['quantity'] ?? 1));
                     $precioUnitario = (float) ($item['unit_price'] ?? $item['price'] ?? 0);
                     
-                    // REGLA DE NEGOCIO: Si es administrativo y tiene historia reciente, precio = 0
-                    $precioUnitarioAplicado = ($esAdministrativo && $tieneHistoriaReciente) ? 0 : $precioUnitario;
-                    $precioAplicado = $precioUnitarioAplicado * $cantidad;
+                    $precioAplicado = ($esAdministrativo && $tieneHistoriaReciente) ? 0 : ($precioUnitario * $cantidad);
                     $totalReal += $precioAplicado;
+
+                    $modelType = match($item['type']) {
+                        'catalog' => Catalog::class,
+                        'profile' => Profile::class,
+                        'service' => Service::class,
+                    };
 
                     $detail = OrderDetail::create([
                         'order_id' => $order->id,
                         'itemable_id' => $item['id'],
-                        'itemable_type' => ($item['type'] === 'catalog') ? \App\Models\Catalog::class : \App\Models\Profile::class,
+                        'itemable_type' => $modelType,
                         'name' => $item['name'],
                         'quantity' => $cantidad,
                         'price' => $precioAplicado,
                     ]);
 
-                    if ($esAdministrativo) {
+                    // CORRECCIÓN LÓGICA:
+                    if (!$esAdministrativo) {
                         $generarRegistroHistoria = true;
-                    } else {
-                        // Procesar Laboratorio...
-                        if ($item['type'] === 'profile') {
-                            $profile = \App\Models\Profile::with('catalogs')->find($item['id']);
-                            foreach ($profile->catalogs as $catalogExam) {
-                                $this->createLabResult($detail->id, $catalogExam);
-                            }
-                        } else {
-                            $catalogExam = \App\Models\Catalog::find($item['id']);
-                            $this->createLabResult($detail->id, $catalogExam);
+                        
+                        // Solo procesar laboratorio si NO es un servicio médico
+                        if ($item['type'] !== 'service') {
+                            $this->processLabResults($detail, $item);
                         }
                     }
                 }
 
-                // Actualizamos el total definitivo de la orden
                 $order->update(['total' => $totalReal]);
 
                 if ($generarRegistroHistoria) {
-                    \App\Models\History::create([
+                    History::create([
                         'patient_id' => $request->patient_id,
-                        'user_id' => auth()->id(),
+                        'user_id' => Auth::id(),
                         'order_id' => $order->id,
                     ]);
                 }
@@ -385,7 +342,27 @@ class OrderController extends Controller
                 return redirect()->route('orders.index')->with('success', 'Orden guardada con éxito');
             });
         } catch (\Exception $e) {
-            dd("Error: " . $e->getMessage());
+            Log::error("Error al crear orden: " . $e->getMessage());
+            return back()->withErrors(['error' => 'Error: ' . $e->getMessage()]);
+        }
+    }
+/**
+ * Guardar nueva Orden
+ */
+    private function processLabResults($detail, $item)
+    {
+        if ($item['type'] === 'profile') {
+            $profile = Profile::with('catalogs')->find($item['id']);
+            if ($profile) {
+                foreach ($profile->catalogs as $catalog) {
+                    $this->createLabResult($detail->id, $catalog);
+                }
+            }
+        } elseif ($item['type'] === 'catalog') {
+            $catalog = Catalog::find($item['id']);
+            if ($catalog) {
+                $this->createLabResult($detail->id, $catalog);
+            }
         }
     }
 
@@ -407,9 +384,11 @@ class OrderController extends Controller
 
     private function createLabResult($orderDetailId, $catalog)
     {
-        LabResult::create([
-            'lab_item_id'     => $orderDetailId,
-            'catalog_id'      => $catalog->id,
+        // Verifica si ya existe antes de crear
+        LabResult::firstOrCreate([
+            'lab_item_id' => $orderDetailId,
+            'catalog_id'  => $catalog->id
+        ], [
             'reference_range' => $catalog->reference_range,
             'unit'            => $catalog->unit,
             'status'          => 'pendiente'
@@ -467,5 +446,37 @@ class OrderController extends Controller
             'date' => $lastHistory->created_at->format('d/m/Y'),
             'is_free' => $daysDiff <= 30
         ]);
+    }
+
+    private function sincronizarResultadosLab($detail, $item)
+    {
+        // 1. Identificar si es perfil o catálogo individual
+        $catalogIds = [];
+        if ($item['type'] === 'profile') {
+            $catalogIds = Profile::find($item['id'])->catalogs()->pluck('catalogs.id')->toArray();
+        } else {
+            $catalogIds = [$item['id']];
+        }
+
+        // 2. Iterar y crear con los datos reales del catálogo
+        foreach ($catalogIds as $catId) {
+            // Obtenemos el catálogo real para extraer los valores de referencia
+            $catalog = Catalog::find($catId);
+            
+            if ($catalog) {
+                LabResult::firstOrCreate(
+                    [
+                        'lab_item_id' => $detail->id, 
+                        'catalog_id'  => $catId
+                    ],
+                    [
+                        'status'          => 'pendiente',
+                        // AQUÍ ESTÁ LA CORRECCIÓN: asignamos los valores del catálogo
+                        'reference_range' => $catalog->reference_range ?? 'N/A',
+                        'unit'            => $catalog->unit ?? ''
+                    ]
+                );
+            }
+        }
     }
 }

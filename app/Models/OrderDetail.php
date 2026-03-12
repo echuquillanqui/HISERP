@@ -47,5 +47,16 @@ class OrderDetail extends Model
             $detail->labResults()->delete();
         });
     }
+
+    public function service() 
+    {
+        return $this->belongsTo(Service::class, 'servicio_id');
+    }
+
+    public function reportService()
+    {
+        // Un detalle tiene UN reporte de servicio
+        return $this->hasOne(ReportService::class, 'order_detail_id');
+    }
     
 }

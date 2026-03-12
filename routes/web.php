@@ -32,6 +32,9 @@ Route::resource('areas', App\Http\Controllers\AreaController::class)->middleware
 Route::resource('catalogs', App\Http\Controllers\CatalogController::class);
 Route::resource('profiles', App\Http\Controllers\ProfileController::class);
 Route::resource('products', App\Http\Controllers\ProductController::class);
+Route::resource('services', App\Http\Controllers\ServiceController::class);
+Route::resource('templates', App\Http\Controllers\TemplateController::class);
+Route::get('/templates/{template}/preview', [App\Http\Controllers\TemplateController::class, 'preview'])->name('templates.preview');
 Route::get('/api/products/search', [App\Http\Controllers\ProductController::class, 'search'])->name('products.search');
 
 Route::get('api/areas/{area}/details', [App\Http\Controllers\AreaController::class, 'getDetails']);
@@ -63,3 +66,17 @@ Route::get('/cashbox', [App\Http\Controllers\CashBoxController::class, 'index'])
 Route::post('/cashbox/expense', [App\Http\Controllers\CashBoxController::class, 'storeExpense'])->name('cashbox.expense');
 Route::put('/cashbox/expense/{expense}', [App\Http\Controllers\CashBoxController::class, 'updateExpense'])->name('cashbox.expense.update');
 Route::get('/cashbox/pdf', [App\Http\Controllers\CashBoxController::class, 'exportPdf'])->name('cashbox.pdf');
+
+// 1. PRIMERO tus rutas de atención (Específicas)
+Route::get('/atencion/servicio/{detail}', [App\Http\Controllers\ServiceResultController::class, 'atenderServicio'])
+    ->name('services.atender');
+
+Route::post('/atencion/servicio/{detail}/guardar', [App\Http\Controllers\ServiceResultController::class, 'guardarInforme'])
+    ->name('services.guardar');
+
+Route::get('/atencion/servicio/imprimir/{report}', [App\Http\Controllers\ServiceResultController::class, 'imprimirReporte'])
+    ->name('services.imprimir');
+
+// 2. DESPUÉS el recurso (Genérico)
+Route::resource('serviceresults', App\Http\Controllers\ServiceResultController::class);
+

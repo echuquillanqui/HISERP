@@ -168,7 +168,7 @@ function orderSystem() {
             @foreach($order->details as $detail)
             {
                 id: "{{ $detail->itemable_id }}",
-                type: "{{ str_contains($detail->itemable_type, 'Profile') ? 'profile' : 'catalog' }}",
+                type: "{{ class_basename($detail->itemable_type) == 'Service' ? 'service' : (class_basename($detail->itemable_type) == 'Profile' ? 'profile' : 'catalog') }}",
                 name: "{{ $detail->name }}",
                 area: "{{ $detail->itemable && $detail->itemable->area ? strtoupper($detail->itemable->area->name) : 'SIN ÁREA' }}",
                 quantity: {{ $detail->quantity ?? 1 }},
@@ -211,7 +211,8 @@ function orderSystem() {
                 onChange: (v) => {
                     if(!v) return;
                     const item = itemSelect.options[v];
-                    if(!this.cart.find(i=>i.uid === item.uid)) this.cart.push({ ...item, quantity: 1, unit_price: parseFloat(item.unit_price ?? item.price ?? 0) });
+                    if(!this.cart.find(i=>i.uid === item.uid)) this.cart.push({ ...item, quantity: 1, unit_price: parseFloat(item.unit_price ?? item.price ?? 0), reference_range: item.reference_range || 'N/A', 
+            unit: item.unit || 'N/A' });
                     itemSelect.clear();
                 }
             });
