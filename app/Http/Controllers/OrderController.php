@@ -319,10 +319,10 @@ class OrderController extends Controller
                     ]);
 
                     // CORRECCIÓN LÓGICA:
-                    if (!$esAdministrativo) {
-                        $generarRegistroHistoria = true;
-                        
-                        // Solo procesar laboratorio si NO es un servicio médico
+                    if ($esAdministrativo) {
+                        $generarRegistroHistoria = true; // Si es HISTORIA, activamos la bandera
+                    } else {
+                        // Solo procesar laboratorio si NO es un servicio administrativo
                         if ($item['type'] !== 'service') {
                             $this->processLabResults($detail, $item);
                         }

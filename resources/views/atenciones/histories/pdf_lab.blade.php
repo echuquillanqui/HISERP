@@ -18,39 +18,20 @@
         .doc-title h3 { margin: 0; color: #3498db; font-size: 17px; text-transform: uppercase; }
         .doc-number { font-size: 13px; font-weight: bold; color: #2c3e50; }
 
-        /* Cuadro de Paciente en Columnas */
-        .patient-box { 
-            width: 100%; border: 1.5px solid #2c3e50; border-radius: 8px; 
-            padding: 15px; margin-bottom: 25px; background-color: #fcfcfc;
-        }
+        /* Cuadro de Paciente */
+        .patient-box { width: 100%; border: 1.5px solid #2c3e50; border-radius: 8px; padding: 15px; margin-bottom: 25px; background-color: #fcfcfc; }
         .patient-table { width: 100%; border-collapse: collapse; }
         .label { font-weight: bold; color: #2c3e50; font-size: 11px; display: block; text-transform: uppercase; margin-bottom: 2px; }
         .data { font-size: 14px; font-weight: bold; color: #000; }
 
         /* Secciones de Laboratorio */
         .area-section { margin-bottom: 20px; }
-        .area-title { 
-            background: #3498db; color: white; padding: 6px 12px; 
-            font-weight: bold; border-radius: 4px; margin-bottom: 10px; 
-            text-transform: uppercase; font-size: 12px;
-        }
-        .exams-2-columns {
-            width: 100%;
-            column-count: 2;   /* Esto activa las dos columnas */
-            column-gap: 30px;  /* Espacio entre columnas */
-        }
-
-        .exam-item {
-            break-inside: avoid; /* Evita que un examen se corte entre columnas */
-            page-break-inside: avoid;
-            margin-bottom: 5px;
-        }
+        .area-title { background: #3498db; color: white; padding: 6px 12px; font-weight: bold; border-radius: 4px; margin-bottom: 10px; text-transform: uppercase; font-size: 12px; }
+        .exams-2-columns { width: 100%; column-count: 2; column-gap: 30px; }
+        .exam-item { break-inside: avoid; margin-bottom: 5px; }
         .check-mark { color: #3498db; font-weight: bold; margin-right: 10px; font-size: 16px; }
 
-        /* Firma */
         .signature-container { margin-top: 80px; text-align: center; }
-        .signature-line { width: 250px; border-top: 1.5px solid #2c3e50; margin: 0 auto; padding-top: 5px; }
-
         .footer { position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 9px; color: #999; }
     </style>
 </head>
@@ -60,8 +41,7 @@
         <tr>
             <td width="20%">
                 @if($branch && $branch->logo)
-                    {{-- storage_path genera: C:\laragon\www\tu_proyecto\storage\app\public\logos/... --}}
-                    <img src="{{ storage_path('app/public/' . $branch->logo) }}" style="max-height: 80px; max-width: 150px;">
+                    <img src="{{ storage_path('app/public/' . $branch->logo) }}" class="branch-logo">
                 @else
                     <div style="width: 80px; height: 50px; background: #eee; border: 1px solid #ccc; text-align: center; line-height: 50px; font-size: 9px;">SIN LOGO</div>
                 @endif
@@ -78,9 +58,9 @@
                     </div>
                 @endif
             </td>
-            <td width="40%" align="right">
-                <h3 style="margin:0; color: #3498db; font-size: 15px; text-transform: uppercase;">Orden de Laboratorio</h3>
-                <div style="font-size: 13px; font-weight: bold;">N° {{ str_pad($history->id, 6, '0', STR_PAD_LEFT) }}</div>
+            <td width="40%" class="doc-title">
+                <h3>Orden de Laboratorio</h3>
+                <div class="doc-number">N° {{ str_pad($history->id, 6, '0', STR_PAD_LEFT) }}</div>
             </td>
         </tr>
     </table>
@@ -88,61 +68,46 @@
     <div class="patient-box">
         <table class="patient-table">
             <tr>
-                <td width="45%">
-                    <span class="label">Nombre del Paciente</span>
-                    <span class="data">{{ strtoupper($history->patient->first_name) }} {{ strtoupper($history->patient->last_name) }}</span>
-                </td>
-                <td width="25%">
-                    <span class="label">DNI / Documento</span>
-                    <span class="data">{{ $history->patient->dni }}</span>
-                </td>
-                <td width="30%">
-                    <span class="label">Edad / Sexo</span>
-                    <span class="data">
-                        {{ $history->patient->age_detail }} / 
-                        {{ $history->patient->gender == 'M' ? 'MASC' : 'FEM' }}
-                    </span>
-                </td>
+                <td width="45%"><span class="label">Nombre del Paciente</span><span class="data">{{ strtoupper($history->patient->first_name) }} {{ strtoupper($history->patient->last_name) }}</span></td>
+                <td width="25%"><span class="label">DNI / Documento</span><span class="data">{{ $history->patient->dni }}</span></td>
+                <td width="30%"><span class="label">Edad / Sexo</span><span class="data">{{ $history->patient->age_detail }} / {{ $history->patient->gender == 'M' ? 'MASC' : 'FEM' }}</span></td>
             </tr>
             <tr>
-                <td style="padding-top: 10px;">
-                    <span class="label">Fecha de Solicitud</span>
-                    <span class="data">{{ $history->created_at->format('d/m/Y H:i A') }}</span>
-                </td>
-                <td colspan="2" style="padding-top: 10px;">
-                    <span class="label">Médico Tratante</span>
-                    <span class="data">DR. {{ strtoupper($history->user->name) }}</span>
-                </td>
+                <td style="padding-top: 10px;"><span class="label">Fecha de Solicitud</span><span class="data">{{ $history->created_at->format('d/m/Y H:i A') }}</span></td>
+                <td colspan="2" style="padding-top: 10px;"><span class="label">Médico Tratante</span><span class="data">DR. {{ strtoupper($history->user->name) }}</span></td>
             </tr>
         </table>
     </div>
 
-    @forelse($groupedLabs as $areaName => $items)
-        <div class="area-section">
-            <div class="area-title">Solicitud de Examenes</div>
-            
-            <div class="exams-2-columns">
-                @foreach($items as $lab)
-                    <div class="exam-item">
-                        <span class="check-mark">*</span>
-                        @php
-                            $name = $lab->itemable->name ?? ($lab->name ?? 'EXAMEN');
-                            $search = ['[PERFIL]', '[EXAMEN]', '[examen]'];
-                            $cleanName = trim(str_ireplace($search, '', $name));
-                        @endphp
-                        <strong>{{ strtoupper($cleanName) }}</strong>
-                    </div>
-                @endforeach
-            </div> 
+    <div class="area-section">
+        <div class="area-title">Exámenes Solicitados</div>
+        <div class="exams-2-columns">
+            @foreach($groupedLabs as $areaName => $items)
+                <div class="area-section">                    
+                    <div class="exams-2-columns">
+                        @foreach($items as $lab)
+                            <div class="exam-item">
+                                <span class="check-mark">•</span>
+                                @php
+                                    // $lab->name es el campo donde guardamos el nombre del perfil o examen
+                                    $search = ['[PERFIL]', '[EXAMEN]', '[examen]'];
+                                    $cleanName = trim(str_ireplace($search, '', $lab->name));
+                                @endphp
+                                <strong>{{ strtoupper($cleanName) }}</strong>
+                            </div>
+                        @endforeach
+                    </div> 
+                </div>
+            @endforeach
         </div>
-    @empty
-        <div style="text-align: center; margin-top: 50px; color: #999;">
-            <h3>No se encontraron exámenes registrados.</h3>
-        </div>
-    @endforelse
+    </div>
 
     <div class="signature-container">
+        @if($history->user->firma)
             <img src="{{ public_path('storage/' . $history->user->firma) }}" style="width: 180px;">
+        @endif
+        <div style="border-top: 1.5px solid #2c3e50; width: 250px; margin: 0 auto; padding-top: 5px;"></div>
+        <div style="font-size: 11px; margin-top: 5px;">Firma y Sello</div>
     </div>
 
     <div class="footer">

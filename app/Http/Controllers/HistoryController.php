@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
-
+use Illuminate\Support\Facades\Log;
 
 class HistoryController extends Controller
 {
@@ -41,185 +41,184 @@ class HistoryController extends Controller
     /**
      * El médico entra aquí para rellenar la historia
      */
+    /**
+ * Muestra el formulario de edición de la historia clínica.
+ */
     public function edit(History $history)
     {
-        // Cargamos las relaciones necesarias para que el formulario tenga datos
+        // 1. Cargamos las relaciones, incluyendo 'labItems' para poder verificar 
+        // en la vista qué exámenes fueron guardados previamente por nombre.
         $history->load([
-            'patient',
-            'order.details.itemable.area',
-            'order.details.labResults.catalog.area',
-            'diagnostics.cie10',
-            'labItems',
-            'prescription.items.product'
+            'patient', 
+            'diagnostics.cie10', 
+            'prescription.items.product', 
+            'labItems'
         ]);
         
-        $patientHistories = History::with(['user', 'order', 'prescription', 'labItems'])
-            ->where('patient_id', $history->patient_id)
+        // 2. Paginación de historias previas del paciente
+        $patientHistories = History::where('patient_id', $history->patient_id)
             ->latest()
-            ->paginate(10, ['*'], 'histories_page')
-            ->withQueryString();
+            ->paginate(10, ['*'], 'histories_page');
 
+        // 3. Resultados de laboratorio previos para referencia visual
         $orderLabResults = optional($history->order)
             ?->details
             ->flatMap(fn($detail) => $detail->labResults)
             ->sortBy(fn($result) => $result->catalog->name ?? '')
             ->values();
 
-        return view('atenciones.histories.edit', compact('history', 'patientHistories', 'orderLabResults'));
+        // 4. Lógica de Laboratorio: Obtenemos las áreas jerárquicas
+        // Excluimos áreas que no son de laboratorio clínico
+        $areasExcluidas = ['MEDICINA', 'ADICIONALES', 'MEDICAMENTOS', 'HEMODIALISIS'];
+
+        $areasConContenido = \App\Models\Area::whereNotIn('name', $areasExcluidas)
+            ->with([
+                // Traemos catálogos sueltos (que no pertenecen a un perfil)
+                'catalogs' => function($q) {
+                    $q->whereDoesntHave('profiles');
+                },
+                // Traemos perfiles con sus exámenes hijos
+                'profiles.catalogs'
+            ])
+            ->get();
+
+        // 
+        
+        // 5. Retornamos la vista con las variables necesarias
+        return view('atenciones.histories.edit', compact(
+            'history', 
+            'patientHistories', 
+            'orderLabResults', 
+            'areasConContenido'
+        ));
     }
 
     /**
      * Procesa el llenado de la historia, diagnósticos, receta y laboratorio
      */
     public function update(Request $request, History $history)
-    {
-        // 1. Comando de depuración (Opcional): 
-        // Si quieres ver qué datos están llegando EXACTAMENTE antes de procesar, 
-        // descomenta la siguiente línea (luego bórrala):
-        // dd($request->all()); 
+{
+    DB::beginTransaction();
+    try {
+        // 1. Actualizar datos principales de la historia
+        $history->update($request->only([
+            'anamnesis', 'pa', 'fc', 'temp', 'fr', 'so2', 'peso', 'talla', 
+            'habito_tabaco', 'habito_alcohol', 'habito_coca', 'alergias', 
+            'antecedentes_familiares', 'antecedentes_otros', 'examen_fisico_detalle', 'imc'
+        ]));
 
-        $request->validate([
-            'anamnesis' => 'required|string',
-            'pa' => 'nullable|string',
-            'fc' => 'nullable|string',
-            'temp' => 'nullable|string',
-            'fr' => 'nullable|string',
-            'so2' => 'nullable|string',
-            'peso' => 'nullable|string', // Cambiado a string para coincidir con tu migración
-            'talla' => 'nullable|string',
-        ]);
-
-        try {
-            DB::beginTransaction();
-
-            // 2. Actualización de la Historia
-            $history->update([
-                'user_id' => auth()->id(),
-                'habito_tabaco' => $request->has('habito_tabaco'),
-                'habito_alcohol' => $request->has('habito_alcohol'),
-                'habito_coca' => $request->has('habito_coca'),
-                'alergias' => $request->alergias,
-                'antecedentes_familiares' => $request->antecedentes_familiares,
-                'antecedentes_otros' => $request->antecedentes_otros,
-                'anamnesis' => $request->anamnesis,
-                'pa' => $request->pa,
-                'fc' => $request->fc,
-                'temp' => $request->temp,
-                'fr' => $request->fr,
-                'so2' => $request->so2,
-                'peso' => $request->peso,
-                'talla' => $request->talla,
-                'examen_fisico_detalle' => $request->examen_fisico_detalle,
-                'imc' => $request->imc, // Asegúrate de tener esta columna en tu tabla histories
-            ]);
-
-            // 3. Sincronizar Diagnósticos
-            $history->diagnostics()->delete();
-            if ($request->has('diagnostics')) {
-                foreach ($request->diagnostics as $dx) {
-                    \App\Models\HistoryDiagnostic::create([
-                        'history_id' => $history->id,
-                        'cie10_id' => $dx['cie10_id'],
-                        'diagnostico' => $dx['descripcion'],
-                        'tratamiento' => $dx['tratamiento'] ?? '',
-                    ]);
-                }
+        // 2. Sincronizar Diagnósticos (Independiente)
+        // Borramos los anteriores y creamos los nuevos que vienen del formulario
+        $history->diagnostics()->delete();
+        if ($request->has('diagnostics')) {
+            foreach ($request->diagnostics as $dx) {
+                // Asegúrate que los campos coincidan con tu modelo HistoryDiagnostic
+                $history->diagnostics()->create([
+                    'cie10_id'    => $dx['cie10_id'],
+                    'diagnostico' => $dx['descripcion'],
+                    'tratamiento' => $dx['tratamiento'] ?? ''
+                ]);
             }
-
-            // 4. Sincronizar Receta
-            if ($request->filled('prescription')) {
-                $prescription = Prescription::updateOrCreate(
-                    ['history_id' => $history->id],
-                    ['patient_id' => $history->patient_id, 'user_id' => auth()->id(), 'fecha_sig_cita'=> $request->fecha_sig_cita]
-                );
-
-                $prescription->items()->delete();
-
-                foreach ($request->prescription as $item) {
-                    // Verificamos que product_id tenga valor antes de intentar guardar
-                    if (!empty($item['product_id'])) {
-                        \App\Models\PrescriptionItem::create([
-                            'prescription_id' => $prescription->id,
-                            'product_id'      => $item['product_id'],
-                            'cantidad'        => $item['qty'] ?? 1,
-                            'indicaciones'    => $item['notes'] ?? '',
-                        ]);
-                    }
-                }
-            }
-
-            // 5. Sincronizar Laboratorios (LabItem)
-            $history->labItems()->delete(); // Esto borra lo anterior de la tabla lab_items
-            if ($request->has('lab_exams')) {
-                foreach ($request->lab_exams as $examName) {
-                    // Solo guardamos si no está vacío
-                    if (!empty($examName)) {
-                        \App\Models\LabItem::create([
-                            'history_id' => $history->id,
-                            'name' => $examName,
-                        ]);
-                    }
-                }
-            }
-
-            DB::commit();
-            return redirect()->route('histories.index')->with('success', 'Historia Clínica guardada correctamente.');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            // Esto devolverá el error exacto de SQL o PHP si algo falla
-            return back()->with('error', 'Error en base de datos: ' . $e->getMessage())->withInput();
         }
+
+        // 3. Sincronizar Prescripción (Independiente)
+        // Primero obtenemos o creamos la prescripción asociada a esta historia
+        $prescription = \App\Models\Prescription::firstOrCreate(
+            ['history_id' => $history->id],
+            ['patient_id' => $history->patient_id, 'user_id' => auth()->id()]
+        );
+
+        // Borramos items anteriores y creamos los nuevos
+        $prescription->items()->delete();
+        if ($request->has('prescription')) {
+            foreach ($request->prescription as $rx) {
+                $prescription->items()->create([
+                    'product_id'    => $rx['product_id'],
+                    'cantidad'           => $rx['qty'],
+                    'indicaciones'         => $rx['notes']
+                ]);
+            }
+        }
+
+        // 4. Sincronizar LabItems (Ya lo teníamos independiente)
+        $history->labItems()->delete();
+        if ($request->has('lab_names')) {
+            foreach ($request->lab_names as $name) {
+                $history->labItems()->create(['name' => $name]);
+            }
+        }
+
+        DB::commit();
+        return redirect()->route('histories.index')->with('success', 'Historia clínica actualizada correctamente.');
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error("Error al actualizar historia: " . $e->getMessage());
+        return back()->with('error', 'Error al guardar: ' . $e->getMessage())->withInput();
     }
+}
 
     /**
      * Métodos para impresión (Llaman a sus propias vistas de PDF)
      */
     // Imprimir Historia Completa
     public function printHistory(History $history) 
-    {
-        $branch = \App\Models\Branch::where('estado', true)->first();
-        $history->load(['patient', 'user', 'diagnostics.cie10', 'order.details.itemable.area']);
-        $orderLabExams = $this->getOrderLabExams($history);
+{
+    $branch = \App\Models\Branch::where('estado', true)->first();
+    
+    // Carga necesaria y limpia
+    $history->load([
+        'patient', 
+        'user', 
+        'diagnostics.cie10'
+    ]);
+    
+    // Obtenemos los exámenes de laboratorio del historial
+    $orderLabExams = $history->labItems; 
 
-        return \Barryvdh\DomPDF\Facade\Pdf::loadView('atenciones.histories.pdf_full', compact('history', 'branch', 'orderLabExams'))
-            ->setPaper('a4')->stream("Historia_{$history->id}.pdf");
-    }
+    return \Barryvdh\DomPDF\Facade\Pdf::loadView('atenciones.histories.pdf_full', compact('history', 'branch', 'orderLabExams'))
+            ->setPaper('a4')
+            ->stream("Historia_{$history->id}.pdf");
+}
 
     // Imprimir Receta
     public function printPrescription(History $history) 
-    {
-        // Cargamos los ítems y sus productos relacionados
-        $history->load(['patient', 'user', 'prescriptionItems.product', 'order.details.itemable.area']); 
-        $branch = \App\Models\Branch::where('estado', true)->first();
-        $orderLabExams = $this->getOrderLabExams($history);
+{
+    // Cargamos la prescripción y sus productos asociados
+    $history->load([
+        'patient', 
+        'user', 
+        'prescription.items.product' 
+    ]);
+    
+    $branch = \App\Models\Branch::where('estado', true)->first();
 
-        return \Barryvdh\DomPDF\Facade\Pdf::loadView('atenciones.histories.pdf_prescription', compact('history', 'branch', 'orderLabExams'))
-                    ->setPaper('a4')
-                    ->stream("Receta_{$history->id}.pdf");
-    }
+    return \Barryvdh\DomPDF\Facade\Pdf::loadView('atenciones.histories.pdf_prescription', compact('history', 'branch'))
+            ->setPaper('a4')
+            ->stream("Receta_{$history->id}.pdf");
+}
 
     // Imprimir Laboratorio
     public function printLab(History $history) 
-    {
-        $history->load(['patient', 'user', 'labItems.itemable.area', 'order.details.itemable.area']);
-        $orderLabExams = $this->getOrderLabExams($history);
-        
-        // Obtenemos la sucursal activa
-        $branch = \App\Models\Branch::where('estado', true)->first();
+{
+    // 1. Cargamos solo lo necesario
+    $history->load(['patient', 'user']);
+    
+    // 2. Obtenemos la sucursal activa
+    $branch = \App\Models\Branch::where('estado', true)->first();
 
-        $groupedLabs = $history->labItems->groupBy(function($item) {
-            return $item->itemable->area->name ?? 'GENERAL';
-        });
+    // 3. Agrupamos directamente por el nombre del labItem
+    // Nota: Como ya no tienes la relación 'area', si necesitas agrupar por área, 
+    // lo ideal sería que 'LabItem' tuviera un campo 'area_name' o simplemente 
+    // listar todo bajo una categoría general.
+    $groupedLabs = $history->labItems->groupBy(function($item) {
+        return 'EXÁMENES SOLICITADOS'; // O puedes dejarlo como estaba si tenías un campo area_name
+    });
 
-        if ($groupedLabs->isEmpty() && $orderLabExams->isNotEmpty()) {
-            $groupedLabs = collect(['GENERAL' => $orderLabExams->map(fn ($examName) => (object) ['name' => $examName])]);
-        }
-
-        return \Barryvdh\DomPDF\Facade\Pdf::loadView('atenciones.histories.pdf_lab', compact('history', 'groupedLabs', 'branch', 'orderLabExams'))
+    return \Barryvdh\DomPDF\Facade\Pdf::loadView('atenciones.histories.pdf_lab', compact('history', 'groupedLabs', 'branch'))
                     ->setPaper('a4')
                     ->stream();
-    }
+}
 
     private function getOrderLabExams(History $history): Collection
     {

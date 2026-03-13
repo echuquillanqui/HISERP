@@ -55,6 +55,17 @@
         border-radius: 0 0 8px 8px;
         background: #fff;
     }
+
+
+    .row-cols-md-6 .col {
+        border-bottom: 1px solid #f0f0f0;
+        padding-top: 5px;
+        padding-bottom: 5px;
+    }
+    .row-cols-md-6 .col:hover {
+        background-color: #f8f9fa;
+    }
+
 </style>
 
 <div class="container-fluid py-4" 
@@ -190,11 +201,18 @@
                                     </td>
 
                                     <td>
-                                        <input type="text" 
+                                        <select 
                                             :name="'prescription['+index+'][notes]'" 
                                             x-model="item.notes" 
-                                            placeholder="Ej: 1 tableta cada 8 horas por 3 días"
-                                            class="form-control form-control-sm border-primary-subtle">
+                                            class="form-select form-select-sm border-primary-subtle"
+                                        >
+                                            <option value="">Seleccione una indicación...</option>
+                                            <option value="1 tableta cada 8 horas por 3 días">1 tableta cada 8 horas por 3 días</option>
+                                            <option value="1 tableta cada 8 horas por 5 días">1 tableta cada 8 horas por 5 días</option>
+                                            <option value="1 tableta cada 12 horas por 7 días">1 tableta cada 12 horas por 7 días</option>
+                                            <option value="1 cucharada cada 8 horas por 5 días">1 cucharada cada 8 horas por 5 días</option>
+                                            <option value="Aplicar tópicamente 2 veces al día">Aplicar tópicamente 2 veces al día</option>
+                                        </select>
                                     </td>
 
                                     <td class="text-end">
@@ -205,14 +223,14 @@
                                 </tr>
                             </template>
         
-        <template x-if="prescription.length === 0">
-            <tr>
-                <td colspan="4" class="text-center py-4 text-muted">
-                    <i class="bi bi-capsule me-2"></i> No hay medicamentos añadidos a la receta.
-                </td>
-            </tr>
-        </template>
-    </tbody>
+                                    <template x-if="prescription.length === 0">
+                                        <tr>
+                                            <td colspan="4" class="text-center py-4 text-muted">
+                                                <i class="bi bi-capsule me-2"></i> No hay medicamentos añadidos a la receta.
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
                         </table>
 
                             <div class="mt-4 p-3 border-top bg-light rounded">
@@ -237,12 +255,64 @@
                             </div>
                         </div>
 
-                        <div class="tab-pane fade" id="tab-lab">
-                            <div class="bg-light p-4 rounded border">
-                                <label class="fw-bold text-info mb-2">Solicitar Exámenes Auxiliares</label>
-                                <select id="lab_select" name="lab_exams[]" multiple></select>
+                        <div class="tab-pane fade" id="tab-lab" role="tabpanel">
+                            <div class="card border-0 shadow-sm mt-3">
+                                <div class="card-body">
+                                    <h5 class="mb-3 text-secondary"><i class="bi bi-flask me-2"></i>Selección de Exámenes</h5>
+                                    
+                                    <div class="accordion" id="labAccordion">
+                                        @foreach($areasConContenido as $area)
+                                            <div class="accordion-item border-start-0 border-end-0">
+                                                <h2 class="accordion-header">
+                                                    <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" data-bs-target="#area{{ $area->id }}">
+                                                        <i class="bi bi-folder-fill text-warning me-2"></i> {{ strtoupper($area->name) }}
+                                                    </button>
+                                                </h2>
+                                                <div id="area{{ $area->id }}" class="accordion-collapse collapse" data-bs-parent="#labAccordion">
+                                                    <div class="accordion-body">
+                                                        
+                                                        @foreach($area->profiles as $perfil)
+                                                            <div class="mb-3 p-2 bg-light border rounded">
+                                                                <label class="fw-bold d-block mb-2 text-primary">
+                                                                    <input type="checkbox" name="lab_names[]" value="{{$perfil->name}}" 
+                                                                        class="select-all me-2" data-target="p-{{$perfil->id}}"
+                                                                        {{ $history->labItems->contains('name', $perfil->name) ? 'checked' : '' }}> 
+                                                                    {{ $perfil->name }}
+                                                                </label>
+                                                                <div class="row row-cols-md-6 g-2">
+                                                                    @foreach($perfil->catalogs as $examen)
+                                                                        <div class="col small">
+                                                                            <input type="checkbox" name="lab_names[]" value="{{$examen->name}}" 
+                                                                                class="p-{{$perfil->id}} me-1"
+                                                                                {{ $history->labItems->contains('name', $examen->name) ? 'checked' : '' }}> 
+                                                                            {{ $examen->name }}
+                                                                        </div>
+                                                                    @endforeach
+                                                                </div>
+                                                            </div>
+                                                        @endforeach
+
+                                                        <h6 class="text-secondary mt-3"><i class="bi bi-list-check"></i> EXÁMENES INDIVIDUALES</h6>
+                                                        <div class="row row-cols-md-6 g-2">
+                                                            @foreach($area->catalogs as $examen)
+                                                                <div class="col small">
+                                                                    <input type="checkbox" name="lab_names[]" value="{{$examen->name}}"
+                                                                        {{ $history->labItems->contains('name', $examen->name) ? 'checked' : '' }}> 
+                                                                    {{ $examen->name }}
+                                                                </div>
+                                                            @endforeach
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
                             </div>
                         </div>
+
+
+
                     </div>
                 </div>
             </div>
@@ -335,212 +405,150 @@
 </div>
 
 <script>
-function clinicalWorkstation() {
-    const el = document.getElementById('clinical-app');
-    return {
-        diagnostics: JSON.parse(el.getAttribute('data-diagnostics') || '[]'),
-        prescription: el.getAttribute('data-prescription') ? JSON.parse(el.getAttribute('data-prescription')) : [],
-        tsProduct: null,
-        quickProductModal: null,
-        savingProduct: false,
-        newProduct: { name: '', concentration: '', presentation: '' },
+    // 1. Lógica del componente Alpine.js
+    function clinicalWorkstation() {
+        const el = document.getElementById('clinical-app');
+        return {
+            diagnostics: JSON.parse(el.getAttribute('data-diagnostics') || '[]'),
+            prescription: el.getAttribute('data-prescription') ? JSON.parse(el.getAttribute('data-prescription')) : [],
+            
+            // Instancias de TomSelect
+            tsCie10: null,
+            tsProduct: null,
+            
+            quickProductModal: null,
+            savingProduct: false,
+            newProduct: { name: '', concentration: '', presentation: '' },
 
-        // --- NUEVAS VARIABLES PARA IMC ---
-        peso: "{{ $history->peso }}",
-        talla: "{{ $history->talla }}",
-
-        get imc() {
-            if (!this.peso || !this.talla || this.talla == 0) return '0.00';
-            let tallaMetros = this.talla / 100;
-            return (this.peso / (tallaMetros * tallaMetros)).toFixed(2);
-        },
-
-        get imcStatus() {
-            let val = parseFloat(this.imc);
-            if (val === 0) return 'Ingrese datos';
-            if (val < 18.5) return 'Bajo Peso';
-            if (val < 25) return 'Normal';
-            if (val < 30) return 'Sobrepeso';
+            // IMC
+            peso: "{{ $history->peso ?? 0 }}",
+            talla: "{{ $history->talla ?? 0 }}",
+            get imc() {
+                if (!this.peso || !this.talla || this.talla == 0) return '0.00';
+                let tallaMetros = this.talla / 100;
+                return (this.peso / (tallaMetros * tallaMetros)).toFixed(2);
+            },
+            get imcStatus() {
+                let val = parseFloat(this.imc);
+                if (val === 0) return 'Ingrese datos';
+                if (val < 18.5) return 'Bajo Peso';
+                if (val < 25) return 'Normal';
+                if (val < 30) return 'Sobrepeso';
                 return 'Obesidad';
-        },
+            },
 
-        get imcClass() {
-            let val = parseFloat(this.imc);
-            if (val === 0) return 'bg-white text-muted';
-            if (val < 18.5) return 'bg-info text-white';
-            if (val < 25) return 'bg-success text-white';
-            if (val < 30) return 'bg-warning text-dark';
-                return 'bg-danger text-white';
-        },
-        
-        init() {
-            // Configuración común para que NO cargue todo de golpe
-            const remoteSettings = {
-                valueField: 'id',
-                labelField: 'name',
-                searchField: 'name',
-                loadThrottle: 300, // Retraso de 300ms para no saturar el servidor
-                preload: false,    // ¡IMPORTANTE! No carga nada al abrir el select
-                shouldLoad: (query) => query.length >= 3, // Solo busca si hay 3+ letras
-            };
+            init() {
+                // Inicializar Modales
+                this.quickProductModal = new bootstrap.Modal(document.getElementById('quickProductModal'));
 
-            // 1. Buscador CIE10
-            new TomSelect('#cie10_select', {
-                valueField: 'id',
-                labelField: 'descripcion',
-                searchField: ['codigo', 'descripcion'],
-                preload: false, // ¡ESTO EVITA QUE CARGUE TODO AL INICIO!
-                loadThrottle: 400,
-                shouldLoad: (query) => query.length >= 2, // Espera a 2 caracteres
-                load: (q, cb) => {
-                    fetch(`/api/search/cie10?q=${q}`)
-                        .then(r => r.json())
-                        .then(j => cb(j))
-                        .catch(() => cb());
-                },
-                // Esto mejora visualmente cómo se ve el resultado en la lista
-                render: {
-                    option: function(item, escape) {
-                        return `<div>
-                            <span class="fw-bold text-primary">${escape(item.codigo)}</span> - 
-                            <span class="small">${escape(item.descripcion)}</span>
-                        </div>`;
+                // --- INICIALIZACIÓN TOMSELECT CIE10 ---
+                this.tsCie10 = new TomSelect('#cie10_select', {
+                    valueField: 'id',
+                    labelField: 'descripcion',
+                    searchField: ['codigo', 'descripcion'],
+                    load: async (query, callback) => {
+                        if (query.length < 3) return callback();
+                        const response = await fetch(`/api/search/cie10?q=${encodeURIComponent(query)}`);
+                        const data = await response.json();
+                        callback(data);
                     },
-                    item: function(item, escape) {
-                        return `<div>${escape(item.codigo)} - ${escape(item.descripcion)}</div>`;
-                    }
-                },
-                onChange: (v) => {
-                    if(!v) return;
-                    // Obtenemos el item seleccionado desde las opciones de TomSelect
-                    let ts = document.getElementById('cie10_select').tomselect;
-                    let item = ts.options[v];
-                    
-                    if(!this.diagnostics.find(d => d.cie10_id == v)) {
+                    onChange: (value) => {
+                        if (!value) return;
+                        const option = this.tsCie10.options[value];
                         this.diagnostics.push({
-                            cie10_id: v, 
-                            codigo: item.codigo, 
-                            descripcion: item.descripcion, 
+                            cie10_id: option.id,
+                            codigo: option.codigo,
+                            descripcion: option.descripcion,
                             tratamiento: ''
                         });
+                        this.tsCie10.clear();
                     }
-                    ts.clear();
-                }
-            });
-
-            // 2. Buscador Productos
-            this.tsProduct = new TomSelect('#product_select', {
-                valueField: 'id',
-                labelField: 'name',
-                searchField: ['name', 'concentration'],
-                options: [],
-                render: {
-                    option: function(data, escape) {
-                    // Creamos una cadena con los detalles solo si existen
-                    let detalles = [data.concentration, data.presentation]
-                        .filter(info => info && info.trim() !== '') // Quitamos nulos o vacíos
-                        .join(' - '); // Los unimos con un guion
-
-                    return `<div>
-                        <div class="fw-bold">${escape(data.name)}</div>
-                        ${detalles ? `<small class="text-muted">${escape(detalles)}</small>` : '<small class="text-muted text-italic">Sin detalles</small>'}
-                    </div>`;
-                },
-                item: function(data, escape) {
-                    let extra = data.concentration ? ` (${escape(data.concentration)})` : '';
-                    return `<div>${escape(data.name)}${extra}</div>`;
-                }
-                },
-                load: (q, cb) => {
-                    fetch(`/api/search/products?q=${q}`)
-                        .then(r => r.json())
-                        .then(j => cb(j))
-                        .catch(() => cb());
-                },
-                onChange: (id) => {
-                    if(!id) return;
-                    const item = this.tsProduct.options[id];
-                    // Agregamos a la receta con los campos de la migración
-                    this.prescription.push({
-                        product_id: item.id,
-                        name: item.name,
-                        concentration: item.concentration,
-                        presentation: item.presentation,
-                        dose: '',
-                        frequency: '',
-                        duration: ''
-                    });
-                    this.tsProduct.clear();
-                }
-            });
-
-            this.quickProductModal = new bootstrap.Modal(document.getElementById('quickProductModal'));
-
-            // 3. Buscador Laboratorio (Múltiple)
-            const tsLab = new TomSelect('#lab_select', {
-                valueField: 'name', 
-                labelField: 'name',
-                searchField: 'name',
-                plugins: ['remove_button'],
-                persist: false, // Evita que se queden cosas raras en memoria
-                create: true,   // Permite al médico escribir un examen que no esté en la lista
-                load: (q, cb) => {
-                    fetch(`/api/search/lab?q=${q}`).then(r => r.json()).then(j => cb(j)).catch(() => cb());
-                }
-            });
-
-            // Precarga de laboratorios ya guardados (limpia y segura)
-            const savedLabs = JSON.parse(el.getAttribute('data-labs') || '[]');
-
-            if(savedLabs.length > 0) {
-                // 1. Limpiamos cualquier opción previa para evitar duplicados o basura
-                tsLab.clearOptions(); 
-                
-                savedLabs.forEach(examName => {
-                    // 2. Agregamos la opción usando 'name' como llave (coincidiendo con valueField)
-                    tsLab.addOption({ name: examName });
-                    // 3. Marcamos el ítem como seleccionado
-                    tsLab.addItem(examName);
                 });
-            }
-        },
-        removeDx(i) { this.diagnostics.splice(i, 1); },
-        removeRx(i) { this.prescription.splice(i, 1); },
 
-        async saveQuickProduct() {
-            if (!this.newProduct.name || !this.newProduct.name.trim()) {
-                alert('Debe ingresar al menos el nombre del medicamento.');
-                return;
-            }
-
-            this.savingProduct = true;
-            try {
-                const response = await fetch('/api/search/products/quick-store', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                // --- INICIALIZACIÓN TOMSELECT PRODUCTOS (CON PRESENTACIÓN Y CONCENTRACIÓN) ---
+                this.tsProduct = new TomSelect('#product_select', {
+                    valueField: 'id',
+                    labelField: 'name',
+                    searchField: ['name', 'concentration', 'presentation'],
+                    load: async (query, callback) => {
+                        if (query.length < 2) return callback();
+                        const response = await fetch(`/api/search/products?q=${encodeURIComponent(query)}`);
+                        const data = await response.json();
+                        callback(data);
                     },
-                    body: JSON.stringify(this.newProduct)
+                    // Renderizado para visualizar presentación y concentración
+                    render: {
+                        option: function(item, escape) {
+                            return `<div class="d-flex justify-content-between p-2">
+                                        <span>${escape(item.name)}</span>
+                                        <small class="text-muted">
+                                            ${escape(item.concentration || '')} | ${escape(item.presentation || '')}
+                                        </small>
+                                    </div>`;
+                        },
+                        item: function(item, escape) {
+                            return `<div>${escape(item.name)} ${item.concentration ? '(' + escape(item.concentration) + ')' : ''}</div>`;
+                        }
+                    },
+                    onChange: (value) => {
+                        if (!value) return;
+                        const option = this.tsProduct.options[value];
+                        this.prescription.push({
+                            product_id: option.id,
+                            name: option.name,
+                            concentration: option.concentration,
+                            presentation: option.presentation,
+                            qty: 1,
+                            notes: ''
+                        });
+                        this.tsProduct.clear();
+                    }
                 });
+            },
 
-                if (!response.ok) {
-                    throw new Error('No se pudo registrar el medicamento');
+            removeDx(i) { this.diagnostics.splice(i, 1); },
+            removeRx(i) { this.prescription.splice(i, 1); },
+
+            async saveQuickProduct() {
+                if (!this.newProduct.name || !this.newProduct.name.trim()) return alert('Nombre requerido');
+                this.savingProduct = true;
+                try {
+                    const response = await fetch('/api/search/products/quick-store', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                        },
+                        body: JSON.stringify(this.newProduct)
+                    });
+                    if (!response.ok) throw new Error('Error al guardar');
+                    const product = await response.json();
+                    
+                    // Añadir al buscador y seleccionarlo inmediatamente
+                    this.tsProduct.addOption(product);
+                    this.tsProduct.addItem(String(product.id));
+                    
+                    this.quickProductModal.hide();
+                    this.newProduct = { name: '', concentration: '', presentation: '' };
+                } catch (error) {
+                    alert(error.message);
+                } finally {
+                    this.savingProduct = false;
                 }
-
-                const product = await response.json();
-                this.tsProduct.addOption(product);
-                this.tsProduct.addItem(String(product.id));
-
-                this.quickProductModal.hide();
-                this.newProduct = { name: '', concentration: '', presentation: '' };
-            } catch (error) {
-                alert(error.message);
-            } finally {
-                this.savingProduct = false;
             }
         }
     }
-}
+
+    // Script para la selección masiva de perfiles (Laboratorio)
+    document.querySelectorAll('.select-all').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const targetClass = this.getAttribute('data-target');
+            document.querySelectorAll('.' + targetClass).forEach(child => {
+                child.checked = this.checked;
+            });
+        });
+    });
 </script>
+
+
 @endsection
