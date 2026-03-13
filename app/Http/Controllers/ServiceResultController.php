@@ -6,162 +6,101 @@ use App\Models\OrderDetail;
 use App\Models\Template;
 use App\Models\ReportService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Str;
-
+use Barryvdh\DomPDF\Facade\Pdf as PDF;
 
 class ServiceResultController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+    // Listado principal con botones dinámicos
     public function index(Request $request)
     {
-        // Si no hay fecha en el request, usamos hoy
         $fecha = $request->input('date', now()->toDateString());
-
-        $query = \App\Models\OrderDetail::where('itemable_type', \App\Models\Service::class)
+        $query = OrderDetail::where('itemable_type', \App\Models\Service::class)
             ->with(['order.patient', 'reportService'])
             ->whereHas('order', function($q) use ($fecha) {
-                // Filtramos las órdenes creadas en la fecha seleccionada
                 $q->whereDate('created_at', $fecha);
-            })
-            ->latest();
+            })->latest();
 
-        // Filtro por búsqueda (nombre o DNI)
         if ($request->has('search') && !empty($request->search)) {
             $q = $request->search;
             $query->whereHas('order.patient', function($qBuilder) use ($q) {
-                $qBuilder->where('first_name', 'LIKE', "%$q%")
-                        ->orWhere('last_name', 'LIKE', "%$q%")
-                        ->orWhere('dni', 'LIKE', "%$q%");
+                $qBuilder->where('first_name', 'LIKE', "%$q%")->orWhere('last_name', 'LIKE', "%$q%")->orWhere('dni', 'LIKE', "%$q%");
             });
         }
-
         $details = $query->paginate(15);
-        return view('atenciones.servicios.index', compact('details', 'fecha'));
+        return view('atenciones.servicios.index', compact('details'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
-    }
-
+    // Carga el editor (Redactar o Editar)
     public function atenderServicio(OrderDetail $detail) 
     {
+        $report = ReportService::where('order_detail_id', $detail->id)->first();
         $template = Template::where('service_id', $detail->itemable_id)->first();
         
         if (!$template) return back()->with('error', 'Sin plantilla configurada.');
 
-        $order = $detail->order->load('patient');
-        
-        // CORRECCIÓN: Llama al método privado en lugar de hacer el replace manual
-        $htmlContent = $this->prepararContenidoInicial($template->html_content, $order);
+        // Si ya hay reporte, cargamos el HTML guardado. Si no, la plantilla inicial.
+        $htmlContent = $report ? $report->html_final : $this->prepararContenidoInicial($template->html_content, $detail->order->load('patient'));
 
         return view('atenciones.servicios.form_informe', compact('detail', 'htmlContent', 'template'));
     }
 
-    public function guardarInforme(Request $request, OrderDetail $detail) 
+    // Guardado (Crea si es nuevo, Actualiza si es edición)
+    public function guardarInforme(Request $request, $detailId)
     {
-        // 1. Validar datos mínimos
-        $request->validate([
-            'html_final'  => 'required',
-            'template_id' => 'required|exists:templates,id'
-        ]);
+        $request->validate(['html_final' => 'required', 'template_id' => 'required']);
 
-        // 2. Actualizar o crear
-        \App\Models\ReportService::updateOrCreate(
-            ['order_detail_id' => $detail->id],
+        ReportService::updateOrCreate(
+            ['order_detail_id' => $detailId],
             [
-                'template_id'      => $request->template_id,
-                'html_final'       => $request->html_final,
-                // Si el frontend envía datos estructurados, los guardamos aquí
-                'resultados_json'  => json_encode($request->resultados ?? []),
+                'template_id'     => $request->template_id,
+                'html_final'      => $request->html_final,
+                'user_id'         => auth()->id(),
+                'resultados_json' => '{}' // Valor por defecto para evitar el error 1364
             ]
         );
 
-        // 3. Redirección lógica: al listado de atenciones, no al de ventas
-        return redirect()->route('serviceresults.index')
-                        ->with('success', 'El informe médico ha sido guardado correctamente.');
+        return redirect()->route('serviceresults.index')->with('success', 'Informe guardado exitosamente.');
     }
 
+    // Impresión usando Base64 para evitar errores de imagen
     public function imprimirReporte($reportId)
     {
-        $report = \App\Models\ReportService::findOrFail($reportId);
+        $report = ReportService::findOrFail($reportId);
         $detail = $report->orderDetail;
         $patient = $detail->order->patient;
-        $branch = \App\Models\Branch::first(); // Asegúrate de enviarlo
+        $branch = \App\Models\Branch::first();
+        
+        $logoBase64 = $this->convertirImagenABase64($branch->logo ?? null);
+        $firmaBase64 = $this->convertirImagenABase64(auth()->user()->firma ?? null);
 
-        $pdf = \PDF::loadView('atenciones.servicios.pdf_informe', compact('report', 'detail', 'patient', 'branch'));
+        $pdf = PDF::loadView('atenciones.servicios.pdf_informe', compact('report', 'detail', 'patient', 'branch', 'logoBase64', 'firmaBase64'))
+            ->setPaper('a4', 'portrait')
+            ->setOptions([
+                'isHtml5ParserEnabled' => true, 
+                'isRemoteEnabled' => true,
+                'margin_top' => 10, 'margin_right' => 10, 'margin_bottom' => 10, 'margin_left' => 10,
+            ]);
         
         return $pdf->stream('informe_' . $patient->dni . '.pdf');
     }
 
     private function prepararContenidoInicial($html, $order) 
     {
-        $branch = \App\Models\Branch::first(); 
-        
-        // Si no hay sucursal, evitamos que el sistema colapse
-        $razonSocial = $branch ? $branch->razon_social : 'Nombre de Empresa';
-        $direccion = $branch ? $branch->direccion : 'Dirección no definida';
-        
-        return str_replace(
-            ['{{nombre_paciente}}', '{{dni_paciente}}', '{{fecha_actual}}', '{{empresa}}', '{{direccion}}'],
-            [
-                $order->patient->first_name . ' ' . $order->patient->last_name, 
-                $order->patient->dni, 
-                date('d/m/Y'),
-                $razonSocial,
-                $direccion
-            ],
-            $html
-        );
+        $placeholders = ['{{nombre_paciente}}', '{{dni_paciente}}', '{{fecha_actual}}'];
+        $valores = [
+            $order->patient->first_name . ' ' . $order->patient->last_name,
+            $order->patient->dni,
+            now()->format('d/m/Y')
+        ];
+        return str_replace($placeholders, $valores, $html);
     }
 
-    
+    private function convertirImagenABase64($path)
+    {
+        if (!$path) return null;
+        $fullPath = storage_path('app/public/' . $path);
+        if (!file_exists($fullPath)) return null;
+        $type = pathinfo($fullPath, PATHINFO_EXTENSION);
+        return 'data:image/' . $type . ';base64,' . base64_encode(file_get_contents($fullPath));
+    }
 }

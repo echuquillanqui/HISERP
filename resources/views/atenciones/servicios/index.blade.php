@@ -77,16 +77,19 @@
                                 @endif
                             </td>
                             <td class="text-end pe-4">
-                                @if($detail->reportService)
-                                    <a href="{{ route('services.imprimir', $detail->reportService->id) }}" target="_blank" class="btn btn-sm btn-outline-info">
-                                        <i class="bi bi-printer"></i> Imprimir
-                                    </a>
-                                @else
-                                    <a href="{{ route('services.atender', $detail->id) }}" class="btn btn-sm btn-primary">
-                                        <i class="bi bi-pencil-square"></i> Redactar
-                                    </a>
-                                @endif
-                            </td>
+    @if($detail->reportService)
+        <a href="{{ route('services.imprimir', $detail->reportService->id) }}" target="_blank" class="btn btn-sm btn-outline-info">
+            <i class="bi bi-printer"></i>
+        </a>
+        <a href="{{ route('services.atender', $detail->id) }}" class="btn btn-sm btn-outline-warning">
+            <i class="bi bi-pencil"></i> Editar
+        </a>
+    @else
+        <a href="{{ route('services.atender', $detail->id) }}" class="btn btn-sm btn-primary">
+            <i class="bi bi-pencil-square"></i> Redactar
+        </a>
+    @endif
+</td>
                         </tr>
                         @empty
                         <tr>

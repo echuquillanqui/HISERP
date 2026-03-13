@@ -77,6 +77,9 @@ Route::post('/atencion/servicio/{detail}/guardar', [App\Http\Controllers\Service
 Route::get('/atencion/servicio/imprimir/{report}', [App\Http\Controllers\ServiceResultController::class, 'imprimirReporte'])
     ->name('services.imprimir');
 
+    // Ejemplo de cómo debe estar definida tu ruta
+Route::post('/services/guardar/{detail}', [App\Http\Controllers\ServiceResultController::class, 'guardarInforme'])->name('services.guardar');
+
 // 2. DESPUÉS el recurso (Genérico)
 Route::resource('serviceresults', App\Http\Controllers\ServiceResultController::class);
 
