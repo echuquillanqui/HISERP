@@ -140,16 +140,18 @@
     </div>
 @endforeach
 
-    <div class="signature-container" style="margin-top: 60px;">
-        <div class="signature-line">
-            <strong>LABORATORIO CLÍNICO</strong><br>
-            <span style="font-size: 10px;">Responsable de Análisis</span>
-        </div>
-    </div>
 
-    <div style="position: fixed; bottom: 0; width: 100%; text-align: center; font-size: 8px; color: #aaa;">
-        Impreso por: {{ auth()->user()->name }} | Fecha y Hora: {{ now()->format('d/m/Y H:i:s') }}
+    <div style="width: 200px; margin: 0 auto; padding-top: 20px;">
+        @if(isset($tecnologo) && $tecnologo->firma)
+            <img src="{{ public_path('storage/' . $tecnologo->firma) }}" style="width: 180px; max-height: 90px;">
+            <div style="font-size: 11px; font-weight: bold; margin-top: 5px;">
+
+            </div>
+        @else
+            <div style="height: 60px; color: #999;">Firma no registrada</div>
+        @endif
     </div>
+</div>
 
 </body>
 </html>
