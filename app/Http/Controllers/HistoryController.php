@@ -55,10 +55,16 @@ class HistoryController extends Controller
             'labItems'
         ]);
         
-        // 2. Paginación de historias previas del paciente
-        $patientHistories = History::where('patient_id', $history->patient_id)
+        // 2. Historial clínico/laboratorio del paciente (ordenado por fecha desc + paginación)
+        $patientHistoryTimeline = History::where('patient_id', $history->patient_id)
+            ->with([
+                'user:id,name,',
+                'diagnostics:id,history_id,diagnostico,tratamiento',
+                'labItems:id,history_id,name',
+                'order.details.labResults.catalog:id,name,unit,reference_male,reference_female',
+            ])
             ->latest()
-            ->paginate(10, ['*'], 'histories_page');
+            ->paginate(10, ['*'], 'history_page');
 
         // 3. Resultados de laboratorio previos para referencia visual
         $orderLabResults = optional($history->order)
@@ -87,7 +93,7 @@ class HistoryController extends Controller
         // 5. Retornamos la vista con las variables necesarias
         return view('atenciones.histories.edit', compact(
             'history', 
-            'patientHistories', 
+            'patientHistoryTimeline', 
             'orderLabResults', 
             'areasConContenido'
         ));

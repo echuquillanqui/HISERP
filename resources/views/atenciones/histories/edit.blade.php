@@ -112,6 +112,7 @@
                             <li class="nav-item"><a class="nav-link py-3" data-bs-toggle="tab" href="#tab-dx">2. DIAGNÓSTICOS</a></li>
                             <li class="nav-item"><a class="nav-link py-3" data-bs-toggle="tab" href="#tab-rx">3. RECETA</a></li>
                             <li class="nav-item"><a class="nav-link py-3" data-bs-toggle="tab" href="#tab-lab">4. LABORATORIO</a></li>
+                            <li class="nav-item"><a class="nav-link py-3" data-bs-toggle="tab" href="#tab-historial">5. HISTORIAL</a></li>
                         </ul>
                     </div>
                     
@@ -324,6 +325,110 @@
                                             </div>
                                         @endforeach
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <div class="tab-pane fade" id="tab-historial" role="tabpanel">
+                            <div class="mt-3">
+                                <h5 class="mb-3 text-secondary">
+                                    <i class="bi bi-clock-history me-2"></i>Historial clínico y de laboratorio
+                                </h5>
+
+                                @forelse($patientHistoryTimeline as $timelineHistory)
+                                    @php
+                                        $timelineResults = optional($timelineHistory->order)
+                                            ?->details
+                                            ->flatMap(fn($detail) => $detail->labResults)
+                                            ->sortBy(fn($result) => $result->catalog->name ?? '')
+                                            ->values();
+                                    @endphp
+
+                                    <div class="card border-0 shadow-sm mb-3">
+                                        <div class="card-header d-flex justify-content-between align-items-center bg-light">
+                                            <div>
+                                                <strong>#{{ str_pad($timelineHistory->id, 6, '0', STR_PAD_LEFT) }}</strong>
+                                                <span class="text-muted ms-2">{{ $timelineHistory->created_at?->format('d/m/Y H:i') }}</span>
+                                            </div>
+                                            <span class="badge bg-primary">
+                                                Dr(a). {{ trim(($timelineHistory->user->name ?? '') . ' ' . ($timelineHistory->user->name ?? '')) ?: 'N/A' }}
+                                            </span>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="mb-2">
+                                                <h6 class="mb-1">Anamnesis</h6>
+                                                <p class="small text-muted mb-0">{{ $timelineHistory->anamnesis ?: 'Sin registro' }}</p>
+                                            </div>
+
+                                            <div class="mb-2">
+                                                <h6 class="mb-1">Diagnósticos</h6>
+                                                @if($timelineHistory->diagnostics->isEmpty())
+                                                    <p class="small text-muted mb-0">Sin diagnósticos registrados.</p>
+                                                @else
+                                                    <ul class="small mb-0">
+                                                        @foreach($timelineHistory->diagnostics as $dx)
+                                                            <li>{{ $dx->diagnostico }}</li>
+                                                        @endforeach
+                                                    </ul>
+                                                @endif
+                                            </div>
+
+                                            <div class="mb-2">
+                                                <h6 class="mb-1">Solicitudes de laboratorio</h6>
+                                                @if($timelineHistory->labItems->isEmpty())
+                                                    <p class="small text-muted mb-0">Sin exámenes solicitados.</p>
+                                                @else
+                                                    <div class="d-flex flex-wrap gap-1">
+                                                        @foreach($timelineHistory->labItems as $labRequest)
+                                                            <span class="badge bg-secondary">{{ $labRequest->name }}</span>
+                                                        @endforeach
+                                                    </div>
+                                                @endif
+                                            </div>
+
+                                            <div>
+                                                <h6 class="mb-1">Resultados de laboratorio</h6>
+                                                @if($timelineResults->isEmpty())
+                                                    <p class="small text-muted mb-0">Sin resultados registrados.</p>
+                                                @else
+                                                    <div class="table-responsive">
+                                                        <table class="table table-sm table-striped mb-0">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>Examen</th>
+                                                                    <th>Resultado</th>
+                                                                    <th>Unidad</th>
+                                                                    <th>Referencia</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                @foreach($timelineResults as $result)
+                                                                    <tr>
+                                                                        <td>{{ $result->catalog->name ?? 'N/A' }}</td>
+                                                                        <td>{{ $result->value ?? 'N/A' }}</td>
+                                                                        <td>{{ $result->catalog->unit ?? '-' }}</td>
+                                                                        <td>
+                                                                            {{ $result->catalog->reference_male ?? '-' }}
+                                                                            @if(!empty($result->catalog->reference_female))
+                                                                                / {{ $result->catalog->reference_female }}
+                                                                            @endif
+                                                                        </td>
+                                                                    </tr>
+                                                                @endforeach
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                @empty
+                                    <div class="alert alert-info">No hay historial previo para este paciente.</div>
+                                @endforelse
+
+                                <div class="mt-3">
+                                    {{ $patientHistoryTimeline->links() }}
                                 </div>
                             </div>
                         </div>
