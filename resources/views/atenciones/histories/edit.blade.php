@@ -57,13 +57,17 @@
     }
 
 
-    .row-cols-md-6 .col {
+    .lab-grid .col {
         border-bottom: 1px solid #f0f0f0;
         padding-top: 5px;
         padding-bottom: 5px;
     }
-    .row-cols-md-6 .col:hover {
+    .lab-grid .col:hover {
         background-color: #f8f9fa;
+    }
+
+    .patient-summary {
+        border-left: 4px solid #0d6efd;
     }
 
 </style>
@@ -85,6 +89,19 @@
     <form action="{{ route('histories.update', $history->id) }}" method="POST">
         @csrf
         @method('PUT')
+
+        <div class="alert alert-primary d-flex flex-wrap justify-content-between align-items-center gap-2 patient-summary">
+            <div>
+                <div class="small text-uppercase fw-semibold mb-1">Paciente</div>
+                <h5 class="mb-0 fw-bold">
+                    {{ $history->patient->last_name }}, {{ $history->patient->first_name }}
+                </h5>
+            </div>
+            <div class="text-md-end">
+                <div><span class="fw-semibold">Edad:</span> {{ $history->patient->age }} años</div>
+                <div><span class="fw-semibold">Historia:</span> #{{ str_pad($history->id, 6, '0', STR_PAD_LEFT) }}</div>
+            </div>
+        </div>
 
         <div class="row">
             <div class="col-lg-8">
@@ -279,7 +296,7 @@
                                                                         {{ $history->labItems->contains('name', $perfil->name) ? 'checked' : '' }}> 
                                                                     {{ $perfil->name }}
                                                                 </label>
-                                                                <div class="row row-cols-md-6 g-2">
+                                                                <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-2 lab-grid">
                                                                     @foreach($perfil->catalogs as $examen)
                                                                         <div class="col small">
                                                                             <input type="checkbox" name="lab_names[]" value="{{$examen->name}}" 
@@ -293,7 +310,7 @@
                                                         @endforeach
 
                                                         <h6 class="text-secondary mt-3"><i class="bi bi-list-check"></i> EXÁMENES INDIVIDUALES</h6>
-                                                        <div class="row row-cols-md-6 g-2">
+                                                        <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 g-2 lab-grid">
                                                             @foreach($area->catalogs as $examen)
                                                                 <div class="col small">
                                                                     <input type="checkbox" name="lab_names[]" value="{{$examen->name}}"
@@ -319,7 +336,7 @@
 
             <div class="col-lg-4">
                 <div class="card shadow-sm border-0 mb-3">
-                    <div class="card-header bg-dark text-white text-left fw-bold py-2 medium">PACIENTE: {{ $history->patient->last_name }}, {{ $history->patient->first_name }} - {{ $history->patient->age }} años</div>
+                    <div class="card-header bg-dark text-white text-left fw-bold py-2 medium">SIGNOS VITALES Y MEDIDAS</div>
                     <div class="card-body bg-light">
                         <div class="row g-2 small">
                             <div class="col-4"><label>P.A. (mmHg)</label><input type="text" name="pa" class="form-control form-control-sm" value="{{ $history->pa }}"></div>
