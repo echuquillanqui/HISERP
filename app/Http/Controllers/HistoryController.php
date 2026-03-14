@@ -62,6 +62,8 @@ class HistoryController extends Controller
                 'diagnostics:id,history_id,diagnostico,tratamiento',
                 'labItems:id,history_id,name',
                 'order.details.labResults.catalog:id,name,unit,reference_range',
+                'order.details.service:id,name',
+                'order.details.reportService:id,order_detail_id',
             ])
             ->latest()
             ->paginate(10, ['*'], 'history_page');

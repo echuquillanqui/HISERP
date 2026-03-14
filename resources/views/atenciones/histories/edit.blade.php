@@ -387,34 +387,59 @@
                                                 @endif
                                             </div>
 
+                                            @php
+                                                $timelineOrder = $timelineHistory->order;
+                                                $timelineOrderId = $timelineOrder->id ?? null;
+                                                $timelineLabPdfUrl = $timelineOrderId ? route('lab-results.show', $timelineOrderId) : null;
+                                                $serviceReports = collect($timelineOrder?->details)
+                                                    ->filter(fn($detail) => $detail->reportService)
+                                                    ->values();
+                                            @endphp
+
                                             <div>
-                                                <h6 class="mb-1">Resultados de laboratorio</h6>
-                                                @if($timelineResults->isEmpty())
-                                                    <p class="small text-muted mb-0">Sin resultados registrados.</p>
+                                                <h6 class="mb-1">Documentos imprimibles (PDF)</h6>
+
+                                                @if(!$timelineLabPdfUrl && $serviceReports->isEmpty())
+                                                    <p class="small text-muted mb-0">Sin documentos imprimibles registrados.</p>
                                                 @else
-                                                    <div class="table-responsive">
-                                                        <table class="table table-sm table-striped mb-0">
-                                                            <thead>
-                                                                <tr>
-                                                                    <th>Examen</th>
-                                                                    <th>Resultado</th>
-                                                                    <th>Unidad</th>
-                                                                    <th>Referencia</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                @foreach($timelineResults as $result)
-                                                                    <tr>
-                                                                        <td>{{ $result->catalog->name ?? 'N/A' }}</td>
-                                                                        <td>{{ $result->result_value ?? 'N/A' }}</td>
-                                                                        <td>{{ $result->catalog->unit ?? '-' }}</td>
-                                                                        <td>
-                                                                            {{ $result->reference_range ?? $result->catalog->reference_range ?? '-' }}
-                                                                        </td>
-                                                                    </tr>
-                                                                @endforeach
-                                                            </tbody>
-                                                        </table>
+                                                    <div class="list-group list-group-flush border rounded">
+                                                        @if($timelineLabPdfUrl)
+                                                            <button
+                                                                type="button"
+                                                                class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                                                                data-bs-toggle="modal"
+                                                                data-bs-target="#pdfPreviewModal"
+                                                                data-pdf-url="{{ $timelineLabPdfUrl }}"
+                                                                data-pdf-title="Laboratorio · {{ $timelineHistory->created_at?->format('d/m/Y') }}"
+                                                            >
+                                                                <div>
+                                                                    <div class="fw-semibold">Examen de laboratorio</div>
+                                                                    <small class="text-muted">Fecha: {{ $timelineHistory->created_at?->format('d/m/Y') }}</small>
+                                                                </div>
+                                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">PDF</span>
+                                                            </button>
+                                                        @endif
+
+                                                        @foreach($serviceReports as $detail)
+                                                            @php
+                                                                $servicePdfUrl = route('services.imprimir', $detail->reportService->id);
+                                                                $serviceName = $detail->service->name ?? 'Servicio médico';
+                                                            @endphp
+                                                            <button
+                                                                type="button"
+                                                                class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                                                                data-bs-toggle="modal"
+                                                                data-bs-target="#pdfPreviewModal"
+                                                                data-pdf-url="{{ $servicePdfUrl }}"
+                                                                data-pdf-title="{{ $serviceName }} · {{ $timelineHistory->created_at?->format('d/m/Y') }}"
+                                                            >
+                                                                <div>
+                                                                    <div class="fw-semibold">{{ $serviceName }}</div>
+                                                                    <small class="text-muted">Fecha: {{ $timelineHistory->created_at?->format('d/m/Y') }}</small>
+                                                                </div>
+                                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">PDF</span>
+                                                            </button>
+                                                        @endforeach
                                                     </div>
                                                 @endif
                                             </div>
@@ -667,7 +692,50 @@
             });
         });
     });
+
+    const pdfPreviewModalEl = document.getElementById('pdfPreviewModal');
+    if (pdfPreviewModalEl && window.bootstrap) {
+        const iframeEl = document.getElementById('pdfPreviewFrame');
+        const titleEl = document.getElementById('pdfPreviewModalLabel');
+        const openNewEl = document.getElementById('pdfPreviewOpenNew');
+
+        pdfPreviewModalEl.addEventListener('show.bs.modal', function (event) {
+            const trigger = event.relatedTarget;
+            const pdfUrl = trigger?.getAttribute('data-pdf-url') || '';
+            const pdfTitle = trigger?.getAttribute('data-pdf-title') || 'Vista previa de documento';
+
+            titleEl.textContent = pdfTitle;
+            iframeEl.src = pdfUrl;
+            openNewEl.href = pdfUrl;
+        });
+
+        pdfPreviewModalEl.addEventListener('hidden.bs.modal', function () {
+            iframeEl.src = 'about:blank';
+            openNewEl.href = '#';
+        });
+    }
 </script>
 
 
+
+
+<div class="modal fade" id="pdfPreviewModal" tabindex="-1" aria-labelledby="pdfPreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="pdfPreviewModalLabel">Vista previa de documento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body p-0" style="height: 75vh;">
+                <iframe id="pdfPreviewFrame" src="about:blank" class="w-100 h-100 border-0" title="Vista previa PDF"></iframe>
+            </div>
+            <div class="modal-footer">
+                <a href="#" id="pdfPreviewOpenNew" target="_blank" rel="noopener" class="btn btn-outline-primary">
+                    <i class="bi bi-box-arrow-up-right me-1"></i>Abrir en nueva pestaña
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
