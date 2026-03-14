@@ -6,6 +6,7 @@ use App\Models\{Order, History, Patient, Catalog, Profile, Product, LabResult, O
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\{DB, Log, Cache, Auth};
 use Illuminate\Support\Str;
+use Illuminate\Database\QueryException;
 
 
 
@@ -301,13 +302,7 @@ class OrderController extends Controller
         try {
             return DB::transaction(function () use ($request, $palabrasClave, $tieneHistoriaReciente) {
                 
-                $order = Order::create([
-                    'code' => 'ORD-' . date('Ymd') . '-' . strtoupper(Str::random(4)),
-                    'patient_id' => $request->patient_id,
-                    'total' => 0,
-                    'payment_status' => $request->payment_status ?? 'pendiente',
-                    'user_id' => Auth::id(),
-                ]);
+                $order = $this->createOrderWithUniqueCode($request);
 
                 $totalReal = 0;
                 $generarRegistroHistoria = false;
@@ -360,10 +355,52 @@ class OrderController extends Controller
 
                 return redirect()->route('orders.index')->with('success', 'Orden guardada con éxito');
             });
+        } catch (QueryException $e) {
+            if ((int) ($e->errorInfo[1] ?? 0) === 1062) {
+                Log::warning('Intento duplicado de creación de orden detectado', [
+                    'patient_id' => $request->patient_id,
+                    'user_id' => Auth::id(),
+                ]);
+
+                return redirect()->route('orders.create')->withErrors([
+                    'error' => 'Se detectó un envío duplicado del formulario. Verifique el listado de órdenes e intente nuevamente.'
+                ]);
+            }
+
+            Log::error("Error SQL al crear orden: " . $e->getMessage());
+            return back()->withErrors(['error' => 'Error de base de datos al crear la orden.']);
         } catch (\Exception $e) {
             Log::error("Error al crear orden: " . $e->getMessage());
             return back()->withErrors(['error' => 'Error: ' . $e->getMessage()]);
         }
+    }
+
+    private function createOrderWithUniqueCode(Request $request): Order
+    {
+        $attempts = 0;
+
+        do {
+            $attempts++;
+            $code = 'ORD-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4));
+
+            try {
+                return Order::create([
+                    'code' => $code,
+                    'patient_id' => $request->patient_id,
+                    'total' => 0,
+                    'payment_status' => $request->payment_status ?? 'pendiente',
+                    'user_id' => Auth::id(),
+                ]);
+            } catch (QueryException $e) {
+                $isDuplicateCode = (int) ($e->errorInfo[1] ?? 0) === 1062;
+
+                if (!$isDuplicateCode || $attempts >= 5) {
+                    throw $e;
+                }
+            }
+        } while ($attempts < 5);
+
+        throw new \RuntimeException('No se pudo generar un código único de orden.');
     }
 /**
  * Guardar nueva Orden

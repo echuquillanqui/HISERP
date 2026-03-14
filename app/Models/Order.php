@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Order extends Model
 {
@@ -29,8 +30,10 @@ class Order extends Model
     // Seguridad: Generar código correlativo único al crear
     protected static function booted() {
         static::creating(function ($order) {
-            $lastId = static::max('id') ?? 0;
-            $order->code = 'ORD-' . date('Ym') . '-' . str_pad($lastId + 1, 5, '0', STR_PAD_LEFT);
+            if (empty($order->code)) {
+                $order->code = 'ORD-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4));
+            }
+
             $order->user_id = auth()->id();
             $order->ip_address = request()->ip();
         });

@@ -21,7 +21,7 @@
         </div>
     @endif
 
-    <form action="{{ route('orders.store') }}" method="POST">
+    <form action="{{ route('orders.store') }}" method="POST" @submit="isSubmitting = true">
         @csrf
         
         <div class="row g-4">
@@ -143,7 +143,7 @@
 
                         <input type="hidden" name="history_price" value="0">
 
-                        <button type="submit" class="btn btn-primary w-100 py-3 shadow fw-bold" :disabled="cart.length === 0">
+                        <button type="submit" class="btn btn-primary w-100 py-3 shadow fw-bold" :disabled="cart.length === 0 || isSubmitting">
                             CONFIRMAR Y GUARDAR
                         </button>
                     </div>
@@ -214,6 +214,7 @@ function orderSystem() {
         patientFormLoading: false,
         patientFormError: '',
         patientForm: { id: null, dni: '', first_name: '', last_name: '', birth_date: '', gender: '', phone: '', email: '', address: '' },
+        isSubmitting: false,
 
         init() {
             this.patientModal = new bootstrap.Modal(document.getElementById('patientModal'));
