@@ -218,7 +218,7 @@ class OrderController extends Controller
     });
 
             $products = Product::query()
-                ->select(['id', 'name', 'selling_price'])
+                ->select(['id', 'name', 'concentration', 'selling_price'])
                 ->where('is_active', true)
                 ->where('name', 'LIKE', "%{$q}%")
                 ->orderBy('name')
@@ -227,6 +227,7 @@ class OrderController extends Controller
                 ->map(fn($product) => [
                     'id' => $product->id,
                     'name' => $product->name,
+                    'concentration' => $product->concentration,
                     'price' => $product->selling_price ?? 0,
                     'type' => 'product',
                     'area' => 'PRODUCTO',

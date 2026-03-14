@@ -79,7 +79,7 @@
                                     <template x-for="(item, index) in cart" :key="index">
                                         <tr>
                                             <td>
-                                                <div class="fw-bold" x-text="item.name"></div>
+                                                <div class="fw-bold" x-text="itemDisplay(item)"></div>
                                                 <span class="fw-bold text-uppercase" style="color: #0d6efd;" x-text="' [' + item.area + ']'"></span> </div>
                                                 <input type="hidden" :name="'items['+index+'][id]'" :value="item.id">
                                                 <input type="hidden" :name="'items['+index+'][type]'" :value="item.type">
@@ -195,10 +195,11 @@ function orderSystem() {
                     id: "{{ $detail->itemable_id }}",
                     type: "{{ class_basename($detail->itemable_type) == 'Service' ? 'service' : (class_basename($detail->itemable_type) == 'Product' ? 'product' : (class_basename($detail->itemable_type) == 'Profile' ? 'profile' : 'catalog')) }}",
                     name: "{{ $detail->name }}",
-                    area: "{{ $detail->itemable && $detail->itemable->area ? strtoupper($detail->itemable->area->name) : 'SIN ÁREA' }}",
+                    area: "{{ class_basename($detail->itemable_type) == 'Product' ? 'PRODUCTO' : ($detail->itemable && $detail->itemable->area ? strtoupper($detail->itemable->area->name) : 'SIN ÁREA') }}",
                     quantity: {{ $detail->quantity ?? 1 }},
                     unit_price: {{ $detail->quantity ? ($detail->price / $detail->quantity) : $detail->price }},
-                    uid: "{{ (class_basename($detail->itemable_type) == 'Service' ? 'service' : (class_basename($detail->itemable_type) == 'Product' ? 'product' : (class_basename($detail->itemable_type) == 'Profile' ? 'profile' : 'catalog'))) . $detail->itemable_id }}"
+                    uid: "{{ (class_basename($detail->itemable_type) == 'Service' ? 'service' : (class_basename($detail->itemable_type) == 'Product' ? 'product' : (class_basename($detail->itemable_type) == 'Profile' ? 'profile' : 'catalog'))) . $detail->itemable_id }}",
+                concentration: "{{ class_basename($detail->itemable_type) == 'Product' ? ($detail->itemable->concentration ?? '') : '' }}"
                 },
                 @endforeach
             @endif
@@ -275,12 +276,12 @@ function orderSystem() {
                     this.itemSearchController = new AbortController();
                     fetch(`/search-items?q=${encodeURIComponent(q)}`, { signal: this.itemSearchController.signal })
                         .then(r => r.json())
-                        .then(j => cb(j.map(i => ({ ...i, uid: i.type+i.id, display_name: `${i.name} [${i.area || 'SIN ÁREA'}]` }))))
+                        .then(j => cb(j.map(i => ({ ...i, uid: i.type+i.id, display_name: `${i.name}${i.concentration ? ' (' + i.concentration + ')' : ''} [${i.area || 'SIN ÁREA'}]` }))))
                         .catch(() => cb());
                 },
                 render: {
-                    option: (data, escape) => `<div>${escape(data.name)} <span class="text-primary fw-bold">[${escape(data.area || 'SIN ÁREA')}]</span></div>`,
-                    item: (data, escape) => `<div>${escape(data.name)} <span class="text-primary fw-bold">[${escape(data.area || 'SIN ÁREA')}]</span></div>`
+                    option: (data, escape) => `<div>${escape(data.name)}${data.concentration ? ` <span class=\"text-muted\">(${escape(data.concentration)})</span>` : ''} <span class=\"text-primary fw-bold\">[${escape(data.area || 'SIN ÁREA')}]</span></div>`,
+                    item: (data, escape) => `<div>${escape(data.name)}${data.concentration ? ` <span class=\"text-muted\">(${escape(data.concentration)})</span>` : ''} <span class=\"text-primary fw-bold\">[${escape(data.area || 'SIN ÁREA')}]</span></div>`
                 },
                 onChange: (v) => {
                     if(!v) return;
@@ -348,6 +349,9 @@ function orderSystem() {
             });
         },
 
+        itemDisplay(item) {
+            return item.concentration ? `${item.name} (${item.concentration})` : item.name;
+        },
         remove(i) { this.cart.splice(i, 1); },
         subtotal(item) { const cantidad = Math.max(1, parseInt(item.quantity || 1, 10)); item.quantity = cantidad; return cantidad * parseFloat(item.unit_price || 0); },
         total() { return this.cart.reduce((s, i) => s + this.subtotal(i), 0); }
