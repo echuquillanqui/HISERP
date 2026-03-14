@@ -58,10 +58,10 @@ class HistoryController extends Controller
         // 2. Historial clínico/laboratorio del paciente (ordenado por fecha desc + paginación)
         $patientHistoryTimeline = History::where('patient_id', $history->patient_id)
             ->with([
-                'user:id,name,',
+                'user:id,name',
                 'diagnostics:id,history_id,diagnostico,tratamiento',
                 'labItems:id,history_id,name',
-                'order.details.labResults.catalog:id,name,unit,reference_male,reference_female',
+                'order.details.labResults.catalog:id,name,unit,reference_range',
             ])
             ->latest()
             ->paginate(10, ['*'], 'history_page');

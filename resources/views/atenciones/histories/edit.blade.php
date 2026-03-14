@@ -330,7 +330,7 @@
                         </div>
 
 
-                        <div class="tab-pane fade" id="tab-historial" role="tabpanel">
+<div class="tab-pane fade" id="tab-historial" role="tabpanel">
                             <div class="mt-3">
                                 <h5 class="mb-3 text-secondary">
                                     <i class="bi bi-clock-history me-2"></i>Historial clínico y de laboratorio
@@ -352,7 +352,7 @@
                                                 <span class="text-muted ms-2">{{ $timelineHistory->created_at?->format('d/m/Y H:i') }}</span>
                                             </div>
                                             <span class="badge bg-primary">
-                                                Dr(a). {{ trim(($timelineHistory->user->name ?? '') . ' ' . ($timelineHistory->user->name ?? '')) ?: 'N/A' }}
+                                                Dr(a). {{ $timelineHistory->user->name ?? 'N/A' }}
                                             </span>
                                         </div>
                                         <div class="card-body">
@@ -406,13 +406,10 @@
                                                                 @foreach($timelineResults as $result)
                                                                     <tr>
                                                                         <td>{{ $result->catalog->name ?? 'N/A' }}</td>
-                                                                        <td>{{ $result->value ?? 'N/A' }}</td>
+                                                                        <td>{{ $result->result_value ?? 'N/A' }}</td>
                                                                         <td>{{ $result->catalog->unit ?? '-' }}</td>
                                                                         <td>
-                                                                            {{ $result->catalog->reference_male ?? '-' }}
-                                                                            @if(!empty($result->catalog->reference_female))
-                                                                                / {{ $result->catalog->reference_female }}
-                                                                            @endif
+                                                                            {{ $result->reference_range ?? $result->catalog->reference_range ?? '-' }}
                                                                         </td>
                                                                     </tr>
                                                                 @endforeach
