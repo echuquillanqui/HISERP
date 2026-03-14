@@ -59,10 +59,10 @@
 
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bg-white py-3 border-bottom text-primary fw-bold">
-                        BÚSQUEDA DE EXÁMENES Y PERFILES
+                        BÚSQUEDA DE EXÁMENES, PERFILES Y PRODUCTOS
                     </div>
                     <div class="card-body">
-                        <select id="item_select" class="mb-4" placeholder="Buscar exámenes y perfiles... (mínimo 2 letras)"></select>
+                        <select id="item_select" class="mb-4" placeholder="Buscar exámenes, perfiles y productos... (mínimo 2 letras)"></select>
                         
                         <div class="table-responsive">
                             <table class="table align-middle">
@@ -193,12 +193,12 @@ function orderSystem() {
                 @foreach($order->details as $detail)
                 {
                     id: "{{ $detail->itemable_id }}",
-                    type: "{{ str_contains($detail->itemable_type, 'Profile') ? 'profile' : 'catalog' }}",
+                    type: "{{ class_basename($detail->itemable_type) == 'Service' ? 'service' : (class_basename($detail->itemable_type) == 'Product' ? 'product' : (class_basename($detail->itemable_type) == 'Profile' ? 'profile' : 'catalog')) }}",
                     name: "{{ $detail->name }}",
                     area: "{{ $detail->itemable && $detail->itemable->area ? strtoupper($detail->itemable->area->name) : 'SIN ÁREA' }}",
                     quantity: {{ $detail->quantity ?? 1 }},
                     unit_price: {{ $detail->quantity ? ($detail->price / $detail->quantity) : $detail->price }},
-                    uid: "{{ (str_contains($detail->itemable_type, 'Profile') ? 'profile' : 'catalog') . $detail->itemable_id }}"
+                    uid: "{{ (class_basename($detail->itemable_type) == 'Service' ? 'service' : (class_basename($detail->itemable_type) == 'Product' ? 'product' : (class_basename($detail->itemable_type) == 'Profile' ? 'profile' : 'catalog'))) . $detail->itemable_id }}"
                 },
                 @endforeach
             @endif

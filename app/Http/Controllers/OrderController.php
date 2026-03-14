@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{Order, History, Patient, Catalog, Profile, LabResult, OrderDetail, Service, Branch};
+use App\Models\{Order, History, Patient, Catalog, Profile, Product, LabResult, OrderDetail, Service, Branch};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\{DB, Log, Cache, Auth};
 use Illuminate\Support\Str;
@@ -76,6 +76,8 @@ class OrderController extends Controller
                         $modelType = \App\Models\Catalog::class;
                     } elseif ($tipo === 'profile') {
                         $modelType = \App\Models\Profile::class;
+                    } elseif ($tipo === 'product') {
+                        $modelType = \App\Models\Product::class;
                     }
 
                     if (!$modelType) {
@@ -102,7 +104,7 @@ class OrderController extends Controller
 
                     // 3. SINCRONIZACIÓN DE LABORATORIO (Solo si no es servicio ni administrativo)
                     $esAdministrativo = Str::contains(strtoupper($item['name']), $palabrasClave);
-                    if ($tipo !== 'service' && !$esAdministrativo) {
+                    if (in_array($tipo, ['catalog', 'profile'], true) && !$esAdministrativo) {
                         $this->sincronizarResultadosLab($detail, $item);
                     }
                 }
@@ -215,7 +217,22 @@ class OrderController extends Controller
         ];
     });
 
-            return $catalogs->merge($profiles)->merge($services)->values();
+            $products = Product::query()
+                ->select(['id', 'name', 'selling_price'])
+                ->where('is_active', true)
+                ->where('name', 'LIKE', "%{$q}%")
+                ->orderBy('name')
+                ->limit(8)
+                ->get()
+                ->map(fn($product) => [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'price' => $product->selling_price ?? 0,
+                    'type' => 'product',
+                    'area' => 'PRODUCTO',
+                ]);
+
+            return $catalogs->merge($profiles)->merge($services)->merge($products)->values();
         });
 
         return response()->json($result);
@@ -307,6 +324,7 @@ class OrderController extends Controller
                         'catalog' => Catalog::class,
                         'profile' => Profile::class,
                         'service' => Service::class,
+                        'product' => Product::class,
                     };
 
                     $detail = OrderDetail::create([
@@ -323,7 +341,7 @@ class OrderController extends Controller
                         $generarRegistroHistoria = true; // Si es HISTORIA, activamos la bandera
                     } else {
                         // Solo procesar laboratorio si NO es un servicio administrativo
-                        if ($item['type'] !== 'service') {
+                        if (in_array($item['type'], ['catalog', 'profile'], true)) {
                             $this->processLabResults($detail, $item);
                         }
                     }
