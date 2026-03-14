@@ -361,31 +361,11 @@
                                                 <p class="small text-muted mb-0">{{ $timelineHistory->anamnesis ?: 'Sin registro' }}</p>
                                             </div>
 
-                                            <div class="mb-2">
-                                                <h6 class="mb-1">Diagnósticos</h6>
-                                                @if($timelineHistory->diagnostics->isEmpty())
-                                                    <p class="small text-muted mb-0">Sin diagnósticos registrados.</p>
-                                                @else
-                                                    <ul class="small mb-0">
-                                                        @foreach($timelineHistory->diagnostics as $dx)
-                                                            <li>{{ $dx->diagnostico }}</li>
-                                                        @endforeach
-                                                    </ul>
-                                                @endif
-                                            </div>
-
-                                            <div class="mb-2">
-                                                <h6 class="mb-1">Solicitudes de laboratorio</h6>
-                                                @if($timelineHistory->labItems->isEmpty())
-                                                    <p class="small text-muted mb-0">Sin exámenes solicitados.</p>
-                                                @else
-                                                    <div class="d-flex flex-wrap gap-1">
-                                                        @foreach($timelineHistory->labItems as $labRequest)
-                                                            <span class="badge bg-secondary">{{ $labRequest->name }}</span>
-                                                        @endforeach
-                                                    </div>
-                                                @endif
-                                            </div>
+                                            @php
+                                                $prescriptionPdfUrl = $timelineHistory->prescription
+                                                    ? route('histories.print-prescription', $timelineHistory->id)
+                                                    : null;
+                                            @endphp
 
                                             @php
                                                 $timelineOrder = $timelineHistory->order;
@@ -399,25 +379,38 @@
                                             <div>
                                                 <h6 class="mb-1">Documentos imprimibles (PDF)</h6>
 
-                                                @if(!$timelineLabPdfUrl && $serviceReports->isEmpty())
+                                                @if(!$timelineLabPdfUrl && !$prescriptionPdfUrl && $serviceReports->isEmpty())
                                                     <p class="small text-muted mb-0">Sin documentos imprimibles registrados.</p>
                                                 @else
                                                     <div class="list-group list-group-flush border rounded">
                                                         @if($timelineLabPdfUrl)
-                                                            <button
-                                                                type="button"
+                                                            <a
+                                                                href="{{ $timelineLabPdfUrl }}"
+                                                                target="_blank"
+                                                                rel="noopener"
                                                                 class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-                                                                data-bs-toggle="modal"
-                                                                data-bs-target="#pdfPreviewModal"
-                                                                data-pdf-url="{{ $timelineLabPdfUrl }}"
-                                                                data-pdf-title="Laboratorio · {{ $timelineHistory->created_at?->format('d/m/Y') }}"
                                                             >
                                                                 <div>
-                                                                    <div class="fw-semibold">Examen de laboratorio</div>
+                                                                    <div class="fw-semibold">Resultados de laboratorio</div>
                                                                     <small class="text-muted">Fecha: {{ $timelineHistory->created_at?->format('d/m/Y') }}</small>
                                                                 </div>
                                                                 <span class="badge bg-danger-subtle text-danger border border-danger-subtle">PDF</span>
-                                                            </button>
+                                                            </a>
+                                                        @endif
+
+                                                        @if($prescriptionPdfUrl)
+                                                            <a
+                                                                href="{{ $prescriptionPdfUrl }}"
+                                                                target="_blank"
+                                                                rel="noopener"
+                                                                class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                                                            >
+                                                                <div>
+                                                                    <div class="fw-semibold">Receta médica</div>
+                                                                    <small class="text-muted">Fecha: {{ $timelineHistory->created_at?->format('d/m/Y') }}</small>
+                                                                </div>
+                                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">PDF</span>
+                                                            </a>
                                                         @endif
 
                                                         @foreach($serviceReports as $detail)
@@ -425,20 +418,18 @@
                                                                 $servicePdfUrl = route('services.imprimir', $detail->reportService->id);
                                                                 $serviceName = $detail->service->name ?? 'Servicio médico';
                                                             @endphp
-                                                            <button
-                                                                type="button"
+                                                            <a
+                                                                href="{{ $servicePdfUrl }}"
+                                                                target="_blank"
+                                                                rel="noopener"
                                                                 class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-                                                                data-bs-toggle="modal"
-                                                                data-bs-target="#pdfPreviewModal"
-                                                                data-pdf-url="{{ $servicePdfUrl }}"
-                                                                data-pdf-title="{{ $serviceName }} · {{ $timelineHistory->created_at?->format('d/m/Y') }}"
                                                             >
                                                                 <div>
                                                                     <div class="fw-semibold">{{ $serviceName }}</div>
                                                                     <small class="text-muted">Fecha: {{ $timelineHistory->created_at?->format('d/m/Y') }}</small>
                                                                 </div>
                                                                 <span class="badge bg-danger-subtle text-danger border border-danger-subtle">PDF</span>
-                                                            </button>
+                                                            </a>
                                                         @endforeach
                                                     </div>
                                                 @endif

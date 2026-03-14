@@ -59,11 +59,11 @@ class HistoryController extends Controller
         $patientHistoryTimeline = History::where('patient_id', $history->patient_id)
             ->with([
                 'user:id,name',
-                'diagnostics:id,history_id,diagnostico,tratamiento',
-                'labItems:id,history_id,name',
                 'order.details.labResults.catalog:id,name,unit,reference_range',
                 'order.details.service:id,name',
                 'order.details.reportService:id,order_detail_id',
+                'prescription:id,history_id',
+                'prescription.items:id,prescription_id',
             ])
             ->latest()
             ->paginate(10, ['*'], 'history_page');
