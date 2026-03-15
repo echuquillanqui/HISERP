@@ -56,12 +56,7 @@
                     <div class="card-body">
                         <select id="item_select" class="mb-4" placeholder="Buscar exámenes, perfiles y productos... (mínimo 2 letras)"></select>
 
-                        <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
-                            <ul class="nav nav-pills gap-2">
-                                <li class="nav-item"><button type="button" class="btn btn-sm" :class="activeCartTab === 'profile' ? 'btn-primary' : 'btn-outline-primary'" @click="activeCartTab = 'profile'">Perfiles</button></li>
-                                <li class="nav-item"><button type="button" class="btn btn-sm" :class="activeCartTab === 'catalog' ? 'btn-primary' : 'btn-outline-primary'" @click="activeCartTab = 'catalog'">Exámenes individuales</button></li>
-                                <li class="nav-item"><button type="button" class="btn btn-sm" :class="activeCartTab === 'other' ? 'btn-primary' : 'btn-outline-primary'" @click="activeCartTab = 'other'">Otros</button></li>
-                            </ul>
+                        <div class="d-flex flex-wrap gap-2 align-items-center justify-content-end mb-3">
                             <div class="input-group input-group-sm" style="max-width: 280px;">
                                 <span class="input-group-text"><i class="bi bi-search"></i></span>
                                 <input type="text" class="form-control" x-model.trim="cartSearch" placeholder="Buscar en seleccionados...">
@@ -105,7 +100,7 @@
                                         </tr>
                                     </template>
                                     <tr x-show="filteredCart().length === 0">
-                                        <td colspan="5" class="text-center text-muted py-3">No hay ítems para la pestaña/filtro seleccionado.</td>
+                                        <td colspan="5" class="text-center text-muted py-3">No hay ítems que coincidan con la búsqueda.</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -193,7 +188,6 @@ function orderSystem() {
             },
             @endforeach
         ],
-        activeCartTab: 'profile',
         cartSearch: '',
         init() {
             this.patientModal = new bootstrap.Modal(document.getElementById('patientModal'));
@@ -288,10 +282,8 @@ function orderSystem() {
         filteredCart() {
             const term = this.cartSearch.toLowerCase();
             return this.cart.filter(item => {
-                const isOther = !['profile', 'catalog'].includes(item.type);
-                const byTab = this.activeCartTab === 'other' ? isOther : item.type === this.activeCartTab;
                 const bySearch = !term || this.itemDisplay(item).toLowerCase().includes(term) || (item.area || '').toLowerCase().includes(term);
-                return byTab && bySearch;
+                return bySearch;
             });
         },
         removeByUid(uid) {

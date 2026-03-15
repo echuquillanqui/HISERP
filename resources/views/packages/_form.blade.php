@@ -53,54 +53,39 @@
 <div class="card border-0 shadow-sm mt-3">
     <div class="card-header bg-white fw-semibold">Ítems del paquete</div>
     <div class="card-body">
-        <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
-            <ul class="nav nav-pills gap-2">
-                @foreach(['catalog' => 'Catálogos', 'profile' => 'Perfiles', 'service' => 'Servicios', 'product' => 'Productos'] as $type => $label)
-                    <li class="nav-item">
-                        <button
-                            type="button"
-                            class="btn btn-sm package-type-tab {{ $loop->first ? 'btn-primary' : 'btn-outline-primary' }}"
-                            data-type="{{ $type }}"
-                        >
-                            {{ $label }}
-                        </button>
-                    </li>
-                @endforeach
-            </ul>
-
+        <div class="d-flex flex-wrap gap-2 align-items-center justify-content-end mb-3">
             <div class="input-group input-group-sm" style="max-width: 320px;">
                 <span class="input-group-text"><i class="bi bi-search"></i></span>
-                <input type="text" id="package-items-search" class="form-control" placeholder="Buscar ítem dentro de la pestaña...">
+                <input type="text" id="package-items-search" class="form-control" placeholder="Buscar ítem...">
             </div>
         </div>
 
-        @php $idx = 0; @endphp
-        @foreach(['catalog' => $catalogs, 'profile' => $profiles, 'service' => $services, 'product' => $products] as $type => $list)
-            <div class="package-type-section {{ $loop->first ? '' : 'd-none' }}" data-type="{{ $type }}">
-            <h6 class="text-uppercase text-muted mt-3">{{ $type }}</h6>
-            <div class="table-responsive">
-                <table class="table table-sm align-middle">
-                    <thead>
-                        <tr>
-                            <th style="width: 40px"></th>
-                            <th>Nombre</th>
-                            <th style="width: 130px">Cantidad</th>
-                            <th style="width: 150px">Precio unit.</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th style="width: 40px"></th>
+                        <th>Tipo</th>
+                        <th>Nombre</th>
+                        <th style="width: 130px">Cantidad</th>
+                        <th style="width: 150px">Precio unit.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @php $idx = 0; @endphp
+                    @foreach(['catalog' => $catalogs, 'profile' => $profiles, 'service' => $services, 'product' => $products] as $type => $list)
                         @foreach($list as $entry)
                             @php
                                 $name = $type === 'service' ? $entry->nombre : $entry->name;
                                 $defaultPrice = $type === 'service' ? $entry->precio : ($type === 'product' ? $entry->selling_price : $entry->price);
                                 $selected = $hasItem($type, $entry->id);
+                                $typeLabel = ['catalog' => 'Catálogo', 'profile' => 'Perfil', 'service' => 'Servicio', 'product' => 'Producto'][$type] ?? ucfirst($type);
                             @endphp
-                            <tr class="package-item-row" data-type="{{ $type }}" data-name="{{ 
-                                Illuminate\Support\Str::lower($name)
-                            }}">
+                            <tr class="package-item-row" data-name="{{ Illuminate\Support\Str::lower($name) }}" data-type-label="{{ Illuminate\Support\Str::lower($typeLabel) }}">
                                 <td>
                                     <input class="form-check-input package-item-toggle" type="checkbox" {{ $selected ? 'checked' : '' }} data-target="pkg-{{ $type }}-{{ $entry->id }}">
                                 </td>
+                                <td><span class="badge bg-light text-dark border">{{ $typeLabel }}</span></td>
                                 <td>{{ $name }}</td>
                                 <td>
                                     <input id="pkg-{{ $type }}-{{ $entry->id }}-qty" type="number" min="1" class="form-control form-control-sm" name="package_items[{{ $idx }}][quantity]" value="{{ $selected['quantity'] ?? 1 }}" {{ $selected ? '' : 'disabled' }}>
@@ -113,11 +98,10 @@
                             </tr>
                             @php $idx++; @endphp
                         @endforeach
-                    </tbody>
-                </table>
-            </div>
-            </div>
-        @endforeach
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
@@ -139,38 +123,17 @@
         });
     });
 
-    const tabs = document.querySelectorAll('.package-type-tab');
-    const sections = document.querySelectorAll('.package-type-section');
     const searchInput = document.getElementById('package-items-search');
-    let activeType = 'catalog';
 
     const applyPackageFilter = () => {
         const term = (searchInput?.value || '').trim().toLowerCase();
         document.querySelectorAll('.package-item-row').forEach((row) => {
-            const isCurrentType = row.dataset.type === activeType;
             const rowName = row.dataset.name || '';
-            const visible = isCurrentType && (!term || rowName.includes(term));
+            const rowType = row.dataset.typeLabel || '';
+            const visible = !term || rowName.includes(term) || rowType.includes(term);
             row.classList.toggle('d-none', !visible);
         });
     };
-
-    tabs.forEach((tab) => {
-        tab.addEventListener('click', () => {
-            activeType = tab.dataset.type;
-
-            tabs.forEach((item) => {
-                const selected = item === tab;
-                item.classList.toggle('btn-primary', selected);
-                item.classList.toggle('btn-outline-primary', !selected);
-            });
-
-            sections.forEach((section) => {
-                section.classList.toggle('d-none', section.dataset.type !== activeType);
-            });
-
-            applyPackageFilter();
-        });
-    });
 
     searchInput?.addEventListener('input', applyPackageFilter);
 </script>
