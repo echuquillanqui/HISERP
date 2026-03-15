@@ -185,7 +185,7 @@ function orderSystem() {
                 id: "{{ $detail->itemable_id }}",
                 type: "{{ class_basename($detail->itemable_type) == 'Service' ? 'service' : (class_basename($detail->itemable_type) == 'Product' ? 'product' : (class_basename($detail->itemable_type) == 'Profile' ? 'profile' : 'catalog')) }}",
                 name: "{{ $detail->name }}",
-                area: "{{ class_basename($detail->itemable_type) == 'Product' ? 'PRODUCTO' : ($detail->itemable && $detail->itemable->area ? strtoupper($detail->itemable->area->name) : 'SIN ÁREA') }}",
+                area: "{{ class_basename($detail->itemable_type) == 'Service' ? 'SERVICIO' : (class_basename($detail->itemable_type) == 'Product' ? 'PRODUCTO' : ($detail->itemable && $detail->itemable->area ? strtoupper($detail->itemable->area->name) : 'SIN ÁREA')) }}",
                 quantity: {{ $detail->quantity ?? 1 }},
                 unit_price: {{ $detail->quantity ? ($detail->price / $detail->quantity) : $detail->price }},
                 uid: "{{ (class_basename($detail->itemable_type) == 'Service' ? 'service' : (class_basename($detail->itemable_type) == 'Product' ? 'product' : (class_basename($detail->itemable_type) == 'Profile' ? 'profile' : 'catalog'))) . $detail->itemable_id }}",

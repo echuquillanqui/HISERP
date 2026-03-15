@@ -15,6 +15,11 @@ class ServiceResultController extends Controller
     {
         $fecha = $request->input('date', now()->toDateString());
         $query = OrderDetail::where('itemable_type', \App\Models\Service::class)
+            ->whereExists(function ($q) {
+                $q->selectRaw('1')
+                    ->from('templates')
+                    ->whereColumn('templates.service_id', 'order_details.itemable_id');
+            })
             ->with(['order.patient', 'reportService'])
             ->whereHas('order', function($q) use ($fecha) {
                 $q->whereDate('created_at', $fecha);
