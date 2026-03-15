@@ -60,47 +60,85 @@
             </div>
         </div>
 
-        <div class="table-responsive">
-            <table class="table table-sm align-middle">
-                <thead>
-                    <tr>
-                        <th style="width: 40px"></th>
-                        <th>Tipo</th>
-                        <th>Nombre</th>
-                        <th style="width: 130px">Cantidad</th>
-                        <th style="width: 150px">Precio unit.</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @php $idx = 0; @endphp
-                    @foreach(['catalog' => $catalogs, 'profile' => $profiles, 'service' => $services, 'product' => $products] as $type => $list)
-                        @foreach($list as $entry)
-                            @php
-                                $name = $type === 'service' ? $entry->nombre : $entry->name;
-                                $defaultPrice = $type === 'service' ? $entry->precio : ($type === 'product' ? $entry->selling_price : $entry->price);
-                                $selected = $hasItem($type, $entry->id);
-                                $typeLabel = ['catalog' => 'Catálogo', 'profile' => 'Perfil', 'service' => 'Servicio', 'product' => 'Producto'][$type] ?? ucfirst($type);
-                            @endphp
-                            <tr class="package-item-row" data-name="{{ Illuminate\Support\Str::lower($name) }}" data-type-label="{{ Illuminate\Support\Str::lower($typeLabel) }}">
-                                <td>
-                                    <input class="form-check-input package-item-toggle" type="checkbox" {{ $selected ? 'checked' : '' }} data-target="pkg-{{ $type }}-{{ $entry->id }}">
-                                </td>
-                                <td><span class="badge bg-light text-dark border">{{ $typeLabel }}</span></td>
-                                <td>{{ $name }}</td>
-                                <td>
-                                    <input id="pkg-{{ $type }}-{{ $entry->id }}-qty" type="number" min="1" class="form-control form-control-sm" name="package_items[{{ $idx }}][quantity]" value="{{ $selected['quantity'] ?? 1 }}" {{ $selected ? '' : 'disabled' }}>
-                                </td>
-                                <td>
-                                    <input id="pkg-{{ $type }}-{{ $entry->id }}-price" type="number" min="0" step="0.01" class="form-control form-control-sm" name="package_items[{{ $idx }}][unit_price]" value="{{ $selected['unit_price'] ?? $defaultPrice ?? 0 }}" {{ $selected ? '' : 'disabled' }}>
-                                    <input id="pkg-{{ $type }}-{{ $entry->id }}-type" type="hidden" name="package_items[{{ $idx }}][itemable_type]" value="{{ $type }}" {{ $selected ? '' : 'disabled' }}>
-                                    <input id="pkg-{{ $type }}-{{ $entry->id }}-id" type="hidden" name="package_items[{{ $idx }}][itemable_id]" value="{{ $entry->id }}" {{ $selected ? '' : 'disabled' }}>
-                                </td>
-                            </tr>
-                            @php $idx++; @endphp
-                        @endforeach
-                    @endforeach
-                </tbody>
-            </table>
+        @php
+            $itemGroups = ['catalog' => $catalogs, 'profile' => $profiles, 'service' => $services, 'product' => $products];
+            $typeLabels = ['catalog' => 'Catálogo', 'profile' => 'Perfil', 'service' => 'Servicio', 'product' => 'Producto'];
+        @endphp
+
+        <ul class="nav nav-tabs mb-3" id="package-item-tabs" role="tablist">
+            @foreach($itemGroups as $type => $list)
+                <li class="nav-item" role="presentation">
+                    <button
+                        class="nav-link {{ $loop->first ? 'active' : '' }}"
+                        id="tab-{{ $type }}"
+                        data-bs-toggle="tab"
+                        data-bs-target="#pane-{{ $type }}"
+                        type="button"
+                        role="tab"
+                        aria-controls="pane-{{ $type }}"
+                        aria-selected="{{ $loop->first ? 'true' : 'false' }}"
+                    >
+                        {{ $typeLabels[$type] ?? ucfirst($type) }}
+                        <span class="badge bg-secondary-subtle text-dark ms-1">{{ $list->count() }}</span>
+                    </button>
+                </li>
+            @endforeach
+        </ul>
+
+        <div class="tab-content">
+            @php $idx = 0; @endphp
+            @foreach($itemGroups as $type => $list)
+                @php $typeLabel = $typeLabels[$type] ?? ucfirst($type); @endphp
+                <div
+                    class="tab-pane fade {{ $loop->first ? 'show active' : '' }}"
+                    id="pane-{{ $type }}"
+                    role="tabpanel"
+                    aria-labelledby="tab-{{ $type }}"
+                    tabindex="0"
+                    data-type="{{ $type }}"
+                >
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px"></th>
+                                    <th>Nombre</th>
+                                    <th style="width: 130px">Cantidad</th>
+                                    <th style="width: 150px">Precio unit.</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($list as $entry)
+                                    @php
+                                        $name = $type === 'service' ? $entry->nombre : $entry->name;
+                                        $defaultPrice = $type === 'service' ? $entry->precio : ($type === 'product' ? $entry->selling_price : $entry->price);
+                                        $selected = $hasItem($type, $entry->id);
+                                    @endphp
+                                    <tr class="package-item-row" data-name="{{ Illuminate\Support\Str::lower($name) }}" data-type-label="{{ Illuminate\Support\Str::lower($typeLabel) }}">
+                                        <td>
+                                            <input class="form-check-input package-item-toggle" type="checkbox" {{ $selected ? 'checked' : '' }} data-target="pkg-{{ $type }}-{{ $entry->id }}">
+                                        </td>
+                                        <td>{{ $name }}</td>
+                                        <td>
+                                            <input id="pkg-{{ $type }}-{{ $entry->id }}-qty" type="number" min="1" class="form-control form-control-sm" name="package_items[{{ $idx }}][quantity]" value="{{ $selected['quantity'] ?? 1 }}" {{ $selected ? '' : 'disabled' }}>
+                                        </td>
+                                        <td>
+                                            <input id="pkg-{{ $type }}-{{ $entry->id }}-price" type="number" min="0" step="0.01" class="form-control form-control-sm" name="package_items[{{ $idx }}][unit_price]" value="{{ $selected['unit_price'] ?? $defaultPrice ?? 0 }}" {{ $selected ? '' : 'disabled' }}>
+                                            <input id="pkg-{{ $type }}-{{ $entry->id }}-type" type="hidden" name="package_items[{{ $idx }}][itemable_type]" value="{{ $type }}" {{ $selected ? '' : 'disabled' }}>
+                                            <input id="pkg-{{ $type }}-{{ $entry->id }}-id" type="hidden" name="package_items[{{ $idx }}][itemable_id]" value="{{ $entry->id }}" {{ $selected ? '' : 'disabled' }}>
+                                        </td>
+                                    </tr>
+                                    @php $idx++; @endphp
+                                @empty
+                                    <tr>
+                                        <td colspan="4" class="text-muted text-center py-3">No hay registros de {{ Illuminate\Support\Str::lower($typeLabel) }}.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @endforeach
         </div>
     </div>
 </div>
@@ -127,12 +165,39 @@
 
     const applyPackageFilter = () => {
         const term = (searchInput?.value || '').trim().toLowerCase();
+
+        const tabVisibility = {};
         document.querySelectorAll('.package-item-row').forEach((row) => {
             const rowName = row.dataset.name || '';
             const rowType = row.dataset.typeLabel || '';
             const visible = !term || rowName.includes(term) || rowType.includes(term);
             row.classList.toggle('d-none', !visible);
+
+            const pane = row.closest('.tab-pane');
+            if (pane) {
+                tabVisibility[pane.id] = (tabVisibility[pane.id] || false) || visible;
+            }
         });
+
+        document.querySelectorAll('#package-item-tabs .nav-link').forEach((tabButton) => {
+            const paneSelector = tabButton.dataset.bsTarget;
+            const paneId = paneSelector?.replace('#', '');
+            const visible = !term || (paneId && tabVisibility[paneId]);
+
+            tabButton.classList.toggle('d-none', !visible);
+
+            if (!visible && tabButton.classList.contains('active')) {
+                tabButton.classList.remove('active');
+            }
+        });
+
+        const activeTab = document.querySelector('#package-item-tabs .nav-link.active:not(.d-none)');
+        if (!activeTab) {
+            const firstVisibleTab = document.querySelector('#package-item-tabs .nav-link:not(.d-none)');
+            if (firstVisibleTab && window.bootstrap?.Tab) {
+                window.bootstrap.Tab.getOrCreateInstance(firstVisibleTab).show();
+            }
+        }
     };
 
     searchInput?.addEventListener('input', applyPackageFilter);
