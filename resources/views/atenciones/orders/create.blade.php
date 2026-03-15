@@ -288,6 +288,10 @@ function orderSystem() {
                 return labels[type] || 'ITEM';
             };
 
+            const areaSuffix = (item) => item.type === 'catalog' && item.area
+                ? ` [${item.area}]`
+                : '';
+
             this.itemSelect = new TomSelect('#item_select', {
                 valueField: 'uid',
                 labelField: 'display_name',
@@ -300,12 +304,12 @@ function orderSystem() {
                     this.itemSearchController = new AbortController();
                     fetch(`/search-items?q=${encodeURIComponent(q)}`, { signal: this.itemSearchController.signal })
                         .then(r => r.json())
-                        .then(j => cb(j.map(i => ({ ...i, uid: i.type+i.id, display_name: `${i.name}${i.concentration ? ' (' + i.concentration + ')' : ''} [${typeLabel(i.type)}]` }))))
+                        .then(j => cb(j.map(i => ({ ...i, uid: i.type+i.id, display_name: `${i.name}${i.concentration ? ' (' + i.concentration + ')' : ''}${areaSuffix(i)} [${typeLabel(i.type)}]` }))))
                         .catch(() => cb());
                 },
                 render: {
-                    option: (data, escape) => `<div>${escape(data.name)}${data.concentration ? ` <span class=\"text-muted\">(${escape(data.concentration)})</span>` : ''} <span class=\"text-primary fw-bold\">[${escape(typeLabel(data.type))}]</span></div>`,
-                    item: (data, escape) => `<div>${escape(data.name)}${data.concentration ? ` <span class=\"text-muted\">(${escape(data.concentration)})</span>` : ''} <span class=\"text-primary fw-bold\">[${escape(typeLabel(data.type))}]</span></div>`
+                    option: (data, escape) => `<div>${escape(data.name)}${data.concentration ? ` <span class=\"text-muted\">(${escape(data.concentration)})</span>` : ''}${areaSuffix(data) ? ` <span class=\"text-secondary fw-semibold\">${escape(areaSuffix(data))}</span>` : ''} <span class=\"text-primary fw-bold\">[${escape(typeLabel(data.type))}]</span></div>`,
+                    item: (data, escape) => `<div>${escape(data.name)}${data.concentration ? ` <span class=\"text-muted\">(${escape(data.concentration)})</span>` : ''}${areaSuffix(data) ? ` <span class=\"text-secondary fw-semibold\">${escape(areaSuffix(data))}</span>` : ''} <span class=\"text-primary fw-bold\">[${escape(typeLabel(data.type))}]</span></div>`
                 },
                 onChange: (v) => {
                     if(!v) return;
