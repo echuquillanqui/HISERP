@@ -400,7 +400,7 @@ class OrderController extends Controller
                         }
 
                         if ($item['type'] === 'service') {
-                            $this->ensureServiceTemplate($detail, $order);
+                            $this->ensureServiceTemplate($detail);
                         }
                     }
                 }
@@ -484,32 +484,19 @@ class OrderController extends Controller
         }
     }
 
-    private function ensureServiceTemplate(OrderDetail $detail, Order $order): void
+    private function ensureServiceTemplate(OrderDetail $detail): void
     {
         $template = Template::where('service_id', $detail->itemable_id)->first();
 
         if (!$template) {
+            if (!str_contains($detail->name, '[SIN PLANTILLA]')) {
+                $detail->update([
+                    'name' => $detail->name . ' [SIN PLANTILLA]'
+                ]);
+            }
+
             return;
         }
-
-        $html = str_replace(
-            ['{{nombre_paciente}}', '{{dni_paciente}}', '{{fecha_actual}}'],
-            [
-                $order->patient->first_name . ' ' . $order->patient->last_name,
-                $order->patient->dni,
-                now()->format('d/m/Y'),
-            ],
-            $template->html_content
-        );
-
-        ReportService::firstOrCreate(
-            ['order_detail_id' => $detail->id],
-            [
-                'template_id' => $template->id,
-                'resultados_json' => [],
-                'html_final' => $html,
-            ]
-        );
     }
 
     public function show(Order $order)

@@ -27,6 +27,27 @@ class ServiceResultController extends Controller
             });
         }
         $details = $query->paginate(15);
+
+        $serviceIds = $details->pluck('itemable_id')->filter()->unique()->values();
+        $templatesByService = Template::whereIn('service_id', $serviceIds)
+            ->get(['id', 'service_id', 'html_content'])
+            ->keyBy('service_id');
+
+        $details->getCollection()->transform(function ($detail) use ($templatesByService) {
+            $template = $templatesByService->get($detail->itemable_id);
+            $report = $detail->reportService;
+
+            if (!$template || !$report) {
+                $detail->report_completed = false;
+                return $detail;
+            }
+
+            $initialHtml = $this->prepararContenidoInicial($template->html_content, $detail->order->loadMissing('patient'));
+            $detail->report_completed = trim((string) $report->html_final) !== trim((string) $initialHtml);
+
+            return $detail;
+        });
+
         return view('atenciones.servicios.index', compact('details'));
     }
 

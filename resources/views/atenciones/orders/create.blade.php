@@ -63,6 +63,18 @@
                     </div>
                     <div class="card-body">
                         <select id="item_select" class="mb-4" placeholder="Buscar exámenes, perfiles y productos... (mínimo 2 letras)"></select>
+
+                        <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-3">
+                            <ul class="nav nav-pills gap-2">
+                                <li class="nav-item"><button type="button" class="btn btn-sm" :class="activeCartTab === 'profile' ? 'btn-primary' : 'btn-outline-primary'" @click="activeCartTab = 'profile'">Perfiles</button></li>
+                                <li class="nav-item"><button type="button" class="btn btn-sm" :class="activeCartTab === 'catalog' ? 'btn-primary' : 'btn-outline-primary'" @click="activeCartTab = 'catalog'">Exámenes individuales</button></li>
+                                <li class="nav-item"><button type="button" class="btn btn-sm" :class="activeCartTab === 'other' ? 'btn-primary' : 'btn-outline-primary'" @click="activeCartTab = 'other'">Otros</button></li>
+                            </ul>
+                            <div class="input-group input-group-sm" style="max-width: 280px;">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control" x-model.trim="cartSearch" placeholder="Buscar en seleccionados...">
+                            </div>
+                        </div>
                         
                         <div class="table-responsive">
                             <table class="table align-middle">
@@ -76,17 +88,17 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <template x-for="(item, index) in cart" :key="index">
+                                    <template x-for="item in filteredCart()" :key="item.uid">
                                         <tr>
                                             <td>
                                                 <div class="fw-bold" x-text="itemDisplay(item)"></div>
                                                 <span class="fw-bold text-uppercase" style="color: #0d6efd;" x-text="' [' + item.area + ']'"></span> </div>
-                                                <input type="hidden" :name="'items['+index+'][id]'" :value="item.id">
-                                                <input type="hidden" :name="'items['+index+'][type]'" :value="item.type">
-                                                <input type="hidden" :name="'items['+index+'][name]'" :value="item.name">
-                                                <input type="hidden" :name="'items['+index+'][unit_price]'" :value="item.unit_price">
-                                                <input type="hidden" :name="'items['+index+'][quantity]'" :value="item.quantity">
-                                                <input type="hidden" :name="'items['+index+'][price]'" :value="subtotal(item)">
+                                                <input type="hidden" :name="'items['+cart.indexOf(item)+'][id]'" :value="item.id">
+                                                <input type="hidden" :name="'items['+cart.indexOf(item)+'][type]'" :value="item.type">
+                                                <input type="hidden" :name="'items['+cart.indexOf(item)+'][name]'" :value="item.name">
+                                                <input type="hidden" :name="'items['+cart.indexOf(item)+'][unit_price]'" :value="item.unit_price">
+                                                <input type="hidden" :name="'items['+cart.indexOf(item)+'][quantity]'" :value="item.quantity">
+                                                <input type="hidden" :name="'items['+cart.indexOf(item)+'][price]'" :value="subtotal(item)">
                                             </td>
                                             <td class="text-center" style="max-width: 100px;">
                                                 <input type="number" min="1" class="form-control form-control-sm text-center" x-model.number="item.quantity">
@@ -94,12 +106,15 @@
                                             <td class="text-end fw-bold">S/ <span x-text="parseFloat(item.unit_price).toFixed(2)"></span></td>
                                             <td class="text-end fw-bold">S/ <span x-text="subtotal(item).toFixed(2)"></span></td>
                                             <td class="text-center">
-                                                <button type="button" @click="remove(index)" class="btn btn-sm btn-outline-danger border-0">
+                                                <button type="button" @click="removeByUid(item.uid)" class="btn btn-sm btn-outline-danger border-0">
                                                     <i class="bi bi-trash3-fill"></i>
                                                 </button>
                                             </td>
                                         </tr>
                                     </template>
+                                    <tr x-show="filteredCart().length === 0">
+                                        <td colspan="5" class="text-center text-muted py-3">No hay ítems para la pestaña/filtro seleccionado.</td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -215,6 +230,8 @@ function orderSystem() {
         patientFormError: '',
         patientForm: { id: null, dni: '', first_name: '', last_name: '', birth_date: '', gender: '', phone: '', email: '', address: '' },
         isSubmitting: false,
+        activeCartTab: 'profile',
+        cartSearch: '',
 
         init() {
             this.patientModal = new bootstrap.Modal(document.getElementById('patientModal'));
@@ -380,6 +397,19 @@ function orderSystem() {
 
         itemDisplay(item) {
             return item.concentration ? `${item.name} (${item.concentration})` : item.name;
+        },
+        filteredCart() {
+            const term = this.cartSearch.toLowerCase();
+            return this.cart.filter(item => {
+                const isOther = !['profile', 'catalog'].includes(item.type);
+                const byTab = this.activeCartTab === 'other' ? isOther : item.type === this.activeCartTab;
+                const bySearch = !term || this.itemDisplay(item).toLowerCase().includes(term) || (item.area || '').toLowerCase().includes(term);
+                return byTab && bySearch;
+            });
+        },
+        removeByUid(uid) {
+            const index = this.cart.findIndex(item => item.uid === uid);
+            if (index !== -1) this.cart.splice(index, 1);
         },
         remove(i) { this.cart.splice(i, 1); },
         subtotal(item) { const cantidad = Math.max(1, parseInt(item.quantity || 1, 10)); item.quantity = cantidad; return cantidad * parseFloat(item.unit_price || 0); },

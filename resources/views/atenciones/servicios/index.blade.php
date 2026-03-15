@@ -66,7 +66,7 @@
                                 <span class="text-primary fw-bold font-monospace">{{ $detail->order->code }}</span>
                             </td>
                             <td class="text-center">
-                                @if($detail->reportService)
+                                @if($detail->report_completed)
                                     <span class="badge bg-success-subtle text-success border border-success-subtle">
                                         <i class="bi bi-check-circle-fill me-1"></i>Finalizado
                                     </span>
