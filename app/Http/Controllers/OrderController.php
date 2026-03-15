@@ -206,17 +206,19 @@ class OrderController extends Controller
 
 
             $services = Service::query()
-    ->where('nombre', 'LIKE', "%{$q}%")
-    ->get()
-    ->map(function($service) {
-        return [
-            'id'    => $service->id,
-            'name'  => $service->nombre,
-            'price' => $service->precio,
-            'type'  => 'service',
-            'area'  => null // <--- Opcional: Esto indica explícitamente que no tiene área
-        ];
-    });
+                ->where('nombre', 'LIKE', "%{$q}%")
+                ->orderBy('nombre')
+                ->limit(8)
+                ->get()
+                ->map(function ($service) {
+                    return [
+                        'id' => $service->id,
+                        'name' => $service->nombre,
+                        'price' => $service->precio,
+                        'type' => 'service',
+                        'area' => 'SERVICIO',
+                    ];
+                });
 
             $products = Product::query()
                 ->select(['id', 'name', 'concentration', 'selling_price'])
