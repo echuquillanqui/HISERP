@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{Order, History, Patient, Catalog, Profile, Product, LabResult, OrderDetail, Service, Branch};
+use App\Models\{Order, History, Patient, Catalog, Profile, Product, LabResult, OrderDetail, Service, Branch, Package, Template, ReportService};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\{DB, Log, Cache, Auth};
 use Illuminate\Support\Str;
@@ -107,6 +107,10 @@ class OrderController extends Controller
                     $esAdministrativo = Str::contains(strtoupper($item['name']), $palabrasClave);
                     if (in_array($tipo, ['catalog', 'profile'], true) && !$esAdministrativo) {
                         $this->sincronizarResultadosLab($detail, $item);
+                    }
+
+                    if ($tipo === 'service' && !$esAdministrativo) {
+                        $this->ensureServiceTemplate($detail, $order->loadMissing('patient'));
                     }
                 }
 
@@ -236,7 +240,59 @@ class OrderController extends Controller
                     'area' => 'PRODUCTO',
                 ]);
 
-            return $catalogs->merge($profiles)->merge($services)->merge($products)->values();
+            $packages = Package::query()
+                ->with('items.itemable')
+                ->where('is_active', true)
+                ->where(function ($query) use ($q) {
+                    $query->where('name', 'LIKE', "%{$q}%")
+                        ->orWhere('code', 'LIKE', "%{$q}%");
+                })
+                ->orderBy('name')
+                ->limit(8)
+                ->get()
+                ->map(function ($package) {
+                    $items = $package->items->map(function ($item) {
+                        $itemable = $item->itemable;
+
+                        if (!$itemable) {
+                            return null;
+                        }
+
+                        $type = match ($item->itemable_type) {
+                            Catalog::class => 'catalog',
+                            Profile::class => 'profile',
+                            Service::class => 'service',
+                            Product::class => 'product',
+                            default => null,
+                        };
+
+                        if (!$type) {
+                            return null;
+                        }
+
+                        $name = $type === 'service' ? $itemable->nombre : $itemable->name;
+
+                        return [
+                            'id' => $itemable->id,
+                            'name' => $name,
+                            'type' => $type,
+                            'quantity' => (int) $item->quantity,
+                            'unit_price' => (float) $item->unit_price,
+                            'area' => 'PAQUETE',
+                        ];
+                    })->filter()->values();
+
+                    return [
+                        'id' => $package->id,
+                        'name' => $package->name,
+                        'price' => (float) $package->price,
+                        'type' => 'package',
+                        'area' => 'PAQUETE',
+                        'package_items' => $items,
+                    ];
+                });
+
+            return $catalogs->merge($profiles)->merge($services)->merge($products)->merge($packages)->values();
         });
 
         return response()->json($result);
@@ -342,6 +398,10 @@ class OrderController extends Controller
                         if (in_array($item['type'], ['catalog', 'profile'], true)) {
                             $this->processLabResults($detail, $item);
                         }
+
+                        if ($item['type'] === 'service') {
+                            $this->ensureServiceTemplate($detail, $order);
+                        }
                     }
                 }
 
@@ -422,6 +482,34 @@ class OrderController extends Controller
                 $this->createLabResult($detail->id, $catalog);
             }
         }
+    }
+
+    private function ensureServiceTemplate(OrderDetail $detail, Order $order): void
+    {
+        $template = Template::where('service_id', $detail->itemable_id)->first();
+
+        if (!$template) {
+            return;
+        }
+
+        $html = str_replace(
+            ['{{nombre_paciente}}', '{{dni_paciente}}', '{{fecha_actual}}'],
+            [
+                $order->patient->first_name . ' ' . $order->patient->last_name,
+                $order->patient->dni,
+                now()->format('d/m/Y'),
+            ],
+            $template->html_content
+        );
+
+        ReportService::firstOrCreate(
+            ['order_detail_id' => $detail->id],
+            [
+                'template_id' => $template->id,
+                'resultados_json' => [],
+                'html_final' => $html,
+            ]
+        );
     }
 
     public function show(Order $order)

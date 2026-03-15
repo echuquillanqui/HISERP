@@ -34,6 +34,7 @@ Route::resource('profiles', App\Http\Controllers\ProfileController::class);
 Route::resource('products', App\Http\Controllers\ProductController::class);
 Route::resource('services', App\Http\Controllers\ServiceController::class);
 Route::resource('templates', App\Http\Controllers\TemplateController::class);
+Route::resource('packages', App\Http\Controllers\PackageController::class)->middleware('auth');
 Route::get('/templates/{template}/preview', [App\Http\Controllers\TemplateController::class, 'preview'])->name('templates.preview');
 Route::get('/api/products/search', [App\Http\Controllers\ProductController::class, 'search'])->name('products.search');
 

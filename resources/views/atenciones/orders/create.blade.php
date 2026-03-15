@@ -270,7 +270,8 @@ function orderSystem() {
                     catalog: 'EXAMEN',
                     profile: 'PERFIL',
                     service: 'SERVICIO',
-                    product: 'PRODUCTO'
+                    product: 'PRODUCTO',
+                    package: 'PAQUETE'
                 };
 
                 return labels[type] || 'ITEM';
@@ -298,6 +299,22 @@ function orderSystem() {
                 onChange: (v) => {
                     if(!v) return;
                     const item = this.itemSelect.options[v];
+                    if (item.type === 'package') {
+                        (item.package_items || []).forEach((pkgItem) => {
+                            const uid = `${pkgItem.type}${pkgItem.id}`;
+                            if (!this.cart.find(i => i.uid === uid)) {
+                                this.cart.push({
+                                    ...pkgItem,
+                                    uid,
+                                    quantity: parseInt(pkgItem.quantity || 1, 10),
+                                    unit_price: parseFloat(pkgItem.unit_price ?? pkgItem.price ?? 0)
+                                });
+                            }
+                        });
+                        this.itemSelect.clear();
+                        return;
+                    }
+
                     if(!this.cart.find(i=>i.uid === item.uid)) {
                         
                         if(this.historyInfo && this.historyInfo.is_free) {

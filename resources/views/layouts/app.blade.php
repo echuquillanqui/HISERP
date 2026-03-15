@@ -182,6 +182,12 @@
                                     </a>
                                 </li>
 
+                                <li>
+                                    <a class="dropdown-item py-2" href="{{ route('packages.index') }}">
+                                        <i class="bi bi-box-seam me-2 text-info"></i> Paquetes
+                                    </a>
+                                </li>
+
                             </ul>
                         </li>
 
