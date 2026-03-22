@@ -64,11 +64,11 @@
                     </div>
                     <div class="col-md-4">
                         <label class="data-title">IPRESS de Origen</label>
-                        <input type="text" name="origin_facility" class="form-control bg-light" value="CENTRO NEFROLÓGICO INTEGRAL RENAL CARE S.A.C." readonly>
+                        <input type="text" name="origin_facility" class="form-control bg-light" value="{{ old('origin_facility', $branch?->razon_social ?? '') }}" readonly>
                     </div>
                     <div class="col-md-4">
                         <label class="data-title">Centro Asistencial Destino</label>
-                        <input type="text" name="destination_facility" class="form-control @error('destination_facility') is-invalid @enderror" value="{{ old('destination_facility', 'HOSPITAL NACIONAL ALBERTO SABOGAL SOLOGUREN') }}" required>
+                        <input type="text" name="destination_facility" class="form-control @error('destination_facility') is-invalid @enderror" value="{{ old('destination_facility', '') }}" required>
                     </div>
                 </div>
 
@@ -291,7 +291,7 @@
             theme: 'bootstrap-5',
             placeholder: 'DNI o Nombre del Asegurado...',
             ajax: { 
-                url: "{{ route('patients.search') }}", 
+                url: "{{ route('referrals.patients.search') }}", 
                 dataType: 'json', 
                 delay: 300, 
                 data: params => ({ q: params.term, insurance_type: 'ESSALUD' }), 
@@ -312,7 +312,8 @@
             $('#v_aff').text(p.affiliation_code || p.dni);
             $('#v_insured').text(p.is_insured ? 'SÍ (ACTIVA)' : 'NO ACREDITADO');
             $('#v_regime').text(p.insurance_regime || 'TITULAR');
-            $('#v_name').text(`${p.surname} ${p.last_name}, ${p.first_name}`.toUpperCase());
+            const fullName = `${p.surname || ''} ${p.last_name || ''}, ${p.first_name || ''}`.replace(/\s+/g, ' ').replace(' ,', ',').trim();
+            $('#v_name').text(fullName.toUpperCase());
             $('#v_age').text(p.age || '-');
             $('#v_sex').text(p.gender == 'F' ? 'FEMENINO' : 'MASCULINO');
             $('#v_address').text(`${p.address} - ${p.district}`.toUpperCase());

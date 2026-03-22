@@ -92,6 +92,8 @@ Route::get('/referrals/create/essalud', [App\Http\Controllers\ReferralController
     ->name('referrals.create.essalud');
 Route::get('/referrals/cie10/search', [App\Http\Controllers\ReferralController::class, 'searchCie10'])
     ->name('referrals.cie10.search');
+Route::get('/referrals/patients/search', [App\Http\Controllers\ReferralController::class, 'searchPatients'])
+    ->name('referrals.patients.search');
 Route::get('/referrals/{id}/pdf', [App\Http\Controllers\ReferralController::class, 'downloadPdf'])
     ->name('referrals.pdf');
 Route::get('/referrals/{id}/pdf-essalud', [App\Http\Controllers\ReferralController::class, 'downloadPdfEssalud'])

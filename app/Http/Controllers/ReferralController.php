@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{Referral, Patient, User, Cie10};
+use App\Models\{Referral, Patient, User, Cie10, Branch};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -49,10 +49,50 @@ class ReferralController extends Controller
         $type = strtoupper($request->query('type', 'SIS'));
         $patients = Patient::all();
         $staff = User::all();
+        $branch = Branch::first();
 
         $view = ($type === 'SIS') ? 'referrals.create_sis' : 'referrals.create_essalud';
 
-        return view($view, compact('patients', 'staff', 'type'));
+        return view($view, compact('patients', 'staff', 'type', 'branch'));
+    }
+
+    public function searchPatients(Request $request)
+    {
+        $term = trim((string) $request->query('q', ''));
+
+        $patients = Patient::query()
+            ->when($term !== '', function ($query) use ($term) {
+                $query->where(function ($subQuery) use ($term) {
+                    $subQuery->where('dni', 'like', "%{$term}%")
+                        ->orWhere('first_name', 'like', "%{$term}%")
+                        ->orWhere('last_name', 'like', "%{$term}%");
+                });
+            })
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->limit(20)
+            ->get();
+
+        return response()->json([
+            'results' => $patients->map(function (Patient $patient) {
+                return [
+                    'id' => $patient->id,
+                    'text' => trim("{$patient->dni} - {$patient->last_name} {$patient->first_name}"),
+                    'dni' => $patient->dni,
+                    'first_name' => $patient->first_name,
+                    'last_name' => $patient->last_name,
+                    'surname' => $patient->last_name,
+                    'medical_history_number' => 'S/N',
+                    'affiliation_code' => $patient->dni,
+                    'is_insured' => true,
+                    'insurance_regime' => 'NO REGISTRADO',
+                    'age' => $patient->birth_date ? Carbon::parse($patient->birth_date)->age : null,
+                    'gender' => $patient->gender,
+                    'address' => $patient->address,
+                    'district' => '',
+                ];
+            })->values(),
+        ]);
     }
 
     public function searchCie10(Request $request)

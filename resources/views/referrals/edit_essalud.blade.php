@@ -275,7 +275,8 @@
             $('#v_aff').text(p.affiliation_code || p.dni);
             $('#v_insured').text(p.is_insured ? 'SÍ (ACTIVA)' : 'NO ACREDITADO');
             $('#v_regime').text(p.insurance_regime || 'TITULAR');
-            $('#v_name').text(`${p.surname} ${p.last_name}, ${p.first_name}`.toUpperCase());
+            const fullName = `${p.surname || ''} ${p.last_name || ''}, ${p.first_name || ''}`.replace(/\s+/g, ' ').replace(' ,', ',').trim();
+            $('#v_name').text(fullName.toUpperCase());
             $('#v_age').text(p.age || '-');
             $('#v_sex').text(p.gender == 'F' ? 'FEMENINO' : 'MASCULINO');
             $('#v_address').text(`${p.address || ''} - ${p.district || ''}`.toUpperCase());
@@ -285,7 +286,7 @@
         $('#patient_search').select2({
             theme: 'bootstrap-5',
             ajax: { 
-                url: "{{ route('patients.search') }}", 
+                url: "{{ route('referrals.patients.search') }}", 
                 dataType: 'json', 
                 delay: 300, 
                 data: params => ({ q: params.term }), 
