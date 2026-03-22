@@ -94,7 +94,7 @@
                 </div>
 
                 <label class="fw-bold mb-1">Contenido / formato</label>
-                <textarea class="form-control font-monospace" rows="16" x-model="documentTemplate" x-ref="editor" @input="syncHtml()" placeholder="Ejemplo:\n\nINFORME MÉDICO\nPaciente: {{nombre_paciente}}\nFecha: {{fecha_actual}}\n\nDiagnóstico: {{campo:diagnostico}}\nIndicaciones: {{campo:indicaciones}}"></textarea>
+                <textarea class="form-control font-monospace" rows="16" x-model="documentTemplate" x-ref="editor" @input="syncHtml()" placeholder="Ejemplo:\n\nINFORME MÉDICO\nPaciente: @{{nombre_paciente}}\nFecha: @{{fecha_actual}}\n\nDiagnóstico: @{{campo:diagnostico}}\nIndicaciones: @{{campo:indicaciones}}"></textarea>
             </div>
             <div class="card-footer bg-white border-0">
                 <button type="submit" class="btn btn-success w-100">
