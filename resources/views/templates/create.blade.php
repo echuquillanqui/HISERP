@@ -5,7 +5,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h3 class="fw-bold text-primary mb-1"><i class="bi bi-file-earmark-plus"></i> Crear plantilla</h3>
-            <p class="text-muted mb-0">Define campos dinámicos y estructura visual pensada para impresión.</p>
+            <p class="text-muted mb-0">Define los campos que necesitas y redacta el formato final de forma simple.</p>
         </div>
         <a href="{{ route('templates.index') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
     </div>

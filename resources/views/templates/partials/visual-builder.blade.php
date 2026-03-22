@@ -2,8 +2,8 @@
 <script>
 function templateVisualBuilder(initialHtml = '', initialFields = []) {
     return {
-        blocks: [],
         fields: [],
+        documentTemplate: '',
         fieldTypeOptions: [
             { value: 'text', label: 'Texto corto' },
             { value: 'textarea', label: 'Texto largo' },
@@ -16,40 +16,22 @@ function templateVisualBuilder(initialHtml = '', initialFields = []) {
             { value: 'tel', label: 'Teléfono' },
             { value: 'checkbox', label: 'Casilla Sí/No' }
         ],
-        tokenOptions: [
-            '{{nombre_paciente}}',
-            '{{dni_paciente}}',
-            '{{edad_paciente}}',
-            '{{sexo_paciente}}',
-            '{{fecha_actual}}',
-            '{{codigo_orden}}',
-            '{{regimen_aseguramiento}}',
-            '{{codigo_afiliacion}}',
-            '{{firma_medico}}',
-            '{{#if_hombre}}',
-            '{{/if_hombre}}',
-            '{{#if_mujer}}',
-            '{{/if_mujer}}'
+        systemPlaceholders: [
+            { label: 'Paciente', value: '{{nombre_paciente}}' },
+            { label: 'DNI', value: '{{dni_paciente}}' },
+            { label: 'Edad', value: '{{edad_paciente}}' },
+            { label: 'Sexo', value: '{{sexo_paciente}}' },
+            { label: 'Fecha actual', value: '{{fecha_actual}}' },
+            { label: 'Código orden', value: '{{codigo_orden}}' },
+            { label: 'Régimen', value: '{{regimen_aseguramiento}}' },
+            { label: 'Cod. afiliación', value: '{{codigo_afiliacion}}' },
+            { label: 'Firma médico', value: '{{firma_medico}}' }
         ],
-        get allTokenOptions() {
-            const dynamicTokens = this.fields.map(field => this.buildFieldToken(field.key));
-            return [...this.tokenOptions, ...dynamicTokens];
-        },
         init() {
             this.fields = this.normalizeFields(initialFields);
-
-            if (initialHtml && initialHtml.trim().length > 0) {
-                this.blocks = [{ type: 'html', html: initialHtml }];
-            } else {
-                this.blocks = [
-                    { type: 'heading', level: 'h3', text: 'INFORME MÉDICO' },
-                    { type: 'paragraph', text: 'Paciente: {{nombre_paciente}}\nDNI: {{dni_paciente}}\nFecha: {{fecha_actual}}' },
-                    { type: 'divider' },
-                    { type: 'paragraph', text: 'Resultado: {{campo:resultado}}' },
-                    { type: 'spacer', height: 40 },
-                    { type: 'token', token: '{{firma_medico}}' }
-                ];
-            }
+            this.documentTemplate = (initialHtml && initialHtml.trim().length > 0)
+                ? initialHtml
+                : 'INFORME MÉDICO\n\nPaciente: {{nombre_paciente}}\nDNI: {{dni_paciente}}\nFecha: {{fecha_actual}}\n\nDiagnóstico: {{campo:diagnostico}}\nIndicaciones: {{campo:indicaciones}}\n\nFirma: {{firma_medico}}';
 
             this.syncHtml();
         },
@@ -88,7 +70,29 @@ function templateVisualBuilder(initialHtml = '', initialFields = []) {
         },
         insertFieldToken(field) {
             if (!field?.key) return;
-            this.blocks.push({ type: 'token', token: this.buildFieldToken(field.key) });
+            this.insertTextAtCursor(this.buildFieldToken(field.key));
+        },
+        insertTextAtCursor(text) {
+            const editor = this.$refs.editor;
+
+            if (!editor) {
+                this.documentTemplate += text;
+                this.syncHtml();
+                return;
+            }
+
+            const start = editor.selectionStart ?? this.documentTemplate.length;
+            const end = editor.selectionEnd ?? this.documentTemplate.length;
+            const current = this.documentTemplate || '';
+
+            this.documentTemplate = `${current.slice(0, start)}${text}${current.slice(end)}`;
+
+            this.$nextTick(() => {
+                editor.focus();
+                const cursor = start + text.length;
+                editor.setSelectionRange(cursor, cursor);
+            });
+
             this.syncHtml();
         },
         syncFieldIdentity(field) {
@@ -119,54 +123,8 @@ function templateVisualBuilder(initialHtml = '', initialFields = []) {
                 this.$refs.fieldsSchema.value = JSON.stringify(schema);
             }
         },
-        addBlock(type) {
-            const defaults = {
-                heading: { type: 'heading', level: 'h3', text: 'Nuevo título' },
-                paragraph: { type: 'paragraph', text: 'Nuevo párrafo' },
-                token: { type: 'token', token: '{{nombre_paciente}}' },
-                divider: { type: 'divider' },
-                spacer: { type: 'spacer', height: 16 },
-                conditional: { type: 'conditional', gender: 'hombre', content: '<p>Contenido condicional</p>' },
-                html: { type: 'html', html: '<div>HTML personalizado</div>' }
-            };
-            this.blocks.push(defaults[type]);
-            this.syncHtml();
-        },
-        moveUp(index) {
-            if (index === 0) return;
-            [this.blocks[index - 1], this.blocks[index]] = [this.blocks[index], this.blocks[index - 1]];
-            this.syncHtml();
-        },
-        moveDown(index) {
-            if (index >= this.blocks.length - 1) return;
-            [this.blocks[index + 1], this.blocks[index]] = [this.blocks[index], this.blocks[index + 1]];
-            this.syncHtml();
-        },
-        removeBlock(index) {
-            this.blocks.splice(index, 1);
-            this.syncHtml();
-        },
-        escapeHtml(value) {
-            const div = document.createElement('div');
-            div.innerText = value ?? '';
-            return div.innerHTML;
-        },
-        renderBlock(block) {
-            switch (block.type) {
-                case 'heading': return `<${block.level}>${this.escapeHtml(block.text)}</${block.level}>`;
-                case 'paragraph': return `<p>${this.escapeHtml(block.text).replace(/\n/g, '<br>')}</p>`;
-                case 'token': return `<p>${block.token}</p>`;
-                case 'divider': return '<hr>';
-                case 'spacer': return `<div style="height:${Number(block.height || 0)}px"></div>`;
-                case 'conditional': return block.gender === 'hombre'
-                    ? `{{#if_hombre}}${block.content || ''}{{/if_hombre}}`
-                    : `{{#if_mujer}}${block.content || ''}{{/if_mujer}}`;
-                case 'html': return block.html || '';
-                default: return '';
-            }
-        },
         syncHtml() {
-            const html = this.blocks.map(block => this.renderBlock(block)).join('\n');
+            const html = (this.documentTemplate || '').replace(/\n/g, '<br>');
             if (this.$refs.htmlContent) this.$refs.htmlContent.value = html;
             if (this.$refs.preview) this.$refs.preview.innerHTML = html;
             this.syncFieldsSchema();

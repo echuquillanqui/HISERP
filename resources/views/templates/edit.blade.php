@@ -5,7 +5,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h3 class="fw-bold text-warning mb-1"><i class="bi bi-pencil-square"></i> Editar plantilla</h3>
-            <p class="text-muted mb-0">Ajusta diseño, variables y estructura para un llenado intuitivo.</p>
+            <p class="text-muted mb-0">Edita campos y formato del documento en un flujo más simple.</p>
         </div>
         <a href="{{ route('templates.index') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
     </div>
