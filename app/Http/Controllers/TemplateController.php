@@ -29,8 +29,11 @@ class TemplateController extends Controller
         $data = $request->validate([
             'service_id' => 'required|exists:services,id',
             'nombre_plantilla' => 'required|string|max:255',
-            'html_content' => 'required'
+            'html_content' => 'required',
+            'fields_schema' => 'nullable|string'
         ]);
+
+        $data['fields_schema'] = $this->normalizeFieldsSchema($data['fields_schema'] ?? null);
 
         Template::create($data);
         return redirect()->route('templates.index')->with('success', 'Plantilla creada con éxito.');
@@ -50,8 +53,11 @@ class TemplateController extends Controller
         $data = $request->validate([
             'service_id' => 'required|exists:services,id',
             'nombre_plantilla' => 'required|string|max:255',
-            'html_content' => 'required'
+            'html_content' => 'required',
+            'fields_schema' => 'nullable|string'
         ]);
+
+        $data['fields_schema'] = $this->normalizeFieldsSchema($data['fields_schema'] ?? null);
 
         Template::findOrFail($id)->update($data);
         return redirect()->route('templates.index')->with('success', 'Plantilla actualizada.');
@@ -65,7 +71,7 @@ class TemplateController extends Controller
             return response()->json(['success' => true]);
         } catch (QueryException $e) {
             return response()->json([
-                'success' => false, 
+                'success' => false,
                 'message' => 'No se puede eliminar la plantilla porque tiene registros asociados.'
             ], 409);
         }
@@ -106,5 +112,38 @@ class TemplateController extends Controller
         }
 
         return $html;
+    }
+
+    private function normalizeFieldsSchema(?string $fieldsSchema): array
+    {
+        if (!$fieldsSchema) {
+            return [];
+        }
+
+        $decoded = json_decode($fieldsSchema, true);
+
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        $allowedTypes = ['text', 'textarea', 'number', 'date', 'select'];
+
+        return collect($decoded)
+            ->filter(fn ($field) => is_array($field) && !empty($field['key']))
+            ->map(function ($field) use ($allowedTypes) {
+                $type = strtolower(trim((string) ($field['type'] ?? 'text')));
+
+                return [
+                    'key' => trim((string) $field['key']),
+                    'label' => trim((string) ($field['label'] ?? $field['key'])),
+                    'type' => in_array($type, $allowedTypes, true) ? $type : 'text',
+                    'required' => (bool) ($field['required'] ?? false),
+                    'options' => $type === 'select' && is_array($field['options'] ?? null)
+                        ? array_values(array_filter(array_map(fn ($option) => trim((string) $option), $field['options'])))
+                        : [],
+                ];
+            })
+            ->values()
+            ->all();
     }
 }

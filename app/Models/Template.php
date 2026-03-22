@@ -9,9 +9,13 @@ class Template extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['service_id', 'nombre_plantilla', 'html_content'];
+    protected $fillable = ['service_id', 'nombre_plantilla', 'html_content', 'fields_schema'];
 
-    public function service() 
+    protected $casts = [
+        'fields_schema' => 'array',
+    ];
+
+    public function service()
     {
         return $this->belongsTo(Service::class);
     }

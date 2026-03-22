@@ -67,13 +67,25 @@ class ServiceResultController extends Controller
         // Si ya hay reporte, cargamos el HTML guardado. Si no, la plantilla inicial.
         $htmlContent = $report ? $report->html_final : $this->prepararContenidoInicial($template->html_content, $detail->order->load('patient'));
 
-        return view('atenciones.servicios.form_informe', compact('detail', 'htmlContent', 'template'));
+        $fieldsSchema = collect($template->fields_schema ?? [])->values()->all();
+        $resultadosJson = $report && is_array($report->resultados_json) ? $report->resultados_json : [];
+
+        return view('atenciones.servicios.form_informe', compact('detail', 'htmlContent', 'template', 'fieldsSchema', 'resultadosJson'));
     }
 
     // Guardado (Crea si es nuevo, Actualiza si es edición)
     public function guardarInforme(Request $request, $detailId)
     {
-        $request->validate(['html_final' => 'required', 'template_id' => 'required']);
+        $request->validate([
+            'html_final' => 'required',
+            'template_id' => 'required',
+            'resultados_json' => 'nullable|string'
+        ]);
+
+        $resultadosJson = json_decode((string) $request->input('resultados_json', '{}'), true);
+        if (!is_array($resultadosJson)) {
+            $resultadosJson = [];
+        }
 
         ReportService::updateOrCreate(
             ['order_detail_id' => $detailId],
@@ -81,7 +93,7 @@ class ServiceResultController extends Controller
                 'template_id'     => $request->template_id,
                 'html_final'      => $request->html_final,
                 'user_id'         => auth()->id(),
-                'resultados_json' => '{}' // Valor por defecto para evitar el error 1364
+                'resultados_json' => $resultadosJson
             ]
         );
 

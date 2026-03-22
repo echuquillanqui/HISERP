@@ -34,6 +34,11 @@
                             </div>
                         </div>
                         
+                        <div class="mb-3">
+                            <label class="fw-bold mb-1">Campos dinámicos (JSON opcional)</label>
+                            <textarea name="fields_schema" rows="7" class="form-control font-monospace" placeholder='[{"key":"glucosa","label":"Glucosa","type":"number","required":true}]'>{{ old('fields_schema', json_encode($template->fields_schema ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)) }}</textarea>
+                            <small class="text-muted">Tipos permitidos: <code>text</code>, <code>textarea</code>, <code>number</code>, <code>date</code>, <code>select</code>. Usa tokens como <code>@{{campo:glucosa}}</code> dentro del editor.</small>
+                        </div>
                         <label class="fw-bold mb-2">Contenido de la Plantilla</label>
                         <textarea id="reportEditor" name="html_content">{!! $template->html_content !!}</textarea>
                     </div>
