@@ -61,6 +61,7 @@
                 'AIAssistant',
                 'CKBox',
                 'CKFinder',
+                'DocumentOutline',
                 'EasyImage',
                 'RealTimeCollaborativeComments',
                 'RealTimeCollaborativeTrackChanges',
