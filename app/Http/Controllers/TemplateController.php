@@ -78,6 +78,7 @@ class TemplateController extends Controller
         $datos = [
             '{{nombre_paciente}}' => 'JUAN PÉREZ GARCÍA',
             '{{dni_paciente}}'    => '78945612',
+            '{{edad_paciente}}'   => '32 AÑOS',
             '{{sexo_paciente}}'   => $sexo,
             '{{fecha_actual}}'    => date('d/m/Y'),
             '{{codigo_orden}}'    => 'ORD-2026-0001'

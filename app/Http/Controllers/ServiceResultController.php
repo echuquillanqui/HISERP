@@ -123,6 +123,9 @@ class ServiceResultController extends Controller
             '{{nombre_paciente}}'      => trim(($patient->first_name ?? '') . ' ' . ($patient->last_name ?? '')),
             '{{paciente}}'             => trim(($patient->first_name ?? '') . ' ' . ($patient->last_name ?? '')),
             '{{dni_paciente}}'         => $patient->dni ?? '--',
+            '{{edad_paciente}}'        => $patient && $patient->birth_date
+                ? \Carbon\Carbon::parse($patient->birth_date)->age . ' AÑOS'
+                : '--',
             '{{sexo_paciente}}'        => $sexo ?: '--',
             '{{fecha_actual}}'         => now()->format('d/m/Y'),
             '{{codigo_orden}}'         => $order->code ?? '--',

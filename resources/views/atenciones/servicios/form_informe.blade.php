@@ -29,30 +29,11 @@
                 @csrf
                 <input type="hidden" name="template_id" value="{{ $template->id }}">
                 
-                <textarea id="tinyEditor" name="html_final">{!! $htmlContent !!}</textarea>
+                <textarea id="reportEditor" name="html_final">{!! $htmlContent !!}</textarea>
             </form>
         </div>
     </div>
 </div>
 
-<script src="{{ asset('js/tinymce/tinymce.min.js') }}"></script>
-
-<script>
-    // Inicialización del editor
-    tinymce.init({
-        selector: '#tinyEditor',
-        license_key: 'gpl',
-        height: 500,
-        plugins: 'advlist autolink lists link charmap preview searchreplace visualblocks code fullscreen table',
-        toolbar: 'undo redo | blocks | bold italic | alignleft aligncenter alignright | bullist numlist | table | code',
-        menubar: false
-    });
-
-    // Función para insertar las variables
-    function insertVar(variable) {
-        if (tinymce.get('tinyEditor')) {
-            tinymce.get('tinyEditor').insertContent(variable + ' ');
-        }
-    }
-</script>
+@include('templates.partials.ckeditor-config')
 @endsection

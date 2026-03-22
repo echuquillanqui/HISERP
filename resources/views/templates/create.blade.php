@@ -32,7 +32,7 @@
                         </div>
                         
                         <label class="fw-bold mb-2">Contenido de la Plantilla</label>
-                        <textarea id="tinyEditor" name="html_content"></textarea>
+                        <textarea id="reportEditor" name="html_content"></textarea>
                     </div>
                 </div>
             </div>
@@ -47,6 +47,7 @@
                         <div class="d-grid gap-2">
                             <button type="button" class="btn btn-outline-dark btn-sm text-start" onclick="insertVar('@{{nombre_paciente}}')">@{{nombre_paciente}}</button>
                             <button type="button" class="btn btn-outline-dark btn-sm text-start" onclick="insertVar('@{{dni_paciente}}')">@{{dni_paciente}}</button>
+                            <button type="button" class="btn btn-outline-dark btn-sm text-start" onclick="insertVar('@{{edad_paciente}}')">@{{edad_paciente}}</button>
                             <button type="button" class="btn btn-outline-dark btn-sm text-start" onclick="insertVar('@{{sexo_paciente}}')">@{{sexo_paciente}}</button>
                             <button type="button" class="btn btn-outline-dark btn-sm text-start" onclick="insertVar('@{{fecha_actual}}')">@{{fecha_actual}}</button>
                             <button type="button" class="btn btn-outline-dark btn-sm text-start" onclick="insertVar('@{{codigo_orden}}')">@{{codigo_orden}}</button>
@@ -78,6 +79,5 @@
     </form>
 </div>
 
-<script src="{{ asset('js/tinymce/tinymce.min.js') }}"></script>
-@include('templates.partials.editor-config')
+@include('templates.partials.ckeditor-config')
 @endsection
