@@ -36,6 +36,7 @@ Route::resource('services', App\Http\Controllers\ServiceController::class);
 Route::resource('templates', App\Http\Controllers\TemplateController::class);
 Route::resource('packages', App\Http\Controllers\PackageController::class)->middleware('auth');
 Route::get('/templates/{template}/preview', [App\Http\Controllers\TemplateController::class, 'preview'])->name('templates.preview');
+Route::get('/templates/{template}/render', [App\Http\Controllers\TemplateController::class, 'render'])->name('templates.render');
 Route::get('/api/products/search', [App\Http\Controllers\ProductController::class, 'search'])->name('products.search');
 
 Route::get('api/areas/{area}/details', [App\Http\Controllers\AreaController::class, 'getDetails']);
