@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\History;
 use App\Models\LabResult;
 use App\Models\OrderDetail;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -84,7 +85,17 @@ class LabResultController extends Controller
         return $res->catalog->area->name ?? 'GENERAL';
     });
 
-    return view('labs.resultados.edit', compact('resultadosAgrupados', 'order', 'id'));
+    $profesionalesSalud = User::where('role', 'medicina')
+        ->where('status', true)
+        ->orderBy('name')
+        ->get(['id', 'name']);
+
+    $tecnologos = User::where('role', 'laboratorio')
+        ->where('status', true)
+        ->orderBy('name')
+        ->get(['id', 'name']);
+
+    return view('labs.resultados.edit', compact('resultadosAgrupados', 'order', 'id', 'profesionalesSalud', 'tecnologos'));
 }
 
     /**
@@ -130,11 +141,26 @@ class LabResultController extends Controller
             return $item->catalog->area->name ?? 'GENERAL';
         });
 
-        $tecnologo = auth()->user();
+        $profesionalSalud = User::where('role', 'medicina')
+            ->whereKey($request->query('profesional_id'))
+            ->first();
+
+        $tecnologo = User::where('role', 'laboratorio')
+            ->whereKey($request->query('tecnologo_id'))
+            ->first();
+
+        if (!$profesionalSalud) {
+            $profesionalSalud = $order->user;
+        }
+
+        if (!$tecnologo) {
+            $tecnologo = auth()->user();
+        }
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('labs.resultados.pdf', [
             'groupedLabs' => $resultados->groupBy(fn($item) => $item->catalog->area->name ?? 'GENERAL'),
             'order'       => $resultados->first()->orderDetail->order,
+            'profesionalSalud' => $profesionalSalud,
             'tecnologo'   => $tecnologo, // PASAMOS AL TECNÓLOGO A LA VISTA
             'branch'      => \App\Models\Branch::where('estado', true)->first()
         ]);

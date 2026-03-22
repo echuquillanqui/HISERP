@@ -1,7 +1,10 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container py-4">
+<div class="container py-4" x-data="signatureSelector({
+    defaultProfessionalId: '{{ (string) ($order->user->id ?? '') }}',
+    defaultTechnologistId: '{{ (string) auth()->id() }}'
+})">
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body bg-primary text-white d-flex justify-content-between align-items-center">
             <div>
@@ -17,6 +20,48 @@
     <form action="{{ route('lab-results.update', $id) }}" method="POST">
         @csrf
         @method('PUT')
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-light py-3">
+                <h6 class="mb-0 fw-bold text-primary">
+                    <i class="bi bi-pen me-2"></i>Firmas del informe
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Profesional de la salud</label>
+                        <input type="text"
+                               class="form-control"
+                               list="profesionalesSaludList"
+                               placeholder="Buscar médico/especialista..."
+                               x-model="professionalName"
+                               @input="syncProfessionalId">
+                        <datalist id="profesionalesSaludList">
+                            @foreach($profesionalesSalud as $profesional)
+                                <option value="{{ $profesional->name }}" data-id="{{ $profesional->id }}"></option>
+                            @endforeach
+                        </datalist>
+                        <input type="hidden" name="profesional_id" x-model="professionalId">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Tecnólogo de laboratorio</label>
+                        <input type="text"
+                               class="form-control"
+                               list="tecnologosList"
+                               placeholder="Buscar tecnólogo..."
+                               x-model="technologistName"
+                               @input="syncTechnologistId">
+                        <datalist id="tecnologosList">
+                            @foreach($tecnologos as $tecnologo)
+                                <option value="{{ $tecnologo->name }}" data-id="{{ $tecnologo->id }}"></option>
+                            @endforeach
+                        </datalist>
+                        <input type="hidden" name="tecnologo_id" x-model="technologistId">
+                    </div>
+                </div>
+            </div>
+        </div>
 
         @foreach($resultadosAgrupados as $areaNombre => $examenes)
     {{-- 1. Agregamos la lógica de filtrado al inicio del bucle --}}
@@ -78,6 +123,9 @@
 @endforeach
 
         <div class="sticky-bottom bg-white p-3 border-top shadow-lg d-flex justify-content-end gap-2">
+            <a :href="pdfUrl" target="_blank" class="btn btn-outline-danger px-4">
+                <i class="bi bi-file-earmark-pdf me-2"></i>Ver PDF
+            </a>
             <a href="{{ route('lab-results.index') }}" class="btn btn-outline-secondary px-4">Cancelar</a>
             <button type="submit" class="btn btn-primary px-5 fw-bold">
                 <i class="bi bi-check-all me-2"></i> GUARDAR RESULTADOS
@@ -85,4 +133,40 @@
         </div>
     </form>
 </div>
+
+<script>
+function signatureSelector(config) {
+    const profesionales = @json($profesionalesSalud->map(fn ($user) => ['id' => (string) $user->id, 'name' => $user->name])->values());
+    const tecnologos = @json($tecnologos->map(fn ($user) => ['id' => (string) $user->id, 'name' => $user->name])->values());
+
+    const defaultProfessional = profesionales.find(user => user.id === config.defaultProfessionalId) || null;
+    const defaultTechnologist = tecnologos.find(user => user.id === config.defaultTechnologistId) || null;
+
+    return {
+        professionalId: defaultProfessional?.id || '',
+        professionalName: defaultProfessional?.name || '',
+        technologistId: defaultTechnologist?.id || '',
+        technologistName: defaultTechnologist?.name || '',
+
+        syncProfessionalId() {
+            const found = profesionales.find(user => user.name === this.professionalName);
+            this.professionalId = found ? found.id : '';
+        },
+        syncTechnologistId() {
+            const found = tecnologos.find(user => user.name === this.technologistName);
+            this.technologistId = found ? found.id : '';
+        },
+        get pdfUrl() {
+            const url = new URL('{{ route('lab-results.show', $id) }}', window.location.origin);
+            if (this.professionalId) {
+                url.searchParams.set('profesional_id', this.professionalId);
+            }
+            if (this.technologistId) {
+                url.searchParams.set('tecnologo_id', this.technologistId);
+            }
+            return url.toString();
+        }
+    };
+}
+</script>
 @endsection
