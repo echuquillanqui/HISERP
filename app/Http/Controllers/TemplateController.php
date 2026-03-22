@@ -74,15 +74,36 @@ class TemplateController extends Controller
     public function preview(Template $template)
     {
         // Datos de ejemplo para la previsualización
+        $sexo = 'M';
         $datos = [
             '{{nombre_paciente}}' => 'JUAN PÉREZ GARCÍA',
             '{{dni_paciente}}'    => '78945612',
+            '{{sexo_paciente}}'   => $sexo,
             '{{fecha_actual}}'    => date('d/m/Y'),
             '{{codigo_orden}}'    => 'ORD-2026-0001'
         ];
 
-        $htmlPrevisualizado = str_replace(array_keys($datos), array_values($datos), $template->html_content);
+        $htmlPrevisualizado = $this->applyConditionalBlocks($template->html_content, $sexo);
+        $htmlPrevisualizado = str_replace(array_keys($datos), array_values($datos), $htmlPrevisualizado);
 
         return view('templates.preview', compact('htmlPrevisualizado'));
+    }
+
+    private function applyConditionalBlocks(string $html, ?string $sexo): string
+    {
+        $sexo = strtoupper((string) $sexo);
+        $isMale = $sexo === 'M';
+        $isFemale = $sexo === 'F';
+
+        $patterns = [
+            '/\{\{#if_hombre\}\}(.*?)\{\{\/if_hombre\}\}/is' => $isMale ? '$1' : '',
+            '/\{\{#if_mujer\}\}(.*?)\{\{\/if_mujer\}\}/is' => $isFemale ? '$1' : '',
+        ];
+
+        foreach ($patterns as $pattern => $replacement) {
+            $html = preg_replace($pattern, $replacement, $html) ?? $html;
+        }
+
+        return $html;
     }
 }

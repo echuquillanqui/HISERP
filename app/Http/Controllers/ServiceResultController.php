@@ -117,11 +117,13 @@ class ServiceResultController extends Controller
         $patient = $order->patient;
         $currentUser = auth()->user();
         $firmaMeta = $this->buildFirmaMetadata($currentUser);
+        $sexo = $this->normalizeGender(data_get($patient, 'gender'));
 
         $replacements = [
             '{{nombre_paciente}}'      => trim(($patient->first_name ?? '') . ' ' . ($patient->last_name ?? '')),
             '{{paciente}}'             => trim(($patient->first_name ?? '') . ' ' . ($patient->last_name ?? '')),
             '{{dni_paciente}}'         => $patient->dni ?? '--',
+            '{{sexo_paciente}}'        => $sexo ?: '--',
             '{{fecha_actual}}'         => now()->format('d/m/Y'),
             '{{codigo_orden}}'         => $order->code ?? '--',
             '{{regimen_aseguramiento}}'=> data_get($patient, 'insurance_regime', '--') ?: '--',
@@ -129,7 +131,41 @@ class ServiceResultController extends Controller
             '{{firma_medico}}'         => $this->buildFirmaHtml($firmaMeta),
         ];
 
+        $html = $this->applyConditionalBlocks($html, $sexo);
+
         return str_replace(array_keys($replacements), array_values($replacements), $html);
+    }
+
+    private function applyConditionalBlocks(string $html, ?string $sexo): string
+    {
+        $isMale = $sexo === 'M';
+        $isFemale = $sexo === 'F';
+
+        $patterns = [
+            '/\{\{#if_hombre\}\}(.*?)\{\{\/if_hombre\}\}/is' => $isMale ? '$1' : '',
+            '/\{\{#if_mujer\}\}(.*?)\{\{\/if_mujer\}\}/is' => $isFemale ? '$1' : '',
+        ];
+
+        foreach ($patterns as $pattern => $replacement) {
+            $html = preg_replace($pattern, $replacement, $html) ?? $html;
+        }
+
+        return $html;
+    }
+
+    private function normalizeGender(?string $gender): ?string
+    {
+        if (!$gender) {
+            return null;
+        }
+
+        $gender = mb_strtolower(trim($gender));
+
+        return match ($gender) {
+            'm', 'masculino', 'male', 'hombre' => 'M',
+            'f', 'femenino', 'female', 'mujer' => 'F',
+            default => null,
+        };
     }
 
     private function buildFirmaMetadata($user): array
