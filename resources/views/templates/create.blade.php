@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid px-4 py-4" x-data="templateVisualBuilder('')" x-init="init()">
+<div class="container-fluid px-4 py-4" x-data="templateVisualBuilder('', @js(old('fields_schema') ? json_decode(old('fields_schema'), true) : []))" x-init="init()">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3 class="fw-bold text-primary"><i class="bi bi-file-earmark-medical"></i> Crear Nueva Plantilla</h3>
         <a href="{{ route('templates.index') }}" class="btn btn-outline-secondary">
@@ -12,6 +12,7 @@
     <form action="{{ route('templates.store') }}" method="POST" @submit="syncHtml()">
         @csrf
         <input type="hidden" name="html_content" x-ref="htmlContent">
+        <input type="hidden" name="fields_schema" x-ref="fieldsSchema">
 
         <div class="row">
             <div class="col-md-8">
@@ -33,16 +34,58 @@
                             </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="fw-bold mb-1">Campos dinámicos (JSON opcional)</label>
-                            <textarea name="fields_schema" rows="7" class="form-control font-monospace" placeholder='[{"key":"glucosa","label":"Glucosa","type":"number","required":true}]'>{{ old('fields_schema', '[
-  {
-    "key": "resultado_principal",
-    "label": "Resultado principal",
-    "type": "text",
-    "required": true
-  }
-]') }}</textarea>
+                        <div class="mb-2 d-flex justify-content-between align-items-center">
+                            <label class="fw-bold mb-0">Campos del formulario (sin JSON)</label>
+                            <button type="button" class="btn btn-sm btn-outline-primary" @click="addField()">+ Agregar campo</button>
+                        </div>
+                        <div class="table-responsive border rounded">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Nombre del campo</th>
+                                        <th>Tipo</th>
+                                        <th class="text-center">Oblig.</th>
+                                        <th>Opciones (solo lista)</th>
+                                        <th class="text-center">Token</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-if="fields.length === 0">
+                                        <tr>
+                                            <td colspan="6" class="text-center text-muted py-3">No hay campos aún. Agrega uno para que aparezca en el formulario de llenado.</td>
+                                        </tr>
+                                    </template>
+                                    <template x-for="(field, index) in fields" :key="index">
+                                        <tr>
+                                            <td>
+                                                <input type="text" class="form-control form-control-sm" x-model="field.label" @input="syncFieldIdentity(field)" placeholder="Ej: Observaciones">
+                                                <small class="text-muted">Clave: <code x-text="field.key"></code></small>
+                                            </td>
+                                            <td>
+                                                <select class="form-select form-select-sm" x-model="field.type" @change="syncFieldsSchema()">
+                                                    <template x-for="option in fieldTypeOptions" :key="option.value">
+                                                        <option :value="option.value" x-text="option.label"></option>
+                                                    </template>
+                                                </select>
+                                            </td>
+                                            <td class="text-center">
+                                                <input type="checkbox" class="form-check-input" x-model="field.required" @change="syncFieldsSchema()">
+                                            </td>
+                                            <td>
+                                                <textarea x-show="field.type === 'select'" class="form-control form-control-sm" rows="2" x-model="field.optionsText" @input="syncFieldsSchema()" placeholder="Una opción por línea"></textarea>
+                                                <small x-show="field.type !== 'select'" class="text-muted">No aplica</small>
+                                            </td>
+                                            <td class="text-center">
+                                                <button type="button" class="btn btn-outline-secondary btn-sm" @click="insertFieldToken(field)">Insertar</button>
+                                            </td>
+                                            <td class="text-end">
+                                                <button type="button" class="btn btn-outline-danger btn-sm" @click="removeField(index)">Quitar</button>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -98,7 +141,7 @@
 
                                 <template x-if="block.type === 'token'">
                                     <select class="form-select form-select-sm" x-model="block.token" @change="syncHtml()">
-                                        <template x-for="token in tokenOptions" :key="token">
+                                        <template x-for="token in allTokenOptions" :key="token">
                                             <option :value="token" x-text="token"></option>
                                         </template>
                                     </select>

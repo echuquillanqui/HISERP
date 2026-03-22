@@ -126,7 +126,7 @@ class TemplateController extends Controller
             return [];
         }
 
-        $allowedTypes = ['text', 'textarea', 'number', 'date', 'select'];
+        $allowedTypes = ['text', 'textarea', 'number', 'date', 'time', 'datetime-local', 'select', 'email', 'tel', 'checkbox'];
 
         return collect($decoded)
             ->filter(fn ($field) => is_array($field) && !empty($field['key']))
