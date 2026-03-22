@@ -165,7 +165,7 @@
                         </li>
 
                         <li class="nav-item dropdown">
-                            <a id="labDropdown" class="nav-link dropdown-toggle {{ Request::is('laboratorio*') ? 'active' : '' }}" 
+                            <a id="labDropdown" class="nav-link dropdown-toggle {{ Request::is('areas*') || Request::is('services*') || Request::is('packages*') ? 'active' : '' }}" 
                             href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-funnel me-1"></i> Catalogo
                             </a>
@@ -192,7 +192,7 @@
                         </li>
 
                         <li class="nav-item dropdown">
-                            <a id="labDropdown" class="nav-link dropdown-toggle {{ Request::is('laboratorio*') ? 'active' : '' }}" 
+                            <a id="labDropdown" class="nav-link dropdown-toggle {{ Request::is('orders*') || Request::is('histories*') || Request::is('lab-results*') || Request::is('serviceresults*') || Request::is('referrals*') ? 'active' : '' }}" 
                             href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-postcard-heart me-1"></i> Atenciones
                             </a>
@@ -216,6 +216,11 @@
                                 <li>
                                     <a class="dropdown-item py-2" href="{{ route('serviceresults.index') }}">
                                          <i class="bi bi-list-check text-info"></i> Monitor de áreas
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item py-2" href="{{ route('referrals.index') }}">
+                                         <i class="bi bi-file-earmark-medical text-info"></i> Referencias
                                     </a>
                                 </li>
                             </ul>
