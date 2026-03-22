@@ -91,15 +91,17 @@ class ServiceResultController extends Controller
     // Impresión usando Base64 para evitar errores de imagen
     public function imprimirReporte($reportId)
     {
-        $report = ReportService::findOrFail($reportId);
-        $detail = $report->orderDetail;
+        $report = ReportService::with('user')->findOrFail($reportId);
+        $detail = $report->orderDetail->loadMissing('order.patient');
         $patient = $detail->order->patient;
         $branch = \App\Models\Branch::first();
+        $professional = $report->user;
         
         $logoBase64 = $this->convertirImagenABase64($branch->logo ?? null);
-        $firmaBase64 = $this->convertirImagenABase64(auth()->user()->firma ?? null);
+        $firmaBase64 = $this->convertirImagenABase64($professional->firma ?? null);
+        $firmaMeta = $this->buildFirmaMetadata($professional);
 
-        $pdf = PDF::loadView('atenciones.servicios.pdf_informe', compact('report', 'detail', 'patient', 'branch', 'logoBase64', 'firmaBase64'))
+        $pdf = PDF::loadView('atenciones.servicios.pdf_informe', compact('report', 'detail', 'patient', 'branch', 'logoBase64', 'firmaBase64', 'firmaMeta'))
             ->setPaper('a4', 'portrait')
             ->setOptions([
                 'isHtml5ParserEnabled' => true, 
@@ -112,13 +114,43 @@ class ServiceResultController extends Controller
 
     private function prepararContenidoInicial($html, $order) 
     {
-        $placeholders = ['{{nombre_paciente}}', '{{dni_paciente}}', '{{fecha_actual}}'];
-        $valores = [
-            $order->patient->first_name . ' ' . $order->patient->last_name,
-            $order->patient->dni,
-            now()->format('d/m/Y')
+        $patient = $order->patient;
+        $currentUser = auth()->user();
+        $firmaMeta = $this->buildFirmaMetadata($currentUser);
+
+        $replacements = [
+            '{{nombre_paciente}}'      => trim(($patient->first_name ?? '') . ' ' . ($patient->last_name ?? '')),
+            '{{paciente}}'             => trim(($patient->first_name ?? '') . ' ' . ($patient->last_name ?? '')),
+            '{{dni_paciente}}'         => $patient->dni ?? '--',
+            '{{fecha_actual}}'         => now()->format('d/m/Y'),
+            '{{codigo_orden}}'         => $order->code ?? '--',
+            '{{regimen_aseguramiento}}'=> data_get($patient, 'insurance_regime', '--') ?: '--',
+            '{{codigo_afiliacion}}'    => data_get($patient, 'insurance_code', '--') ?: '--',
+            '{{firma_medico}}'         => $this->buildFirmaHtml($firmaMeta),
         ];
-        return str_replace($placeholders, $valores, $html);
+
+        return str_replace(array_keys($replacements), array_values($replacements), $html);
+    }
+
+    private function buildFirmaMetadata($user): array
+    {
+        $profession = $user && $user->role === 'medicina' ? 'MÉDICO' : 'LICENCIADO';
+
+        return [
+            'nombre' => $user->name ?? '--',
+            'colegiatura' => $user->colegiatura ?? '--',
+            'profesion' => $profession,
+        ];
+    }
+
+    private function buildFirmaHtml(array $firmaMeta): string
+    {
+        return '<div style="text-align:center;margin-top:30px;">'
+            . '<div style="border-top:1px solid #000;width:260px;margin:0 auto 8px auto;"></div>'
+            . '<div style="font-weight:bold;">' . e($firmaMeta['nombre']) . '</div>'
+            . '<div>' . e($firmaMeta['profesion']) . '</div>'
+            . '<div>COL. ' . e($firmaMeta['colegiatura']) . '</div>'
+            . '</div>';
     }
 
     private function convertirImagenABase64($path)

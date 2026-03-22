@@ -51,6 +51,10 @@
         @if($firmaBase64)
             <img src="{{ $firmaBase64 }}" style="max-width: 160px; margin-bottom: -5px;"><br>
         @endif
+        <div style="border-top: 1px solid #000; width: 260px; margin: 0 auto 6px auto;"></div>
+        <div style="font-weight: bold;">{{ $firmaMeta['nombre'] }}</div>
+        <div>{{ $firmaMeta['profesion'] }}</div>
+        <div>COL. {{ $firmaMeta['colegiatura'] }}</div>
     </div>
 </body>
 </html>

@@ -49,6 +49,8 @@
                             <button type="button" class="btn btn-outline-dark btn-sm text-start" onclick="insertVar('@{{dni_paciente}}')">@{{dni_paciente}}</button>
                             <button type="button" class="btn btn-outline-dark btn-sm text-start" onclick="insertVar('@{{fecha_actual}}')">@{{fecha_actual}}</button>
                             <button type="button" class="btn btn-outline-dark btn-sm text-start" onclick="insertVar('@{{codigo_orden}}')">@{{codigo_orden}}</button>
+                            <button type="button" class="btn btn-outline-dark btn-sm text-start" onclick="insertVar('@{{regimen_aseguramiento}}')">@{{regimen_aseguramiento}}</button>
+                            <button type="button" class="btn btn-outline-dark btn-sm text-start" onclick="insertVar('@{{codigo_afiliacion}}')">@{{codigo_afiliacion}}</button>
                             <button type="button" class="btn btn-outline-dark btn-sm text-start" 
                                     onclick="insertVar('@{{firma_medico}}')">
                                 @{{firma_medico}}

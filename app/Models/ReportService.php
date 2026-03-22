@@ -9,7 +9,7 @@ class ReportService extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['order_detail_id', 'template_id', 'resultados_json', 'html_final'];
+    protected $fillable = ['order_detail_id', 'template_id', 'resultados_json', 'html_final', 'user_id'];
 
     protected $casts = [
         'resultados_json' => 'array',
@@ -19,5 +19,10 @@ class ReportService extends Model
     public function orderDetail()
     {
         return $this->belongsTo(OrderDetail::class, 'order_detail_id');
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }

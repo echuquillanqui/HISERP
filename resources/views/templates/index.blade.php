@@ -62,6 +62,9 @@ function openPreview(encodedHtml) {
     contenido = contenido.replace(/{{dni_paciente}}/g, '78945612');
     contenido = contenido.replace(/{{fecha_actual}}/g, '12/03/2026');
     contenido = contenido.replace(/{{codigo_orden}}/g, 'ORD-2026-0001');
+    contenido = contenido.replace(/{{regimen_aseguramiento}}/g, '--');
+    contenido = contenido.replace(/{{codigo_afiliacion}}/g, '--');
+    contenido = contenido.replace(/{{firma_medico}}/g, '<div style="text-align:center;margin-top:30px;"><div style="border-top:1px solid #000;width:260px;margin:0 auto 8px auto;"></div><div style="font-weight:bold;">NOMBRE DEL PROFESIONAL</div><div>MÉDICO</div><div>COL. --</div></div>');
 
     // 3. Abrir ventana con estilos de documento A4
     const nuevaVentana = window.open("", "_blank", "width=900,height=900");
