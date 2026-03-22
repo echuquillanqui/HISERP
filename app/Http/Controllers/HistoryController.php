@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\History;
 use App\Models\HistoryDiagnostic;
+use App\Models\Profile;
 use App\Models\Prescription;
 use App\Models\PrescriptionItem;
 use Illuminate\Http\Request;
@@ -69,6 +70,14 @@ class HistoryController extends Controller
             ->latest()
             ->paginate(10, ['*'], 'history_page');
 
+        $patientHistoryTimeline->getCollection()->transform(function ($timelineHistory) {
+            $timelineHistory->normalized_lab_names = $this->normalizeLabNames(
+                $timelineHistory->labItems->pluck('name')
+            );
+
+            return $timelineHistory;
+        });
+
         // 3. Resultados de laboratorio previos para referencia visual
         $orderLabResults = optional($history->order)
             ?->details
@@ -113,7 +122,8 @@ class HistoryController extends Controller
         $history->update($request->only([
             'anamnesis', 'pa', 'fc', 'temp', 'fr', 'so2', 'peso', 'talla', 
             'habito_tabaco', 'habito_alcohol', 'habito_coca', 'alergias', 
-            'antecedentes_familiares', 'antecedentes_otros', 'examen_fisico_detalle', 'imc'
+            'antecedentes_familiares', 'antecedentes_otros', 'examen_fisico_detalle', 'imc',
+            'tiempo_enfermedad', 'signos_sintomas'
         ]));
 
         // 2. Sincronizar Diagnósticos (Independiente)
@@ -125,7 +135,10 @@ class HistoryController extends Controller
                 $history->diagnostics()->create([
                     'cie10_id'    => $dx['cie10_id'],
                     'diagnostico' => $dx['descripcion'],
-                    'tratamiento' => $dx['tratamiento'] ?? ''
+                    'tratamiento' => $dx['tratamiento'] ?? '',
+                    'clasificacion' => in_array(($dx['clasificacion'] ?? null), ['P', 'D', 'R'], true)
+                        ? $dx['clasificacion']
+                        : null,
                 ]);
             }
         }
@@ -136,6 +149,9 @@ class HistoryController extends Controller
             ['history_id' => $history->id],
             ['patient_id' => $history->patient_id, 'user_id' => auth()->id()]
         );
+        $prescription->update([
+            'fecha_sig_cita' => $request->filled('fecha_sig_cita') ? $request->fecha_sig_cita : null,
+        ]);
 
         // Borramos items anteriores y creamos los nuevos
         $prescription->items()->delete();
@@ -152,7 +168,8 @@ class HistoryController extends Controller
         // 4. Sincronizar LabItems (Ya lo teníamos independiente)
         $history->labItems()->delete();
         if ($request->has('lab_names')) {
-            foreach ($request->lab_names as $name) {
+            $normalizedLabNames = $this->normalizeLabNames(collect($request->lab_names));
+            foreach ($normalizedLabNames as $name) {
                 $history->labItems()->create(['name' => $name]);
             }
         }
@@ -208,10 +225,10 @@ class HistoryController extends Controller
 }
 
     // Imprimir Laboratorio
-    public function printLab(History $history) 
+public function printLab(History $history) 
 {
     // 1. Cargamos solo lo necesario
-    $history->load(['patient', 'user']);
+    $history->load(['patient', 'user', 'labItems']);
     
     // 2. Obtenemos la sucursal activa
     $branch = \App\Models\Branch::where('estado', true)->first();
@@ -220,7 +237,10 @@ class HistoryController extends Controller
     // Nota: Como ya no tienes la relación 'area', si necesitas agrupar por área, 
     // lo ideal sería que 'LabItem' tuviera un campo 'area_name' o simplemente 
     // listar todo bajo una categoría general.
-    $groupedLabs = $history->labItems->groupBy(function($item) {
+    $normalizedLabItems = $this->normalizeLabNames($history->labItems->pluck('name'))
+        ->map(fn($name) => (object) ['name' => $name]);
+
+    $groupedLabs = $normalizedLabItems->groupBy(function($item) {
         return 'EXÁMENES SOLICITADOS'; // O puedes dejarlo como estaba si tenías un campo area_name
     });
 
@@ -247,6 +267,31 @@ class HistoryController extends Controller
             })
             ->filter()
             ->unique()
+            ->values();
+    }
+
+    private function normalizeLabNames(Collection $labNames): Collection
+    {
+        $selectedNames = $labNames
+            ->map(fn($name) => trim((string) $name))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($selectedNames->isEmpty()) {
+            return collect();
+        }
+
+        $selectedProfiles = Profile::with('catalogs:id,name')
+            ->whereIn('name', $selectedNames)
+            ->get();
+
+        $catalogNamesBelongingToSelectedProfiles = $selectedProfiles
+            ->flatMap(fn($profile) => $profile->catalogs->pluck('name'))
+            ->unique();
+
+        return $selectedNames
+            ->reject(fn($name) => $catalogNamesBelongingToSelectedProfiles->contains($name))
             ->values();
     }
 }

@@ -106,7 +106,18 @@
 
     <div class="section-header">2. Anamnesis / Motivo de Consulta</div>
     <div class="section-content">
+        <div style="margin-bottom: 8px;">
+            <strong>TIEMPO DE ENFERMEDAD:</strong>
+            {{ strtoupper($history->tiempo_enfermedad ?? 'NO ESPECIFICADO') }}
+        </div>
+        <div style="margin-bottom: 8px;">
+            <strong>SIGNOS Y SÍNTOMAS:</strong>
+            {{ strtoupper($history->signos_sintomas ?? 'NO ESPECIFICADO') }}
+        </div>
+        <div>
+            <strong>ANAMNESIS:</strong><br>
         {{ strtoupper($history->anamnesis ?? 'NO REFIERE SÍNTOMAS ESPECÍFICOS.') }}
+        </div>
     </div>
 
     <div class="section-header">3. Funciones Vitales y Examen Físico</div>
@@ -135,8 +146,9 @@
         <thead>
             <tr>
                 <th width="15%">CÓDIGO</th>
-                <th width="35%">DIAGNÓSTICO</th>
-                <th width="50%">TRATAMIENTO / RECOMENDACIONES</th>
+                <th width="30%">DIAGNÓSTICO</th>
+                <th width="45%">TRATAMIENTO / RECOMENDACIONES</th>
+                <th width="10%">Tipo Dx</th>
             </tr>
         </thead>
         <tbody>
@@ -145,15 +157,19 @@
                     <td style="text-align: center;">
                         <strong style="color: #2c3e50;">{{ $diag->cie10->codigo ?? 'S/C' }}</strong>
                     </td>
+                
                     <td>
                         {{-- Usamos el diagnóstico de la tabla history_diagnostics o el de la tabla cie10 --}}
                         <strong>{{ strtoupper($diag->diagnostico) }}</strong>
                     </td>
                     <td>{{ strtoupper($diag->tratamiento) }}</td>
+                    <td>
+                        <strong>{{ $diag->clasificacion ?? '-' }}</strong>
+                    </td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="3" style="text-align: center; color: #999; padding: 10px;">
+                    <td colspan="4" style="text-align: center; color: #999; padding: 10px;">
                         NO HAY DIAGNÓSTICOS REGISTRADOS EN ESTA ATENCIÓN.
                     </td>
                 </tr>

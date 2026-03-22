@@ -75,7 +75,7 @@
 <div class="container-fluid py-4" 
      id="clinical-app"
      x-data="clinicalWorkstation()" 
-     data-diagnostics="{{ $history->diagnostics->map(fn($d) => ['cie10_id' => $d->cie10_id, 'codigo' => $d->cie10->codigo ?? 'S/C', 'descripcion' => $d->diagnostico, 'tratamiento' => $d->tratamiento])->toJson() }}"
+     data-diagnostics="{{ $history->diagnostics->map(fn($d) => ['cie10_id' => $d->cie10_id, 'codigo' => $d->cie10->codigo ?? 'S/C', 'descripcion' => $d->diagnostico, 'tratamiento' => $d->tratamiento, 'clasificacion' => $d->clasificacion])->toJson() }}"
      data-prescription="{{ $history->prescription ? $history->prescription->items->map(fn($i) => [
          'product_id' => $i->product_id, // DEBE SER product_id
          'name' => $i->product->name ?? 'N/A', 
@@ -124,6 +124,16 @@
                                     <textarea name="anamnesis" class="form-control" rows="6" required>{{ $history->anamnesis }}</textarea>
                                 </div>
                             </div>
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <label class="fw-bold mb-2">Tiempo de enfermedad</label>
+                                    <input type="text" name="tiempo_enfermedad" class="form-control" value="{{ old('tiempo_enfermedad', $history->tiempo_enfermedad) }}" placeholder="Ej: 3 días">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="fw-bold mb-2">Signos y síntomas</label>
+                                    <textarea name="signos_sintomas" class="form-control" rows="2" placeholder="Detalle de signos y síntomas">{{ old('signos_sintomas', $history->signos_sintomas) }}</textarea>
+                                </div>
+                            </div>
 
                             <div class="row mb-4">
                                 <div class="col-md-6">
@@ -157,7 +167,15 @@
                                 <select id="cie10_select" class="form-control"></select>
                             </div>
                             <table class="table align-middle">
-                                <thead><tr><th>Cód.</th><th>Descripción</th><th>Tratamiento</th><th></th></tr></thead>
+                                <thead>
+                                    <tr>
+                                        <th>Cód.</th>
+                                        <th>Descripción</th>
+                                        <th>Tratamiento</th>
+                                        <th width="110">Tipo Dx</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
                                 <tbody>
                                     <template x-for="(dx, index) in diagnostics" :key="index">
                                         <tr>
@@ -167,6 +185,13 @@
                                                 <input type="text" :name="'diagnostics['+index+'][tratamiento]'" x-model="dx.tratamiento" class="form-control form-control-sm">
                                                 <input type="hidden" :name="'diagnostics['+index+'][cie10_id]'" :value="dx.cie10_id">
                                                 <input type="hidden" :name="'diagnostics['+index+'][descripcion]'" :value="dx.descripcion">
+                                            </td>
+                                            <td>
+                                                <select :name="'diagnostics['+index+'][clasificacion]'" x-model="dx.clasificacion" class="form-select form-select-sm">
+                                                    <option value="D">D</option>
+                                                    <option value="P">P</option>
+                                                    <option value="R">R</option>
+                                                </select>
                                             </td>
                                             <td><button type="button" @click="removeDx(index)" class="btn btn-sm text-danger">×</button></td>
                                         </tr>
@@ -367,8 +392,8 @@
                                                     <p class="small text-muted mb-0">Sin exámenes solicitados registrados.</p>
                                                 @else
                                                     <ul class="mb-0 small">
-                                                        @foreach($timelineHistory->labItems as $labItem)
-                                                            <li>{{ $labItem->name }}</li>
+                                                        @foreach(($timelineHistory->normalized_lab_names ?? collect()) as $labName)
+                                                            <li>{{ $labName }}</li>
                                                         @endforeach
                                                     </ul>
                                                 @endif
@@ -611,7 +636,8 @@
                             cie10_id: option.id,
                             codigo: option.codigo,
                             descripcion: option.descripcion,
-                            tratamiento: ''
+                            tratamiento: '',
+                            clasificacion: 'P'
                         });
                         this.tsCie10.clear();
                     }
