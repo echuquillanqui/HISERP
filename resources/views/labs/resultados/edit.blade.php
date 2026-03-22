@@ -51,10 +51,13 @@
                         <tr>
                             <td class="ps-4 fw-bold text-secondary">{{ $res->catalog->name }}</td>
                             <td>
+                                @php
+                                    $hasResultValue = $res->result_value !== null && trim((string) $res->result_value) !== '';
+                                @endphp
                                 <input type="text" 
                                        name="results[{{ $res->id }}][value]" 
                                        value="{{ $res->result_value }}" 
-                                       class="form-control form-control-sm border-{{ $res->result_value ? 'success' : 'primary' }}" 
+                                       class="form-control form-control-sm border-{{ $hasResultValue ? 'success' : 'primary' }}" 
                                        placeholder="Ingresar dato...">
                             </td>
                             <td><span class="badge bg-light text-dark border">{{ $res->unit }}</span></td>

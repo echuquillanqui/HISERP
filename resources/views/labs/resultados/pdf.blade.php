@@ -4,154 +4,268 @@
     <meta charset="UTF-8">
     <title>Informe de Resultados - {{ $order->code }}</title>
     <style>
-        @page { margin: 1.5cm; }
-        body { font-family: 'Helvetica', sans-serif; color: #333; line-height: 1.4; font-size: 11px; }
-        
-        /* Estilos Institucionales tomados de tus ejemplos */
-        .header-table { width: 100%; border-bottom: 2px solid #2c3e50; padding-bottom: 10px; margin-bottom: 15px; }
-        .branch-info h2 { margin: 0; color: #2c3e50; font-size: 17px; text-transform: uppercase; }
-        .branch-details { font-size: 10px; color: #555; }
+        @page { margin: 20px 22px; }
 
-        .patient-box { 
-            width: 100%; border: 1px solid #2c3e50; border-radius: 5px; 
-            padding: 10px; margin-bottom: 15px; background-color: #f9f9f9;
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            color: #2d4059;
+            font-size: 11px;
+            margin: 0;
         }
-        .label { font-weight: bold; color: #2c3e50; font-size: 9px; text-transform: uppercase; display: block; }
-        .data { font-size: 11px; font-weight: bold; color: #000; }
 
-        /* Estructura de Resultados */
-        .area-section { margin-bottom: 20px; }
-        .area-title { 
-            background: #2c3e50; color: white; padding: 4px 10px; 
-            font-weight: bold; margin-bottom: 5px; font-size: 11px;
+        .header {
+            width: 100%;
+            margin-bottom: 8px;
+        }
+
+        .header td {
+            vertical-align: top;
+        }
+
+        .logo-box {
+            width: 120px;
+            height: 60px;
+        }
+
+        .lab-title {
+            font-size: 26px;
+            font-weight: 700;
+            color: #1f4f9a;
+            line-height: 1;
+        }
+
+        .lab-subtitle {
+            color: #4f79bd;
+            font-size: 12px;
+            margin-top: 3px;
+        }
+
+        .doctors {
+            text-align: right;
+            color: #4f79bd;
+            font-size: 11px;
+            line-height: 1.35;
+        }
+
+        .meta {
+            width: 100%;
+            margin: 4px 0 8px;
+            font-size: 11px;
+        }
+
+        .meta td {
+            padding: 2px 4px;
+            vertical-align: top;
+        }
+
+        .box {
+            border: 1px solid #7f9bc5;
+            border-radius: 4px;
+            padding: 4px 6px;
+            min-height: 14px;
+            color: #2d4059;
+            font-weight: 700;
             text-transform: uppercase;
+            letter-spacing: .2px;
         }
-        
-        table.results-table { width: 100%; border-collapse: collapse; }
-        table.results-table th { 
-            border-bottom: 1px solid #2c3e50; color: #2c3e50; 
-            text-align: left; padding: 6px; font-size: 10px;
-        }
-        table.results-table td { padding: 6px; border-bottom: 0.5px solid #eee; vertical-align: top; }
-        
-        .result-value { font-weight: bold; font-size: 12px; }
-        .observations { font-style: italic; color: #666; font-size: 9px; }
 
-        .signature-container { margin-top: 40px; text-align: center; }
-        .signature-line { width: 220px; border-top: 1px solid #333; margin: 0 auto; padding-top: 5px; }
+        .label {
+            color: #5e7aa8;
+            font-size: 10px;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+
+        .divider {
+            border-top: 2px solid #5e7aa8;
+            margin: 7px 0 5px;
+        }
+
+        table.results {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        table.results thead th {
+            color: #4e6f9d;
+            font-size: 10px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #7f9bc5;
+            padding: 5px 6px;
+            text-align: left;
+        }
+
+        table.results tbody td {
+            padding: 4px 6px;
+            border-bottom: 1px solid #e7eef7;
+            vertical-align: top;
+            word-wrap: break-word;
+        }
+
+        .section-row td {
+            background: #eef4fb;
+            color: #274f87;
+            font-weight: 700;
+            text-transform: uppercase;
+            border-bottom: 1px solid #d3e0f1;
+            padding-top: 6px;
+            padding-bottom: 6px;
+        }
+
+        .result-value {
+            color: #d7263d;
+            font-weight: 700;
+        }
+
+        .pending {
+            color: #7a7a7a;
+            font-style: italic;
+        }
+
+        .obs {
+            margin-top: 2px;
+            color: #5b6b80;
+            font-size: 10px;
+            font-style: italic;
+        }
+
+        .footer {
+            position: fixed;
+            bottom: 10px;
+            left: 22px;
+            right: 22px;
+            font-size: 9px;
+            color: #7588a6;
+        }
+
+        .signature-wrap {
+            margin-top: 30px;
+            text-align: right;
+        }
+
+        .signature-wrap img {
+            width: 160px;
+            max-height: 80px;
+        }
+
+        .signature-name {
+            font-size: 10px;
+            color: #4f6d96;
+            font-weight: 700;
+            margin-top: 2px;
+        }
     </style>
 </head>
 <body>
+    <table class="header">
+        <tr>
+            <td width="42%">
+                <table>
+                    <tr>
+                        <td width="70">
+                            @if($branch && $branch->logo)
+                                <img class="logo-box" src="{{ storage_path('app/public/' . $branch->logo) }}" alt="Logo">
+                            @else
+                                <div class="logo-box" style="border:1px solid #c8d5ea;"></div>
+                            @endif
+                        </td>
+                        <td>
+                            <div class="lab-title">{{ strtoupper($branch->razon_social ?? 'LABORATORIO') }}</div>
+                            <div class="lab-subtitle">Laboratorio</div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+            <td width="58%" class="doctors">
+                <div>Dr. {{ strtoupper($order->user->name ?? 'MÉDICO TRATANTE') }}</div>
+                <div>Informe de resultados clínicos</div>
+                <div>Código de atención: <strong>{{ $order->code }}</strong></div>
+                <div>Fecha: <strong>{{ $order->created_at->format('d M Y') }}</strong></div>
+            </td>
+        </tr>
+    </table>
 
-    <table class="header-table">
-    <tr>
-        <td width="20%">
-            @if($branch && $branch->logo)
-                {{-- Se usa storage_path para acceder a la ruta física del logo --}}
-                <img src="{{ storage_path('app/public/' . $branch->logo) }}" style="max-height: 80px; max-width: 150px;">
-            @else
-                {{-- Cuadro de respaldo si no hay logo configurado --}}
-                <div style="width: 80px; height: 50px; background: #eee; border: 1px solid #ccc; text-align: center; line-height: 50px; font-size: 9px; color: #666;">
-                    SIN LOGO
+    <table class="meta">
+        <tr>
+            <td width="40%">
+                <div class="label">Paciente</div>
+                <div class="box">{{ $order->patient->last_name }} {{ $order->patient->first_name }}</div>
+            </td>
+            <td width="20%">
+                <div class="label">DNI</div>
+                <div class="box">{{ $order->patient->dni }}</div>
+            </td>
+            <td width="20%">
+                <div class="label">Edad</div>
+                <div class="box">
+                    {{ $order->patient->birth_date ? \Carbon\Carbon::parse($order->patient->birth_date)->age . ' años' : '--' }}
                 </div>
-            @endif
-        </td>
-        <td width="40%" style="padding-left: 15px;">
-            @if($branch)
-                <div class="branch-info">
-                    <h2>{{ $branch->razon_social }}</h2>
-                    <div class="branch-details">
-                        <strong>RUC:</strong> {{ $branch->ruc }}<br>
-                        <strong>DIR:</strong> {{ $branch->direccion }}<br>
-                        <strong>TEL:</strong> {{ $branch->telefono ?? 'S/N' }}
-                    </div>
-                </div>
-            @endif
-        </td>
-        <td width="40%" align="right">
-            <h3 style="margin:0; color: #3498db; font-size: 16px; text-transform: uppercase;">Informe de Resultados</h3>
-            <div style="font-size: 13px; font-weight: bold; color: #2c3e50;">N° {{ $order->code }}</div>
-        </td>
-    </tr>
-</table>
+            </td>
+            <td width="20%">
+                <div class="label">Fecha de emisión</div>
+                <div class="box">{{ now()->format('d/m/Y') }}</div>
+            </td>
+        </tr>
+    </table>
 
-    <div class="patient-box">
-        <table width="100%">
+    <div class="divider"></div>
+
+    <table class="results">
+        <thead>
             <tr>
-                <td width="40%">
-                    <span class="label">Paciente</span>
-                    <span class="data">{{ strtoupper($order->patient->last_name) }}, {{ strtoupper($order->patient->first_name) }}</span>
-                </td>
-                <td width="20%">
-                    <span class="label">DNI</span>
-                    <span class="data">{{ $order->patient->dni }}</span>
-                </td>
-                <td width="20%">
-                    <span class="label">Edad</span>
-                    <span class="data">{{ \Carbon\Carbon::parse($order->patient->birth_date)->age }} años</span>
-                </td>
-                <td width="20%">
-                    <span class="label">Fecha</span>
-                    <span class="data">{{ $order->created_at->format('d/m/Y') }}</span>
-                </td>
+                <th width="36%">Análisis</th>
+                <th width="16%">Resultado</th>
+                <th width="30%">Rango de referencia</th>
+                <th width="18%">Unidades</th>
             </tr>
-        </table>
-    </div>
+        </thead>
+        <tbody>
+            @foreach($groupedLabs as $areaName => $items)
+                @php
+                    $areaUpper = strtoupper($areaName);
+                @endphp
 
+                @if($areaUpper === 'MEDICINA' || $areaUpper === 'ADICIONALES')
+                    @continue
+                @endif
 
-@foreach($groupedLabs as $areaName => $items)
-    @php
-        // Convertimos a mayúsculas para asegurar la comparación
-        $areaUpper = strtoupper($areaName);
-    @endphp
-    
-    {{-- Si el área es Medicina o Adicionales, saltamos este ciclo --}}
-    @if($areaUpper === 'MEDICINA' || $areaUpper === 'ADICIONALES')
-        @continue
-    @endif
-
-    <div class="area-section">
-        <div class="area-title">{{ $areaName }}</div>
-        <table class="results-table">
-            <thead>
-                <tr>
-                    <th width="35%">PRUEBA / ANÁLISIS</th>
-                    <th width="20%">RESULTADO</th>
-                    <th width="15%">UNIDADES</th>
-                    <th width="30%">VALORES DE REFERENCIA</th>
+                <tr class="section-row">
+                    <td colspan="4">{{ $areaUpper }}</td>
                 </tr>
-            </thead>
-            <tbody>
+
                 @foreach($items as $res)
+                    @php
+                        $hasValue = $res->result_value !== null && trim((string) $res->result_value) !== '';
+                    @endphp
                     <tr>
                         <td>
                             <strong>{{ $res->catalog->name }}</strong>
                             @if($res->observations)
-                                <div class="observations">Nota: {{ $res->observations }}</div>
+                                <div class="obs">Observación: {{ $res->observations }}</div>
                             @endif
                         </td>
-                        <td class="result-value">{{ $res->result_value ?? 'Pendiente' }}</td>
-                        <td>{{ $res->unit }}</td>
-                        <td style="font-size: 10px;">{!! nl2br(e($res->reference_range)) !!}</td>
+                        <td class="{{ $hasValue ? 'result-value' : 'pending' }}">
+                            {{ $hasValue ? $res->result_value : 'En proceso' }}
+                        </td>
+                        <td>{{ $res->reference_range ?: '--' }}</td>
+                        <td>{{ $res->unit ?: '--' }}</td>
                     </tr>
                 @endforeach
-            </tbody>
-        </table>
-    </div>
-@endforeach
+            @endforeach
+        </tbody>
+    </table>
 
-
-    <div style="width: 200px; margin: 0 auto; padding-top: 20px;">
+    <div class="signature-wrap">
         @if(isset($tecnologo) && $tecnologo->firma)
-            <img src="{{ public_path('storage/' . $tecnologo->firma) }}" style="width: 180px; max-height: 90px;">
-            <div style="font-size: 11px; font-weight: bold; margin-top: 5px;">
-
-            </div>
-        @else
-            <div style="height: 60px; color: #999;">Firma no registrada</div>
+            <img src="{{ public_path('storage/' . $tecnologo->firma) }}" alt="Firma">
+            <div class="signature-name">{{ strtoupper($tecnologo->name) }}</div>
+            <div style="font-size: 9px; color: #7b8ca6;">Patólogo Clínico</div>
         @endif
     </div>
-</div>
 
+    <div class="footer">
+        Documento emitido electrónicamente · {{ now()->format('d/m/Y H:i') }} · {{ $branch->correo ?? '' }}
+    </div>
 </body>
 </html>

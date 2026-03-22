@@ -73,8 +73,22 @@
 
         @php
             // 2. Solo si hay exámenes, calculamos el resto
-            $completed = $allResults->where('status', 'completado')->count();
+            $completed = $allResults->filter(function ($res) {
+                return $res->result_value !== null && trim((string) $res->result_value) !== '';
+            })->count();
             $percent = ($completed / $total) * 100;
+
+            $statusLab = match (true) {
+                $completed === 0 => 'pendiente',
+                $completed < $total => 'procesando',
+                default => 'completado',
+            };
+
+            $badgeColor = match ($statusLab) {
+                'completado' => 'success',
+                'procesando' => 'info',
+                default => 'warning',
+            };
         @endphp
         
         <tr>
@@ -90,14 +104,6 @@
                 </div>
             </td>
             <td class="text-center">
-                @php
-                    $statusLab = $allResults->first()->status; 
-                    $badgeColor = match($statusLab) {
-                        'completado' => 'success',
-                        'pendiente' => 'warning',
-                        default => 'info'
-                    };
-                @endphp
                 <span class="badge bg-{{ $badgeColor }}-subtle text-{{ $badgeColor }} border border-{{ $badgeColor }} text-uppercase">
                     {{ $statusLab }}
                 </span>

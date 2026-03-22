@@ -96,14 +96,15 @@ class LabResultController extends Controller
 
         foreach ($data as $resId => $values) {
             $labResult = LabResult::findOrFail($resId);
-            
-            // Lógica de estado según el contenido del valor
-            $nuevoStatus = (empty($values['value'])) ? 'pendiente' : 'completado';
+
+            $rawValue = $values['value'] ?? null;
+            $normalizedValue = is_string($rawValue) ? trim($rawValue) : $rawValue;
+            $hasValue = $normalizedValue !== null && $normalizedValue !== '';
 
             $labResult->update([
-                'result_value' => $values['value'],
+                'result_value' => $hasValue ? (string) $normalizedValue : null,
                 'observations' => $values['observations'] ?? null,
-                'status'       => $nuevoStatus
+                'status'       => $hasValue ? 'completado' : 'pendiente'
             ]);
         }
 
