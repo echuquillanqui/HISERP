@@ -2,8 +2,8 @@
 
 @section('content')
 <div class="container py-4" x-data="signatureSelector({
-    defaultProfessionalId: '{{ (string) ($order->user->id ?? '') }}',
-    defaultTechnologistId: '{{ (string) auth()->id() }}'
+    defaultProfessionalId: '{{ $selectedProfessionalId }}',
+    defaultTechnologistId: '{{ $selectedTechnologistId }}'
 })">
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body bg-primary text-white d-flex justify-content-between align-items-center">

@@ -95,7 +95,18 @@ class LabResultController extends Controller
         ->orderBy('name')
         ->get(['id', 'name']);
 
-    return view('labs.resultados.edit', compact('resultadosAgrupados', 'order', 'id', 'profesionalesSalud', 'tecnologos'));
+    $selectedProfessionalId = (string) ($resultados->first()->profesional_id ?? $order->user->id ?? '');
+    $selectedTechnologistId = (string) ($resultados->first()->tecnologo_id ?? auth()->id() ?? '');
+
+    return view('labs.resultados.edit', compact(
+        'resultadosAgrupados',
+        'order',
+        'id',
+        'profesionalesSalud',
+        'tecnologos',
+        'selectedProfessionalId',
+        'selectedTechnologistId'
+    ));
 }
 
     /**
@@ -104,6 +115,8 @@ class LabResultController extends Controller
     public function update(Request $request, $id)
     {
         $data = $request->input('results', []);
+        $profesionalId = $request->input('profesional_id');
+        $tecnologoId = $request->input('tecnologo_id');
 
         foreach ($data as $resId => $values) {
             $labResult = LabResult::findOrFail($resId);
@@ -115,14 +128,16 @@ class LabResultController extends Controller
             $labResult->update([
                 'result_value' => $hasValue ? (string) $normalizedValue : null,
                 'observations' => $values['observations'] ?? null,
-                'status'       => $hasValue ? 'completado' : 'pendiente'
+                'status'       => $hasValue ? 'completado' : 'pendiente',
+                'profesional_id' => $profesionalId ?: null,
+                'tecnologo_id' => $tecnologoId ?: null,
             ]);
         }
 
         return redirect()->route('lab-results.index')->with('success', 'Resultados guardados correctamente');
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
         // Carga de datos con relaciones para evitar múltiples consultas (Eager Loading)
         $resultados = \App\Models\LabResult::whereHas('orderDetail', function($q) use ($id) {
@@ -141,12 +156,15 @@ class LabResultController extends Controller
             return $item->catalog->area->name ?? 'GENERAL';
         });
 
+        $selectedProfesionalId = $request->query('profesional_id') ?: $resultados->first()->profesional_id;
+        $selectedTecnologoId = $request->query('tecnologo_id') ?: $resultados->first()->tecnologo_id;
+
         $profesionalSalud = User::where('role', 'medicina')
-            ->whereKey($request->query('profesional_id'))
+            ->whereKey($selectedProfesionalId)
             ->first();
 
         $tecnologo = User::where('role', 'laboratorio')
-            ->whereKey($request->query('tecnologo_id'))
+            ->whereKey($selectedTecnologoId)
             ->first();
 
         if (!$profesionalSalud) {

@@ -186,6 +186,7 @@
             </td>
             <td width="58%" class="doctors">
                 <div>Dr(a). {{ strtoupper($profesionalSalud->name ?? $order->user->name ?? 'MÉDICO TRATANTE') }}</div>
+                <div>CMP. {{ $profesionalSalud->colegiatura ?? '--' }}</div>
                 <div>Informe de resultados clínicos</div>
                 <div>Código de atención: <strong>{{ $order->code }}</strong></div>
                 <div>Fecha: <strong>{{ $order->created_at->format('d M Y') }}</strong></div>
@@ -265,18 +266,9 @@
 
     <div class="signature-wrap">
         <div class="signature-item">
-            @if(isset($profesionalSalud) && $profesionalSalud->firma)
-                <img src="{{ public_path('storage/' . $profesionalSalud->firma) }}" alt="Firma profesional">
-            @endif
-            <div class="signature-name">{{ strtoupper($profesionalSalud->name ?? 'PROFESIONAL DE LA SALUD') }}</div>
-            <div style="font-size: 9px; color: #7b8ca6;">Médico / Especialista</div>
-        </div>
-        <div class="signature-item">
             @if(isset($tecnologo) && $tecnologo->firma)
                 <img src="{{ public_path('storage/' . $tecnologo->firma) }}" alt="Firma tecnólogo">
             @endif
-            <div class="signature-name">{{ strtoupper($tecnologo->name ?? 'TECNÓLOGO DE LABORATORIO') }}</div>
-            <div style="font-size: 9px; color: #7b8ca6;">Laboratorio</div>
         </div>
     </div>
 
