@@ -75,6 +75,14 @@ class ReferralController extends Controller
 
         return response()->json([
             'results' => $patients->map(function (Patient $patient) {
+                $age = null;
+                if (!empty($patient->birth_date)) {
+                    $birthDate = date_create((string) $patient->birth_date);
+                    if ($birthDate !== false) {
+                        $age = Carbon::instance($birthDate)->age;
+                    }
+                }
+
                 return [
                     'id' => $patient->id,
                     'text' => trim("{$patient->dni} - {$patient->last_name} {$patient->first_name}"),
@@ -86,7 +94,7 @@ class ReferralController extends Controller
                     'affiliation_code' => $patient->dni,
                     'is_insured' => true,
                     'insurance_regime' => strtoupper((string) ($request->query('insurance_type', 'NO REGISTRADO'))),
-                    'age' => $patient->birth_date ? Carbon::parse($patient->birth_date)->age : null,
+                    'age' => $age,
                     'gender' => $patient->gender,
                     'address' => $patient->address,
                     'district' => '',
