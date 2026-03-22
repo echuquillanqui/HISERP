@@ -79,20 +79,5 @@
 </div>
 
 <script src="{{ asset('js/tinymce/tinymce.min.js') }}"></script>
-<script>
-    tinymce.init({
-        selector: '#tinyEditor',
-        license_key: 'gpl',
-        height: 500,
-        plugins: 'advlist autolink lists link charmap preview searchreplace visualblocks code fullscreen table',
-        toolbar: 'undo redo | blocks | bold italic | alignleft aligncenter alignright | bullist numlist | table | code',
-        menubar: false
-    });
-
-    function insertVar(variable) {
-        if (tinymce.get('tinyEditor')) {
-            tinymce.get('tinyEditor').insertContent(variable + ' ');
-        }
-    }
-</script>
+@include('templates.partials.editor-config')
 @endsection
