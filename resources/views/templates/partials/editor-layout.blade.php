@@ -73,7 +73,7 @@
         <div class="card shadow-sm border-0 mb-3">
             <div class="card-header bg-primary text-white fw-bold">Formato del documento</div>
             <div class="card-body">
-                <p class="text-muted small mb-2">Escribe aquí el contenido final tal como debe imprimirse. Puedes usar los marcadores rápidos para insertar campos.</p>
+                <p class="text-muted small mb-2">Escribe aquí el contenido final tal como debe imprimirse. Puedes usar los botones para insertar marcadores automáticamente.</p>
 
                 <div class="border rounded p-2 bg-light mb-3">
                     <div class="small fw-semibold mb-2">Marcadores rápidos del sistema</div>
@@ -94,18 +94,19 @@
                 </div>
 
                 <label class="fw-bold mb-1">Contenido / formato</label>
-                <textarea class="form-control font-monospace" rows="16" x-model="documentTemplate" x-ref="editor" @input="syncHtml()" placeholder="Ejemplo:\n\nINFORME MÉDICO\nPaciente: @{{nombre_paciente}}\nFecha: @{{fecha_actual}}\n\nDiagnóstico: @{{campo:diagnostico}}\nIndicaciones: @{{campo:indicaciones}}"></textarea>
+                <textarea
+                    id="templateEditor"
+                    class="form-control"
+                    rows="18"
+                    x-ref="editor"
+                    placeholder="Escribe aquí el contenido del documento">
+                </textarea>
             </div>
             <div class="card-footer bg-white border-0">
                 <button type="submit" class="btn btn-success w-100">
                     <i class="bi bi-save"></i> {{ $template ? 'Guardar cambios' : 'Crear plantilla' }}
                 </button>
             </div>
-        </div>
-
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white fw-bold">Vista previa A4</div>
-            <div class="card-body"><div class="template-preview-sheet" x-ref="preview"></div></div>
         </div>
     </div>
 </div>

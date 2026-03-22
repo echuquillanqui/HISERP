@@ -3,7 +3,7 @@
 function templateVisualBuilder(initialHtml = '', initialFields = []) {
     return {
         fields: [],
-        documentTemplate: '',
+        initialHtml: initialHtml || '',
         fieldTypeOptions: [
             { value: 'text', label: 'Texto corto' },
             { value: 'textarea', label: 'Texto largo' },
@@ -29,11 +29,8 @@ function templateVisualBuilder(initialHtml = '', initialFields = []) {
         ],
         init() {
             this.fields = this.normalizeFields(initialFields);
-            this.documentTemplate = (initialHtml && initialHtml.trim().length > 0)
-                ? initialHtml
-                : 'INFORME MÉDICO\n\nPaciente: {{nombre_paciente}}\nDNI: {{dni_paciente}}\nFecha: {{fecha_actual}}\n\nDiagnóstico: {{campo:diagnostico}}\nIndicaciones: {{campo:indicaciones}}\n\nFirma: {{firma_medico}}';
-
-            this.syncHtml();
+            this.initTinyMce();
+            this.syncFieldsSchema();
         },
         normalizeFields(rawFields = []) {
             return (rawFields || []).map((field, index) => {
@@ -73,26 +70,13 @@ function templateVisualBuilder(initialHtml = '', initialFields = []) {
             this.insertTextAtCursor(this.buildFieldToken(field.key));
         },
         insertTextAtCursor(text) {
-            const editor = this.$refs.editor;
-
-            if (!editor) {
-                this.documentTemplate += text;
-                this.syncHtml();
+            const instance = tinymce.get('templateEditor');
+            if (!instance) {
                 return;
             }
 
-            const start = editor.selectionStart ?? this.documentTemplate.length;
-            const end = editor.selectionEnd ?? this.documentTemplate.length;
-            const current = this.documentTemplate || '';
-
-            this.documentTemplate = `${current.slice(0, start)}${text}${current.slice(end)}`;
-
-            this.$nextTick(() => {
-                editor.focus();
-                const cursor = start + text.length;
-                editor.setSelectionRange(cursor, cursor);
-            });
-
+            instance.focus();
+            instance.execCommand('mceInsertContent', false, text);
             this.syncHtml();
         },
         syncFieldIdentity(field) {
@@ -124,33 +108,38 @@ function templateVisualBuilder(initialHtml = '', initialFields = []) {
             }
         },
         syncHtml() {
-            const html = (this.documentTemplate || '').replace(/\n/g, '<br>');
+            const instance = tinymce.get('templateEditor');
+            const html = instance ? instance.getContent() : (this.initialHtml || '');
             if (this.$refs.htmlContent) this.$refs.htmlContent.value = html;
-            if (this.$refs.preview) this.$refs.preview.innerHTML = html;
             this.syncFieldsSchema();
+        },
+        initTinyMce() {
+            const content = this.initialHtml && this.initialHtml.trim().length > 0
+                ? this.initialHtml
+                : '<p>INFORME MÉDICO</p><p>Paciente: {{nombre_paciente}}</p><p>DNI: {{dni_paciente}}</p><p>Fecha: {{fecha_actual}}</p><p>Diagnóstico: {{campo:diagnostico}}</p><p>Indicaciones: {{campo:indicaciones}}</p><p>Firma: {{firma_medico}}</p>';
+
+            tinymce.init({
+                selector: '#templateEditor',
+                license_key: 'gpl',
+                height: 620,
+                menubar: 'file edit view insert format table tools',
+                plugins: 'advlist autolink lists link charmap preview searchreplace visualblocks code fullscreen table autoresize',
+                toolbar: 'undo redo | blocks styles | bold italic underline | alignleft aligncenter alignright alignjustify | outdent indent | bullist numlist | table | removeformat code',
+                content_style: 'body { font-family: Helvetica, Arial, sans-serif; font-size: 14px; line-height: 1.45; } p { margin: 0.5rem 0; }',
+                setup: (editor) => {
+                    editor.on('init', () => {
+                        editor.setContent(content);
+                        this.syncHtml();
+                    });
+                    editor.on('change keyup input undo redo', () => {
+                        this.syncHtml();
+                    });
+                }
+            });
         }
     }
 }
 </script>
 @endverbatim
 
-<style>
-.template-preview-sheet {
-    background: #fff;
-    width: 210mm;
-    min-height: 297mm;
-    margin: 0 auto;
-    padding: 15mm;
-    box-sizing: border-box;
-    border: 1px solid #d8dee4;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, .08);
-    font-family: 'Times New Roman', serif;
-    line-height: 1.3;
-    font-size: 12pt;
-}
-.template-preview-wrapper {
-    background: #f1f3f5;
-    padding: 16px;
-    border-radius: .5rem;
-}
-</style>
+<script src="{{ asset('js/tinymce/tinymce.min.js') }}"></script>
