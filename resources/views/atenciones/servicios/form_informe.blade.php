@@ -30,7 +30,7 @@
                         <input type="hidden" name="template_id" value="{{ $template->id }}">
                         <input type="hidden" name="resultados_json" :value="jsonPayload">
 
-                        <textarea id="reportEditor" name="html_final">{!! $htmlContent !!}</textarea>
+                        <textarea id="reportEditor" name="html_final" class="form-control font-monospace" rows="28">{!! $htmlContent !!}</textarea>
                     </form>
                 </div>
             </div>
@@ -84,8 +84,6 @@
     </div>
 </div>
 
-@include('templates.partials.ckeditor-config')
-
 <script>
     function serviceReportForm() {
         return {
@@ -95,11 +93,10 @@
                 return JSON.stringify(this.fieldValues || {});
             },
             applyValuesToEditor() {
-                if (!window.reportEditor) {
-                    return;
-                }
+                const editor = document.getElementById('reportEditor');
+                if (!editor) return;
 
-                let html = window.reportEditor.getData();
+                let html = editor.value;
 
                 for (const [key, value] of Object.entries(this.fieldValues || {})) {
                     const safeValue = value ?? '';
@@ -107,7 +104,7 @@
                     html = html.replace(pattern, safeValue);
                 }
 
-                window.reportEditor.setData(html);
+                editor.value = html;
             }
         }
     }
