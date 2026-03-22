@@ -295,7 +295,7 @@
                 url: "{{ route('referrals.patients.search') }}", 
                 dataType: 'json', 
                 delay: 300, 
-                data: params => ({ q: params.term, insurance_type: 'ESSALUD' }), 
+                data: params => ({ q: params.term }), 
                 processResults: data => data 
             },
             minimumInputLength: 2

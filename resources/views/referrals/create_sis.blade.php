@@ -284,7 +284,7 @@
 
                 $('#patient_search').select2({
                     theme: 'bootstrap-5',
-                    ajax: { url: "{{ route('referrals.patients.search') }}", dataType: 'json', delay: 300, data: params => ({ q: params.term, insurance_type: 'SIS' }), processResults: data => data },
+                    ajax: { url: "{{ route('referrals.patients.search') }}", dataType: 'json', delay: 300, data: params => ({ q: params.term }), processResults: data => data },
                     minimumInputLength: 2
                 }).on('select2:select select2:clear', function (e) {
                     const p = e.params && e.params.data ? e.params.data : null;
