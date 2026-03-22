@@ -46,4 +46,24 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Specialty::class);
     }
+
+    public function referralsAsResponsible()
+    {
+        return $this->hasMany(Referral::class, 'referral_responsible_id');
+    }
+
+    public function referralsAsFacilityResponsible()
+    {
+        return $this->hasMany(Referral::class, 'facility_responsible_id');
+    }
+
+    public function referralsAsEscort()
+    {
+        return $this->hasMany(Referral::class, 'escort_staff_id');
+    }
+
+    public function referralsAsReceiver()
+    {
+        return $this->hasMany(Referral::class, 'receiving_staff_id');
+    }
 }

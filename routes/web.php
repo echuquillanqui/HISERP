@@ -84,3 +84,16 @@ Route::post('/services/guardar/{detail}', [App\Http\Controllers\ServiceResultCon
 // 2. DESPUÉS el recurso (Genérico)
 Route::resource('serviceresults', App\Http\Controllers\ServiceResultController::class);
 
+Route::get('/referrals/create/sis', [App\Http\Controllers\ReferralController::class, 'create'])
+    ->defaults('type', 'SIS')
+    ->name('referrals.create.sis');
+Route::get('/referrals/create/essalud', [App\Http\Controllers\ReferralController::class, 'create'])
+    ->defaults('type', 'ESSALUD')
+    ->name('referrals.create.essalud');
+Route::get('/referrals/cie10/search', [App\Http\Controllers\ReferralController::class, 'searchCie10'])
+    ->name('referrals.cie10.search');
+Route::get('/referrals/{id}/pdf', [App\Http\Controllers\ReferralController::class, 'downloadPdf'])
+    ->name('referrals.pdf');
+Route::get('/referrals/{id}/pdf-essalud', [App\Http\Controllers\ReferralController::class, 'downloadPdfEssalud'])
+    ->name('referrals.pdf.essalud');
+Route::resource('referrals', App\Http\Controllers\ReferralController::class)->middleware('auth');

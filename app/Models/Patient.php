@@ -26,6 +26,11 @@ class Patient extends Model
         return $this->hasMany(History::class);
     }
 
+    public function referrals()
+    {
+        return $this->hasMany(Referral::class);
+    }
+
     public function getAgeAttribute()
     {
         return Carbon::parse($this->birth_date)->age;
