@@ -36,7 +36,7 @@
         <tr>
             <td style="width: 20%;"><span class="label">Fecha</span><span class="data-text">{{ $referral->created_at->format('d/m/Y') }}</span></td>
             <td style="width: 20%;"><span class="label">Hora</span><span class="data-text">{{ $referral->created_at->format('h:i a') }}</span></td>
-            <td style="width: 60%;"><span class="label">Tipo de Seguro</span><span class="data-text">{{ strtoupper($referral->coverage_type ?? 'ESSALUD') }}</span></td>
+            <td style="width: 60%;"><span class="label">Tipo de Seguro</span><span class="data-text"> -------</span></td>
         </tr>
         <tr>
             <td colspan="2" style="width:60%;">
@@ -55,9 +55,7 @@
         <tr>
             <td style="width: 20%;"><span class="label">N° DNI</span><span class="data-text">{{ $referral->patient->dni }}</span></td>
             <td style="width: 20%;"><span class="label">N° Historia Clínica</span><span class="data-text">{{ strtoupper($referral->patient->dni ?? '') }}</span></td>
-            <td style="width: 33%;"><span class="label">Apellido Paterno</span><span class="data-text">{{ strtoupper($referral->patient->last_name ?? '') }}</span></td>
-            <td style="width: 33%;"><span class="label">Apellido Materno</span><span class="data-text">-</span></td>
-            <td style="width: 34%;"><span class="label">Nombres</span><span class="data-text">{{ strtoupper($referral->patient->first_name ?? '') }}</span></td>
+            <td style="width: 35%;"><span class="label">Apellidos y Nombres</span><span class="data-text"><strong>{{ strtoupper(trim(($referral->patient->first_name ?? '') . ' ' . ($referral->patient->last_name ?? ''))) }}</strong></span></td>
         </tr>
     </table>
     <table class="table" style="margin-top: -1px;">
@@ -196,7 +194,7 @@
                 {{-- Información del Usuario --}}
                 <span style="font-size: 7px; display: block; line-height: 1.1; min-height: 25px;">
                     <strong>{{ strtoupper($role['user']->name ?? ' ') }}</strong><br>
-                    {{ strtoupper($role['user']->profession ?? ' ') }}
+                    Colegiatura: {{ strtoupper($role['user']->colegiatura ?? ' ') }} | RNE: {{ strtoupper($role['user']->rne ?? ' ') }}
                     <br>
                     
                     {{-- Muestra la colegiatura solo si NO es la última columna --}}

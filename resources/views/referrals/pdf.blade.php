@@ -39,7 +39,7 @@
             <td style="width: 20%;"><span class="label">Fecha</span><span class="data-text">{{ $referral->created_at->format('d/m/Y') }}</span></td>
             <td style="width: 20%;"><span class="label">Hora</span><span class="data-text">{{ $referral->created_at->format('H:i') }}</span></td>
             <td style="width: 30%;"><span class="label">Asegurado</span><span class="data-text">{{ $referral->patient->is_insured == 1 ? 'SI' : 'NO' }}</span></td>
-            <td style="width: 30%;"><span class="label">Regimen de aseguramiento</span><span class="data-text">{{ $referral->patient->insurance_regime }}</span></td>
+            <td style="width: 30%;"><span class="label">Regimen de aseguramiento</span><span class="data-text">----------</span></td>
         </tr>
         <tr>
             <td colspan="2"><span class="label">Establecimiento Destino</span><span class="data-text">{{ strtoupper($referral->destination_facility) }}</span></td>
@@ -51,7 +51,7 @@
     <table class="table">
         <tr>
             <td style="width: 35%;"><span class="label">Apellidos y Nombres</span><span class="data-text"><strong>{{ strtoupper(trim(($referral->patient->first_name ?? '') . ' ' . ($referral->patient->last_name ?? ''))) }}</strong></span></td>
-            <td style="width: 25%;"><span class="label">Codgio de Afliciación al SIS</span><span class="data-text">{{ $referral->patient->affiliation_code }}</span></td>
+            <td style="width: 25%;"><span class="label">Codgio de Afliciación al SIS</span><span class="data-text">2-{{ $referral->patient->dni }}</span></td>
             <td style="width: 20%;"><span class="label">N° Historia Clínica</span><span class="data-text">{{ strtoupper($referral->patient->dni ?? '') }}</span></td>
             <td style="width: 10%;"><span class="label">Edad</span><span class="data-text">{{ $referral->patient->calculated_age }}</span></td>
             <td style="width: 10%;"><span class="label">Sexo</span><span class="data-text">{{ strtoupper($referral->patient->gender) }}</span></td>
@@ -172,7 +172,7 @@
         @endphp
 
         @foreach($roles as $r)
-        <td style="height: 150px; text-align: center; vertical-align: bottom; position: relative; padding: 5px;">
+        <td style="height: 160px; text-align: center; vertical-align: bottom; position: relative; padding: 5px;">
             <div style="border-top: 1px solid #000; padding-top: 5px; min-height: 60px;">
                 
                 <span class="label" style="font-size: 7px; font-weight: bold; display: block; margin-bottom: 3px;">
@@ -181,15 +181,10 @@
 
                 <span style="font-size: 7px; display: block; line-height: 1.2; min-height: 30px;">
                     {{-- Nombre del usuario o espacio en blanco --}}
-                    <strong>{{ strtoupper($r['u']->name ?? ' ') }}</strong><br>
-                    
+                    <strong>{{ strtoupper($r['u']->name ?? ' ') }}</strong>
                     {{-- Profesión o espacio en blanco --}}
-                    {{ strtoupper($r['u']->profession ?? ' ') }}
+                    Colegiatura: {{ strtoupper($r['u']->colegiatura ?? ' ') }} | RNE: {{ strtoupper($r['u']->rne ?? ' ') }}
                     
-                    {{-- Colegiatura (solo si no es el último y existe el dato) --}}
-                    @if(!$loop->last)
-                        <br>{{ $r['u']->license_number ?? ' ' }}
-                    @endif
                 </span>
 
                 {{-- Espacio para Fecha y Hora solo en el último recuadro --}}
@@ -199,7 +194,7 @@
                     </div>
                 @else
                     {{-- Espaciador para mantener simetría con el último cuadro --}}
-                    <div style="height: 12px;"></div> 
+                    <div style="height: 8px;"></div> 
                 @endif
             </div>
         </td>
