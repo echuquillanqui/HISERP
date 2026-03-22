@@ -177,9 +177,11 @@ class OrderController extends Controller
 
         $result = Cache::remember($cacheKey, now()->addSeconds(45), function () use ($q) {
             $catalogs = Catalog::query()
-                ->select(['catalogs.id', 'catalogs.name', 'catalogs.price', 'areas.name as area_name'])
+                ->select(['catalogs.id', 'catalogs.name', 'catalogs.price', 'catalogs.reference_range', 'catalogs.unit', 'areas.name as area_name'])
                 ->leftJoin('areas', 'areas.id', '=', 'catalogs.area_id')
-                ->where('catalogs.name', 'LIKE', "%{$q}%")
+                ->where(function ($query) use ($q) {
+                    $this->applyFlexibleSearch($query, 'catalogs.name', $q);
+                })
                 ->orderBy('catalogs.name')
                 ->limit(8)
                 ->get()
@@ -196,7 +198,9 @@ class OrderController extends Controller
             $profiles = Profile::query()
                 ->select(['profiles.id', 'profiles.name', 'profiles.price', 'areas.name as area_name'])
                 ->leftJoin('areas', 'areas.id', '=', 'profiles.area_id')
-                ->where('profiles.name', 'LIKE', "%{$q}%")
+                ->where(function ($query) use ($q) {
+                    $this->applyFlexibleSearch($query, 'profiles.name', $q);
+                })
                 ->orderBy('profiles.name')
                 ->limit(8)
                 ->get()
@@ -210,7 +214,9 @@ class OrderController extends Controller
 
 
             $services = Service::query()
-                ->where('nombre', 'LIKE', "%{$q}%")
+                ->where(function ($query) use ($q) {
+                    $this->applyFlexibleSearch($query, 'nombre', $q);
+                })
                 ->orderBy('nombre')
                 ->limit(8)
                 ->get()
@@ -227,7 +233,9 @@ class OrderController extends Controller
             $products = Product::query()
                 ->select(['id', 'name', 'concentration', 'selling_price'])
                 ->where('is_active', true)
-                ->where('name', 'LIKE', "%{$q}%")
+                ->where(function ($query) use ($q) {
+                    $this->applyFlexibleSearch($query, 'name', $q);
+                })
                 ->orderBy('name')
                 ->limit(8)
                 ->get()
@@ -244,8 +252,8 @@ class OrderController extends Controller
                 ->with('items.itemable')
                 ->where('is_active', true)
                 ->where(function ($query) use ($q) {
-                    $query->where('name', 'LIKE', "%{$q}%")
-                        ->orWhere('code', 'LIKE', "%{$q}%");
+                    $this->applyFlexibleSearch($query, 'name', $q);
+                    $this->applyFlexibleSearch($query, 'code', $q);
                 })
                 ->orderBy('name')
                 ->limit(8)
@@ -296,6 +304,27 @@ class OrderController extends Controller
         });
 
         return response()->json($result);
+    }
+
+    private function applyFlexibleSearch($query, string $field, string $rawQuery): void
+    {
+        $normalizedQuery = trim($rawQuery);
+        $terms = collect(preg_split('/\s+/u', mb_strtolower($normalizedQuery), -1, PREG_SPLIT_NO_EMPTY))
+            ->filter(fn ($term) => mb_strlen($term) >= 2)
+            ->take(5)
+            ->values();
+
+        if ($normalizedQuery !== '') {
+            $query->orWhere($field, 'LIKE', "%{$normalizedQuery}%");
+        }
+
+        foreach ($terms as $term) {
+            $query->orWhere($field, 'LIKE', "%{$term}%");
+
+            if (mb_strlen($term) >= 5) {
+                $query->orWhere($field, 'LIKE', '%' . mb_substr($term, 0, -1) . '%');
+            }
+        }
     }
 
     public function getPatient(Patient $patient)

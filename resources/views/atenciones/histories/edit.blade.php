@@ -120,7 +120,7 @@
                         <div class="tab-pane fade show active" id="tab-anamnesis">
                             <div class="row mb-4">
                                 <div class="col-md-12">
-                                    <label class="fw-bold mb-2">Relato de la consulta (Anamnesis)</label>
+                                    <label class="fw-bold mb-2">Relato Cronologico de la enfermedad (Anamnesis)</label>
                                     <textarea name="anamnesis" class="form-control" rows="6" required>{{ $history->anamnesis }}</textarea>
                                 </div>
                             </div>
