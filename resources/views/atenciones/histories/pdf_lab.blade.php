@@ -106,8 +106,6 @@
         @if($history->user->firma)
             <img src="{{ public_path('storage/' . $history->user->firma) }}" style="width: 180px;">
         @endif
-        <div style="border-top: 1.5px solid #2c3e50; width: 250px; margin: 0 auto; padding-top: 5px;"></div>
-        <div style="font-size: 11px; margin-top: 5px;">Firma y Sello</div>
     </div>
 
     <div class="footer">

@@ -118,12 +118,7 @@
                     
                     <div class="card-body p-4 tab-content">
                         <div class="tab-pane fade show active" id="tab-anamnesis">
-                            <div class="row mb-4">
-                                <div class="col-md-12">
-                                    <label class="fw-bold mb-2">Relato Cronologico de la enfermedad (Anamnesis)</label>
-                                    <textarea name="anamnesis" class="form-control" rows="6" required>{{ $history->anamnesis }}</textarea>
-                                </div>
-                            </div>
+
                             <div class="row mb-4">
                                 <div class="col-md-6">
                                     <label class="fw-bold mb-2">Tiempo de enfermedad</label>
@@ -132,6 +127,12 @@
                                 <div class="col-md-6">
                                     <label class="fw-bold mb-2">Signos y síntomas</label>
                                     <textarea name="signos_sintomas" class="form-control" rows="2" placeholder="Detalle de signos y síntomas">{{ old('signos_sintomas', $history->signos_sintomas) }}</textarea>
+                                </div>
+                            </div>
+                            <div class="row mb-4">
+                                <div class="col-md-12">
+                                    <label class="fw-bold mb-2">Relato Cronologico de la enfermedad (Anamnesis)</label>
+                                    <textarea name="anamnesis" class="form-control" rows="6" required>{{ $history->anamnesis }}</textarea>
                                 </div>
                             </div>
 
