@@ -31,7 +31,7 @@
                         <i class="bi bi-file-pdf"></i>
                     </a>
                 @else
-                    <a href="{{ route('referrals.pdf_essalud', $referral->id) }}" class="btn btn-sm btn-primary" target="_blank" title="Imprimir EsSalud">
+                    <a href="{{ route('referrals.pdf.essalud', $referral->id) }}" class="btn btn-sm btn-primary" target="_blank" title="Imprimir EsSalud">
                         <i class="bi bi-file-pdf"></i>
                     </a>
                 @endif
