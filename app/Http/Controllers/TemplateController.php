@@ -84,8 +84,11 @@ class TemplateController extends Controller
         $datos = [
             '{{nombre_paciente}}' => 'JUAN PÉREZ GARCÍA',
             '{{dni_paciente}}'    => '78945612',
+
             '{{edad_paciente}}'   => '32 AÑOS',
             '{{sexo_paciente}}'   => $sexo,
+            '{{sexo_paciente}}'   => $sexo,
+
             '{{fecha_actual}}'    => date('d/m/Y'),
             '{{codigo_orden}}'    => 'ORD-2026-0001'
         ];
@@ -112,38 +115,5 @@ class TemplateController extends Controller
         }
 
         return $html;
-    }
-
-    private function normalizeFieldsSchema(?string $fieldsSchema): array
-    {
-        if (!$fieldsSchema) {
-            return [];
-        }
-
-        $decoded = json_decode($fieldsSchema, true);
-
-        if (!is_array($decoded)) {
-            return [];
-        }
-
-        $allowedTypes = ['text', 'textarea', 'number', 'date', 'time', 'datetime-local', 'select', 'email', 'tel', 'checkbox'];
-
-        return collect($decoded)
-            ->filter(fn ($field) => is_array($field) && !empty($field['key']))
-            ->map(function ($field) use ($allowedTypes) {
-                $type = strtolower(trim((string) ($field['type'] ?? 'text')));
-
-                return [
-                    'key' => trim((string) $field['key']),
-                    'label' => trim((string) ($field['label'] ?? $field['key'])),
-                    'type' => in_array($type, $allowedTypes, true) ? $type : 'text',
-                    'required' => (bool) ($field['required'] ?? false),
-                    'options' => $type === 'select' && is_array($field['options'] ?? null)
-                        ? array_values(array_filter(array_map(fn ($option) => trim((string) $option), $field['options'])))
-                        : [],
-                ];
-            })
-            ->values()
-            ->all();
     }
 }

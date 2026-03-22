@@ -139,6 +139,8 @@ class ServiceResultController extends Controller
                 ? \Carbon\Carbon::parse($patient->birth_date)->age . ' AÑOS'
                 : '--',
             '{{sexo_paciente}}'        => $sexo ?: '--',
+            '{{sexo_paciente}}'        => $sexo ?: '--',
+
             '{{fecha_actual}}'         => now()->format('d/m/Y'),
             '{{codigo_orden}}'         => $order->code ?? '--',
             '{{regimen_aseguramiento}}'=> data_get($patient, 'insurance_regime', '--') ?: '--',

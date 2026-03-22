@@ -102,6 +102,7 @@
                 <div class="card shadow-sm border-0 mb-3">
                     <div class="card-header bg-primary text-white fw-bold">Constructor visual</div>
                     <div class="card-body">
+
                         <div class="d-grid gap-2 mb-3">
                             <button type="button" class="btn btn-outline-primary btn-sm" @click="addBlock('heading')">+ Título</button>
                             <button type="button" class="btn btn-outline-primary btn-sm" @click="addBlock('paragraph')">+ Párrafo</button>
@@ -166,6 +167,31 @@
                                 </template>
                             </div>
                         </template>
+
+                        <p class="small text-muted mb-3">Haz clic para insertar en el editor:</p>
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-outline-dark btn-sm text-start" onclick="insertVar('@{{nombre_paciente}}')">@{{nombre_paciente}}</button>
+                            <button type="button" class="btn btn-outline-dark btn-sm text-start" onclick="insertVar('@{{dni_paciente}}')">@{{dni_paciente}}</button>
+                            <button type="button" class="btn btn-outline-dark btn-sm text-start" onclick="insertVar('@{{sexo_paciente}}')">@{{sexo_paciente}}</button>
+                            <button type="button" class="btn btn-outline-dark btn-sm text-start" onclick="insertVar('@{{fecha_actual}}')">@{{fecha_actual}}</button>
+                            <button type="button" class="btn btn-outline-dark btn-sm text-start" onclick="insertVar('@{{codigo_orden}}')">@{{codigo_orden}}</button>
+                            <button type="button" class="btn btn-outline-dark btn-sm text-start" onclick="insertVar('@{{regimen_aseguramiento}}')">@{{regimen_aseguramiento}}</button>
+                            <button type="button" class="btn btn-outline-dark btn-sm text-start" onclick="insertVar('@{{codigo_afiliacion}}')">@{{codigo_afiliacion}}</button>
+                            <button type="button" class="btn btn-outline-dark btn-sm text-start" 
+                                    onclick="insertVar('@{{firma_medico}}')">
+                                @{{firma_medico}}
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm text-start" onclick="insertVar('@{{#if_hombre}}')">@{{#if_hombre}}</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm text-start" onclick="insertVar('@{{/if_hombre}}')">@{{/if_hombre}}</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm text-start" onclick="insertVar('@{{#if_mujer}}')">@{{#if_mujer}}</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm text-start" onclick="insertVar('@{{/if_mujer}}')">@{{/if_mujer}}</button>
+                        </div>
+
+                        <hr>
+                        <p class="small mb-0 text-muted">
+                            Puedes envolver bloques completos para mostrarlos por sexo.
+                            Ejemplo: <code>@{{#if_hombre}}...@{{/if_hombre}}</code> para próstata.
+                        </p>
                     </div>
                     <div class="card-footer bg-white border-0">
                         <button type="submit" class="btn btn-success w-100 py-2">
