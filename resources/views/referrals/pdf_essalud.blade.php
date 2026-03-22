@@ -18,7 +18,7 @@
     <table style="width: 100%; border: none; margin-bottom: 5px;">
         <tr>
             <td style="border: none; width: 30%;">
-                <img src="{{ public_path('logo/logo_03.jpeg') }}" 
+                <img src="{{ isset($branch) && $branch->logo ? public_path('storage/' . $branch->logo) : public_path('logo/logo_03.jpeg') }}" 
                     style="height: 60px;">
             </td>
             <td style="border: none; width: 40%; text-align: center;"><div class="header-title">HOJA DE REFERENCIA</div></td>
@@ -36,7 +36,7 @@
         <tr>
             <td style="width: 20%;"><span class="label">Fecha</span><span class="data-text">{{ $referral->created_at->format('d/m/Y') }}</span></td>
             <td style="width: 20%;"><span class="label">Hora</span><span class="data-text">{{ $referral->created_at->format('h:i a') }}</span></td>
-            <td style="width: 60%;"><span class="label">Tipo de Seguro</span><span class="data-text">{{ strtoupper($referral->patient->insurance_type ?? 'ESSALUD') }}</span></td>
+            <td style="width: 60%;"><span class="label">Tipo de Seguro</span><span class="data-text">{{ strtoupper($referral->coverage_type ?? 'ESSALUD') }}</span></td>
         </tr>
         <tr>
             <td colspan="2" style="width:60%;">
@@ -54,10 +54,10 @@
     <table class="table">
         <tr>
             <td style="width: 20%;"><span class="label">N° DNI</span><span class="data-text">{{ $referral->patient->dni }}</span></td>
-            <td style="width: 20%;"><span class="label">N° Historia Clínica</span><span class="data-text">{{ strtoupper($referral->patient->medical_history_number) }}</span></td>
-            <td style="width: 33%;"><span class="label">Apellido Paterno</span><span class="data-text">{{ strtoupper($referral->patient->surname) }}</span></td>
-            <td style="width: 33%;"><span class="label">Apellido Materno</span><span class="data-text">{{ strtoupper($referral->patient->last_name) }}</span></td>
-            <td style="width: 34%;"><span class="label">Nombres</span><span class="data-text">{{ strtoupper($referral->patient->first_name) }}</span></td>
+            <td style="width: 20%;"><span class="label">N° Historia Clínica</span><span class="data-text">{{ strtoupper($referral->patient->dni ?? '') }}</span></td>
+            <td style="width: 33%;"><span class="label">Apellido Paterno</span><span class="data-text">{{ strtoupper($referral->patient->last_name ?? '') }}</span></td>
+            <td style="width: 33%;"><span class="label">Apellido Materno</span><span class="data-text">-</span></td>
+            <td style="width: 34%;"><span class="label">Nombres</span><span class="data-text">{{ strtoupper($referral->patient->first_name ?? '') }}</span></td>
         </tr>
     </table>
     <table class="table" style="margin-top: -1px;">

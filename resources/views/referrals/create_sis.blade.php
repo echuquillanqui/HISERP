@@ -33,6 +33,7 @@
 
     <form id="referralFormSis" action="{{ route('referrals.store') }}" method="POST" novalidate>
         @csrf
+        <input type="hidden" name="coverage_type" value="SIS">
 
         
         <div class="card shadow-sm border-0">
@@ -294,11 +295,11 @@
                         return;
                     }
                     $('#snapshot_panel').removeClass('d-none');
-                    $('#v_hc').text(p.medical_history_number || 'S/N');
+                    $('#v_hc').text(p.medical_history_number || p.dni || 'S/N');
                     $('#v_aff').text(p.affiliation_code || 'S/C');
                     $('#v_insured').text(p.is_insured ? 'SÍ' : 'NO');
                     $('#v_regime').text(p.insurance_regime || 'SUBSIDIADO');
-                    const fullName = `${p.surname || ''} ${p.last_name || ''}, ${p.first_name || ''}`.replace(/\s+/g, ' ').replace(' ,', ',').trim();
+                    const fullName = `${p.first_name || ''} ${p.last_name || ''}`.replace(/\s+/g, ' ').trim();
                     $('#v_name').text(fullName.toUpperCase());
                     $('#v_age').text(p.age || '-');
                     $('#v_sex').text(p.gender == 'F' ? 'FEMENINO' : 'MASCULINO');

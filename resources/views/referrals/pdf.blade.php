@@ -22,7 +22,7 @@
     <table style="width: 100%; border: none; margin-bottom: 5px;">
         <tr>
             <td style="border: none; width: 30%;">
-                <img src="{{ public_path('logo/logo_03.jpeg') }}" style="height: 48px;">
+                <img src="{{ isset($branch) && $branch->logo ? public_path('storage/' . $branch->logo) : public_path('logo/logo_03.jpeg') }}" style="height: 48px;">
             </td>
             <td style="border: none; width: 40%; text-align: center;"><div class="header-title">HOJA DE REFERENCIA</div></td>
             <td style="border: none; width: 30%; text-align: right;">
@@ -50,9 +50,9 @@
     <div class="section-header">2. IDENTIFICACION DEL USUARIO</div>
     <table class="table">
         <tr>
-            <td style="width: 35%;"><span class="label">Apellidos y Nombres</span><span class="data-text"><strong>{{ strtoupper($referral->patient->surname . ' ' . $referral->patient->last_name . ', ' . $referral->patient->first_name) }}</strong></span></td>
+            <td style="width: 35%;"><span class="label">Apellidos y Nombres</span><span class="data-text"><strong>{{ strtoupper(trim(($referral->patient->first_name ?? '') . ' ' . ($referral->patient->last_name ?? ''))) }}</strong></span></td>
             <td style="width: 25%;"><span class="label">Codgio de Afliciación al SIS</span><span class="data-text">{{ $referral->patient->affiliation_code }}</span></td>
-            <td style="width: 20%;"><span class="label">N° Historia Clínica</span><span class="data-text">{{ strtoupper($referral->patient->medical_history_number) }}</span></td>
+            <td style="width: 20%;"><span class="label">N° Historia Clínica</span><span class="data-text">{{ strtoupper($referral->patient->dni ?? '') }}</span></td>
             <td style="width: 10%;"><span class="label">Edad</span><span class="data-text">{{ $referral->patient->calculated_age }}</span></td>
             <td style="width: 10%;"><span class="label">Sexo</span><span class="data-text">{{ strtoupper($referral->patient->gender) }}</span></td>
         </tr>

@@ -28,6 +28,7 @@
 
     <form action="{{ route('referrals.update', $referral->id) }}" method="POST">
         @csrf
+        <input type="hidden" name="coverage_type" value="ESSALUD">
 
 
         @if ($errors->any())
@@ -64,7 +65,7 @@
                         <label class="data-title">Asegurado (DNI / Autogenerado)</label>
                         <select id="patient_search" name="patient_id" class="form-control @error('patient_id') is-invalid @enderror" required>
                             <option value="{{ $referral->patient_id }}" selected>
-                                {{ $referral->patient->full_name ?? $referral->patient->surname . ' ' . $referral->patient->last_name . ' ' .  $referral->patient->first_name . ' ' . $referral->patient->other_names }}
+                                {{ trim(($referral->patient->first_name ?? '') . ' ' . ($referral->patient->last_name ?? '')) }}
                             </option>
                         </select>
                     </div>
@@ -271,11 +272,11 @@
         function updateSnapshot(p) {
             if(!p) return;
             $('#snapshot_panel').removeClass('d-none');
-            $('#v_hc').text(p.medical_history_number || 'S/N');
+            $('#v_hc').text(p.medical_history_number || p.dni || 'S/N');
             $('#v_aff').text(p.affiliation_code || p.dni);
             $('#v_insured').text(p.is_insured ? 'SÍ (ACTIVA)' : 'NO ACREDITADO');
             $('#v_regime').text(p.insurance_regime || 'TITULAR');
-            const fullName = `${p.surname || ''} ${p.last_name || ''}, ${p.first_name || ''}`.replace(/\s+/g, ' ').replace(' ,', ',').trim();
+            const fullName = `${p.first_name || ''} ${p.last_name || ''}`.replace(/\s+/g, ' ').trim();
             $('#v_name').text(fullName.toUpperCase());
             $('#v_age').text(p.age || '-');
             $('#v_sex').text(p.gender == 'F' ? 'FEMENINO' : 'MASCULINO');

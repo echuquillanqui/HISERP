@@ -28,6 +28,7 @@
 
     <form id="referralFormEssalud" action="{{ route('referrals.store') }}" method="POST" novalidate>
         @csrf
+        <input type="hidden" name="coverage_type" value="ESSALUD">
 
          @if ($errors->any())
             <div class="alert alert-danger">
@@ -308,11 +309,11 @@
             }
 
             $('#snapshot_panel').removeClass('d-none');
-            $('#v_hc').text(p.medical_history_number || 'S/N');
+            $('#v_hc').text(p.medical_history_number || p.dni || 'S/N');
             $('#v_aff').text(p.affiliation_code || p.dni);
             $('#v_insured').text(p.is_insured ? 'SÍ (ACTIVA)' : 'NO ACREDITADO');
             $('#v_regime').text(p.insurance_regime || 'TITULAR');
-            const fullName = `${p.surname || ''} ${p.last_name || ''}, ${p.first_name || ''}`.replace(/\s+/g, ' ').replace(' ,', ',').trim();
+            const fullName = `${p.first_name || ''} ${p.last_name || ''}`.replace(/\s+/g, ' ').trim();
             $('#v_name').text(fullName.toUpperCase());
             $('#v_age').text(p.age || '-');
             $('#v_sex').text(p.gender == 'F' ? 'FEMENINO' : 'MASCULINO');

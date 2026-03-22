@@ -24,6 +24,7 @@
     {{-- 1. CAMBIO DE RUTA Y MÉTODO --}}
     <form action="{{ route('referrals.update', $referral->id) }}" method="POST">
         @csrf
+        <input type="hidden" name="coverage_type" value="SIS">
          @if ($errors->any())
             <div class="alert alert-danger">
                 <strong>Se encontraron errores en el formulario:</strong>
@@ -57,7 +58,7 @@
                         {{-- Select2 cargará el paciente actual mediante JS --}}
                         <select id="patient_search" name="patient_id" class="form-control @error('patient_id') is-invalid @enderror" required>
                             <option value="{{ $referral->patient_id }}" selected>
-                                {{ $referral->patient->full_name ?? $referral->patient->surname . ' ' . $referral->patient->last_name . ', ' . $referral->patient->first_name }} {{ $referral->patient->other_names }}
+                                {{ trim(($referral->patient->first_name ?? '') . ' ' . ($referral->patient->last_name ?? '')) }}
                             </option>
                         </select>
                     </div>
@@ -77,7 +78,7 @@
                         <div class="col-md-2"><label class="data-title">H.C. / Código SIS</label><div class="data-value"><span id="v_hc">{{ $referral->patient->medical_history_number }}</span> / <span id="v_aff">{{ $referral->patient->affiliation_code }}</span></div></div>
                         <div class="col-md-2 text-center"><label class="data-title">¿Asegurado?</label><div id="v_insured" class="data-value">{{ $referral->patient->is_insured ? 'SÍ' : 'NO' }}</div></div>
                         <div class="col-md-2 text-center"><label class="data-title">Regimen</label><div id="v_regime" class="data-value">{{ $referral->patient->insurance_regime }}</div></div>
-                        <div class="col-md-3"><label class="data-title">Nombres y Apellidos</label><div id="v_name" class="data-value text-uppercase">{{ $referral->patient->surname }} {{ $referral->patient->last_name }}, {{ $referral->patient->first_name }} {{ $referral->patient->other_names }}</div></div>
+                        <div class="col-md-3"><label class="data-title">Nombres y Apellidos</label><div id="v_name" class="data-value text-uppercase">{{ trim(($referral->patient->first_name ?? '') . ' ' . ($referral->patient->last_name ?? '')) }}</div></div>
                         <div class="col-md-2"><label class="data-title">Edad / Sexo</label><div class="data-value"><span id="v_age">{{ $referral->patient->age }}</span> años / <span id="v_sex">{{ $referral->patient->gender == 'F' ? 'F' : 'M' }}</span></div></div>
                     </div>
                 </div>
@@ -267,11 +268,11 @@
         }).on('select2:select', function (e) {
             let p = e.params.data;
             $('#snapshot_panel').removeClass('d-none');
-            $('#v_hc').text(p.medical_history_number || 'S/N');
+            $('#v_hc').text(p.medical_history_number || p.dni || 'S/N');
             $('#v_aff').text(p.affiliation_code || 'S/C');
             $('#v_insured').text(p.is_insured ? 'SÍ' : 'NO');
             $('#v_regime').text(p.insurance_regime || 'SUBSIDIADO');
-            const fullName = `${p.surname || ''} ${p.last_name || ''}, ${p.first_name || ''}`.replace(/\s+/g, ' ').replace(' ,', ',').trim();
+            const fullName = `${p.first_name || ''} ${p.last_name || ''}`.replace(/\s+/g, ' ').trim();
             $('#v_name').text(fullName.toUpperCase());
             $('#v_age').text(p.age || '-');
             $('#v_sex').text(p.gender == 'F' ? 'FEMENINO' : 'MASCULINO');

@@ -31,6 +31,7 @@ class Referral extends Model
         'auxiliary_exams',
         'others',
         'referral_type',
+        'coverage_type',
         'appointment_date',
         'appointment_time',
         'attending_physician_name',

@@ -82,10 +82,10 @@ class ReferralController extends Controller
                     'first_name' => $patient->first_name,
                     'last_name' => $patient->last_name,
                     'surname' => $patient->last_name,
-                    'medical_history_number' => 'S/N',
+                    'medical_history_number' => $patient->dni,
                     'affiliation_code' => $patient->dni,
                     'is_insured' => true,
-                    'insurance_regime' => 'NO REGISTRADO',
+                    'insurance_regime' => strtoupper((string) ($request->query('insurance_type', 'NO REGISTRADO'))),
                     'age' => $patient->birth_date ? Carbon::parse($patient->birth_date)->age : null,
                     'gender' => $patient->gender,
                     'address' => $patient->address,
@@ -166,7 +166,12 @@ class ReferralController extends Controller
             $referral->patient->calculated_age = 'N/A';
         }
 
-        $pdf = Pdf::loadView('referrals.pdf', compact('referral'));
+        $branch = Branch::first();
+        $view = strtoupper((string) $referral->coverage_type) === 'ESSALUD'
+            ? 'referrals.pdf_essalud'
+            : 'referrals.pdf';
+
+        $pdf = Pdf::loadView($view, compact('referral', 'branch'));
         $pdf->setPaper('a4', 'portrait');
 
         return $pdf->stream('Referencia_' . $referral->referral_code . '.pdf');
@@ -189,7 +194,8 @@ class ReferralController extends Controller
             $referral->patient->calculated_age = 'N/A';
         }
 
-        $pdf = Pdf::loadView('referrals.pdf_essalud', compact('referral'));
+        $branch = Branch::first();
+        $pdf = Pdf::loadView('referrals.pdf_essalud', compact('referral', 'branch'));
         $pdf->setPaper('a4', 'portrait');
 
         return $pdf->stream("Referencia_EsSalud_{$referral->referral_code}.pdf");
@@ -200,7 +206,7 @@ class ReferralController extends Controller
         $referral->load(['patient', 'diagnosisTreatments']);
         $staff = User::all();
 
-        $type = strtoupper($request->query('type', 'SIS'));
+        $type = strtoupper($request->query('type', $referral->coverage_type ?? 'SIS'));
         $view = ($type === 'ESSALUD') ? 'referrals.edit_essalud' : 'referrals.edit_sis';
 
         return view($view, compact('referral', 'staff', 'type'));
@@ -242,6 +248,7 @@ class ReferralController extends Controller
         $validated = $request->validate([
             'patient_id' => 'required|exists:patients,id',
             'referral_type' => 'required|in:EMERGENCIA,CONSULTA EXTERNA,APOYO AL DX',
+            'coverage_type' => 'required|in:SIS,ESSALUD',
             'origin_facility' => 'required|string|max:255',
             'destination_facility' => 'required|string|max:255',
             'destination_specialty' => 'required|string|max:255',
@@ -281,6 +288,7 @@ class ReferralController extends Controller
         ], [
             'patient_id' => 'paciente',
             'referral_type' => 'tipo de referencia',
+            'coverage_type' => 'tipo de cobertura',
             'origin_facility' => 'establecimiento de origen',
             'destination_facility' => 'establecimiento destino',
             'destination_specialty' => 'especialidad destino',
