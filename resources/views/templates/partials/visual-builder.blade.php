@@ -1,3 +1,4 @@
+@verbatim
 <script>
     function templateVisualBuilder(initialHtml = '') {
         return {
@@ -92,6 +93,7 @@
         }
     }
 </script>
+@endverbatim
 
 <style>
     .template-preview-sheet {
