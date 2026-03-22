@@ -15,7 +15,7 @@
             <a href="{{ route('serviceresults.index') }}" class="btn btn-outline-secondary shadow-sm">
                 <i class="bi bi-arrow-left"></i> Volver
             </a>
-            <button type="button" onclick="document.getElementById('formInforme').submit()" class="btn btn-primary shadow-sm">
+            <button type="button" onclick="submitInformeForm()" class="btn btn-primary shadow-sm">
                 <i class="bi bi-save"></i> Guardar Informe Final
             </button>
         </div>
@@ -30,7 +30,7 @@
                         <input type="hidden" name="template_id" value="{{ $template->id }}">
                         <input type="hidden" name="resultados_json" :value="jsonPayload">
 
-                        <textarea id="reportEditor" name="html_final" class="form-control font-monospace" rows="28">{!! $htmlContent !!}</textarea>
+                        <textarea id="tinyEditor" name="html_final" class="form-control font-monospace" rows="28">{!! $htmlContent !!}</textarea>
                     </form>
                 </div>
             </div>
@@ -115,11 +115,29 @@
             get jsonPayload() {
                 return JSON.stringify(this.fieldValues || {});
             },
-            applyValuesToEditor() {
-                const editor = document.getElementById('reportEditor');
-                if (!editor) return;
+            getEditorHtml() {
+                const instance = tinymce.get('tinyEditor');
+                if (instance) {
+                    return instance.getContent();
+                }
 
-                let html = editor.value;
+                const editor = document.getElementById('tinyEditor');
+                return editor ? editor.value : '';
+            },
+            setEditorHtml(content) {
+                const instance = tinymce.get('tinyEditor');
+                if (instance) {
+                    instance.setContent(content ?? '');
+                    return;
+                }
+
+                const editor = document.getElementById('tinyEditor');
+                if (editor) {
+                    editor.value = content ?? '';
+                }
+            },
+            applyValuesToEditor() {
+                let html = this.getEditorHtml();
 
                 for (const [key, value] of Object.entries(this.fieldValues || {})) {
                     const safeValue = typeof value === 'boolean' ? (value ? 'Sí' : 'No') : (value ?? '');
@@ -127,9 +145,51 @@
                     html = html.replace(pattern, safeValue);
                 }
 
-                editor.value = html;
+                this.setEditorHtml(html);
             }
         }
     }
+</script>
+
+<script src="{{ asset('js/tinymce/tinymce.min.js') }}"></script>
+<script>
+    function submitInformeForm() {
+        tinymce.triggerSave();
+        document.getElementById('formInforme').submit();
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        tinymce.init({
+            selector: '#tinyEditor',
+            license_key: 'gpl',
+            height: 560,
+            menubar: 'file edit view insert format table tools',
+            plugins: 'advlist autolink lists link charmap preview searchreplace visualblocks code fullscreen table autoresize',
+            toolbar: 'undo redo | blocks styles | bold italic underline | alignleft aligncenter alignright alignjustify | outdent indent | bullist numlist | table | removeformat code',
+            style_formats: [
+                {
+                    title: 'Márgenes de párrafo',
+                    items: [
+                        { title: 'Sin margen', format: 'margin_none' },
+                        { title: 'Margen pequeño', format: 'margin_sm' },
+                        { title: 'Margen mediano', format: 'margin_md' },
+                        { title: 'Margen grande', format: 'margin_lg' }
+                    ]
+                }
+            ],
+            formats: {
+                margin_none: { block: 'p', styles: { margin: '0' } },
+                margin_sm: { block: 'p', styles: { margin: '0.5rem 0' } },
+                margin_md: { block: 'p', styles: { margin: '1rem 0' } },
+                margin_lg: { block: 'p', styles: { margin: '1.5rem 0' } }
+            },
+            content_style: 'body { font-family: Helvetica, Arial, sans-serif; font-size: 14px; line-height: 1.45; } p { margin: 0.5rem 0; }',
+            setup: function (editor) {
+                editor.on('change keyup', function () {
+                    editor.save();
+                });
+            }
+        });
+    });
 </script>
 @endsection
