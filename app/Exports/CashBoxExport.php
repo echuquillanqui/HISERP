@@ -2,13 +2,13 @@
 
 namespace App\Exports;
 
-use App\Models\Expense;
-use App\Models\Order;
+use App\Exports\CashBoxSheets\CashBoxDetallesSheet;
+use App\Exports\CashBoxSheets\CashBoxEgresosSheet;
+use App\Exports\CashBoxSheets\CashBoxIngresosSheet;
 use Carbon\Carbon;
-use Illuminate\Contracts\View\View;
-use Maatwebsite\Excel\Concerns\FromView;
+use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 
-class CashBoxExport implements FromView
+class CashBoxExport implements WithMultipleSheets
 {
     public function __construct(
         private Carbon $startDate,
@@ -17,28 +17,12 @@ class CashBoxExport implements FromView
     ) {
     }
 
-    public function view(): View
+    public function sheets(): array
     {
-        $ordenes = Order::with(['patient'])
-            ->whereBetween('created_at', [$this->startDate->copy()->startOfDay(), $this->endDate->copy()->endOfDay()])
-            ->get();
-
-        $egresos = Expense::whereBetween('created_at', [$this->startDate->copy()->startOfDay(), $this->endDate->copy()->endOfDay()])
-            ->get();
-
-        $totalIngresos = $ordenes->sum('total');
-        $totalEgresos = $egresos->sum('amount');
-        $saldoCaja = $totalIngresos - $totalEgresos;
-
-        return view('atenciones.cashbox.excel', [
-            'ordenes' => $ordenes,
-            'egresos' => $egresos,
-            'totalIngresos' => $totalIngresos,
-            'totalEgresos' => $totalEgresos,
-            'saldoCaja' => $saldoCaja,
-            'rangeLabel' => $this->rangeLabel,
-            'startDate' => $this->startDate->toDateString(),
-            'endDate' => $this->endDate->toDateString(),
-        ]);
+        return [
+            new CashBoxIngresosSheet($this->startDate, $this->endDate, $this->rangeLabel),
+            new CashBoxEgresosSheet($this->startDate, $this->endDate, $this->rangeLabel),
+            new CashBoxDetallesSheet($this->startDate, $this->endDate, $this->rangeLabel),
+        ];
     }
 }
