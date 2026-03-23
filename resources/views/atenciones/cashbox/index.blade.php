@@ -15,14 +15,36 @@
     <div class="row align-items-center mb-3 bg-white p-3 shadow-sm rounded border">
         <div class="col-md-6">
             <h4 class="mb-0 fw-bold text-primary">CUADRE DE CAJA</h4>
-            <small class="text-muted">Visualizando: {{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}</small>
+            <small class="text-muted">Período {{ $rangeLabel }}: {{ \Carbon\Carbon::parse($startDate)->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($endDate)->format('d/m/Y') }}</small>
         </div>
-        <div class="col-md-6 d-flex justify-content-end align-items-center gap-2">
-            <form action="{{ route('cashbox.index') }}" method="GET" class="d-flex m-0">
-                <input type="date" name="date" value="{{ $date }}" class="form-control form-control-sm me-2">
-                <button type="submit" class="btn btn-sm btn-primary">Filtrar</button>
+        <div class="col-md-6">
+            <form action="{{ route('cashbox.index') }}" method="GET" class="row g-2 justify-content-end m-0">
+                <div class="col-md-4">
+                    <select name="period" id="period" class="form-select form-select-sm">
+                        <option value="daily" {{ $period === 'daily' ? 'selected' : '' }}>Diario</option>
+                        <option value="weekly" {{ $period === 'weekly' ? 'selected' : '' }}>Semanal</option>
+                        <option value="biweekly" {{ $period === 'biweekly' ? 'selected' : '' }}>Quincenal</option>
+                        <option value="monthly" {{ $period === 'monthly' ? 'selected' : '' }}>Mensual</option>
+                        <option value="range" {{ $period === 'range' ? 'selected' : '' }}>Rango</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <input type="date" name="date" value="{{ $startDate }}" class="form-control form-control-sm" id="singleDate">
+                </div>
+                <div class="col-md-2 range-input {{ $period === 'range' ? '' : 'd-none' }}">
+                    <input type="date" name="start_date" value="{{ $startDate }}" class="form-control form-control-sm">
+                </div>
+                <div class="col-md-2 range-input {{ $period === 'range' ? '' : 'd-none' }}">
+                    <input type="date" name="end_date" value="{{ $endDate }}" class="form-control form-control-sm">
+                </div>
+                <div class="col-md-1 d-grid">
+                    <button type="submit" class="btn btn-sm btn-primary">OK</button>
+                </div>
+                <div class="col-12 d-flex justify-content-end gap-2 mt-2">
+                    <a href="{{ route('cashbox.pdf', ['period' => $period, 'date' => $startDate, 'start_date' => $startDate, 'end_date' => $endDate]) }}" class="btn btn-sm btn-danger"><i class="bi bi-file-pdf"></i> PDF</a>
+                    <a href="{{ route('cashbox.excel', ['period' => $period, 'date' => $startDate, 'start_date' => $startDate, 'end_date' => $endDate]) }}" class="btn btn-sm btn-success"><i class="bi bi-file-earmark-excel"></i> Excel</a>
+                </div>
             </form>
-            <a href="{{ route('cashbox.pdf', ['date' => $date]) }}" class="btn btn-sm btn-danger"><i class="bi bi-file-pdf"></i> PDF</a>
         </div>
     </div>
 
@@ -84,7 +106,7 @@
 
         <div class="col-md-8">
             <div class="card shadow-sm border-0 mb-4">
-                <div class="card-header bg-white fw-bold text-success border-bottom"><i class="bi bi-arrow-up-circle"></i> VENTAS DEL DÍA</div>
+                <div class="card-header bg-white fw-bold text-success border-bottom"><i class="bi bi-arrow-up-circle"></i> VENTAS DEL PERÍODO</div>
                 <div class="table-responsive">
                     <table class="table table-sm table-hover mb-0">
                         <thead class="table-light">
@@ -218,6 +240,23 @@
             new bootstrap.Modal(document.getElementById('modalEditar')).show();
         }
     });
+
+
+
+    const periodSelect = document.getElementById('period');
+    const rangeInputs = document.querySelectorAll('.range-input');
+    const singleDateInput = document.getElementById('singleDate');
+
+    function toggleDateInputs() {
+        const isRange = periodSelect.value === 'range';
+        rangeInputs.forEach((el) => el.classList.toggle('d-none', !isRange));
+        singleDateInput.classList.toggle('d-none', isRange);
+    }
+
+    if (periodSelect) {
+        periodSelect.addEventListener('change', toggleDateInputs);
+        toggleDateInputs();
+    }
 
     // Ver Imagen/PDF
     function abrirDoc(url) {

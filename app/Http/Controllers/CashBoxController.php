@@ -2,53 +2,53 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Order;
-use App\Models\Expense;
-use Illuminate\Http\Request;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\Storage;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Exports\CashBoxExport;
 use App\Models\Branch;
+use App\Models\Expense;
+use App\Models\Order;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Maatwebsite\Excel\Facades\Excel;
 
 class CashBoxController extends Controller
 {
     public function index(Request $request)
     {
-        // 1. Obtener la fecha del filtro o usar la de hoy
-        $date = $request->get('date', Carbon::today()->toDateString());
+        $filters = $this->resolveDateRange($request);
 
-        // 2. Cargar Órdenes con sus relaciones (Paciente y Detalles de Exámenes)
-        // El 'details' es vital para que funcione el modal de la lupa
         $ordenes = Order::with(['patient', 'details'])
-            ->whereDate('created_at', $date)
+            ->whereBetween('created_at', [$filters['startDate']->copy()->startOfDay(), $filters['endDate']->copy()->endOfDay()])
             ->get();
 
-        // 3. Cargar Egresos
-        $egresos = Expense::whereDate('created_at', $date)->get();
+        $egresos = Expense::whereBetween('created_at', [$filters['startDate']->copy()->startOfDay(), $filters['endDate']->copy()->endOfDay()])
+            ->get();
 
-        // 4. Cálculos para las tarjetas de resumen
         $totalIngresos = $ordenes->sum('total');
         $totalEgresos = $egresos->sum('amount');
         $saldoCaja = $totalIngresos - $totalEgresos;
 
-        return view('atenciones.cashbox.index', compact(
-            'ordenes', 
-            'egresos', 
-            'totalIngresos', 
-            'totalEgresos', 
-            'saldoCaja', 
-            'date'
-        ));
+        return view('atenciones.cashbox.index', [
+            'ordenes' => $ordenes,
+            'egresos' => $egresos,
+            'totalIngresos' => $totalIngresos,
+            'totalEgresos' => $totalEgresos,
+            'saldoCaja' => $saldoCaja,
+            'period' => $filters['period'],
+            'startDate' => $filters['startDate']->toDateString(),
+            'endDate' => $filters['endDate']->toDateString(),
+            'rangeLabel' => $filters['label'],
+        ]);
     }
 
-    // Método para guardar un egreso nuevo
     public function storeExpense(Request $request)
     {
         $request->validate([
             'description' => 'required|string|max:255',
             'voucher_type' => 'required',
             'amount' => 'required|numeric|min:0',
-            'document' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048'
+            'document' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
         ]);
 
         $path = null;
@@ -61,26 +61,24 @@ class CashBoxController extends Controller
             'voucher_type' => $request->voucher_type,
             'amount' => $request->amount,
             'file_path' => $path,
-            'user_id' => auth()->id(), // Asumiendo que rastreas quién registró el gasto
+            'user_id' => auth()->id(),
         ]);
 
         return back()->with('success', 'Gasto registrado correctamente.');
     }
 
-    // Método para editar un egreso existente
     public function updateExpense(Request $request, Expense $expense)
     {
         $request->validate([
             'description' => 'required|string|max:255',
             'voucher_type' => 'required',
             'amount' => 'required|numeric|min:0',
-            'document' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048'
+            'document' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
         ]);
 
         $data = $request->only(['description', 'voucher_type', 'amount']);
 
         if ($request->hasFile('document')) {
-            // Borrar el archivo anterior para no llenar el disco de basura
             if ($expense->file_path) {
                 Storage::disk('public')->delete($expense->file_path);
             }
@@ -92,26 +90,99 @@ class CashBoxController extends Controller
         return back()->with('success', 'Gasto actualizado correctamente.');
     }
 
-
-
     public function exportPdf(Request $request)
     {
-        $date = $request->get('date', now()->toDateString());
-        
-        // Obtenemos la sucursal activa (puedes ajustar el ID según tu lógica)
-        $branch = Branch::first(); 
+        $filters = $this->resolveDateRange($request);
+        $branch = Branch::first();
 
-        $ordenes = Order::with(['patient', 'details'])->whereDate('created_at', $date)->get();
-        $egresos = Expense::whereDate('created_at', $date)->get();
-        
+        $ordenes = Order::with(['patient', 'details'])
+            ->whereBetween('created_at', [$filters['startDate']->copy()->startOfDay(), $filters['endDate']->copy()->endOfDay()])
+            ->get();
+
+        $egresos = Expense::whereBetween('created_at', [$filters['startDate']->copy()->startOfDay(), $filters['endDate']->copy()->endOfDay()])
+            ->get();
+
         $totalIngresos = $ordenes->sum('total');
         $totalEgresos = $egresos->sum('amount');
         $saldoCaja = $totalIngresos - $totalEgresos;
 
-        $data = compact('ordenes', 'egresos', 'totalIngresos', 'totalEgresos', 'saldoCaja', 'date', 'branch');
+        $data = [
+            'ordenes' => $ordenes,
+            'egresos' => $egresos,
+            'totalIngresos' => $totalIngresos,
+            'totalEgresos' => $totalEgresos,
+            'saldoCaja' => $saldoCaja,
+            'branch' => $branch,
+            'rangeLabel' => $filters['label'],
+            'startDate' => $filters['startDate']->toDateString(),
+            'endDate' => $filters['endDate']->toDateString(),
+        ];
 
         $pdf = Pdf::loadView('atenciones.cashbox.pdf', $data);
-        
-        return $pdf->download("cuadre_caja_{$date}.pdf");
+
+        return $pdf->download(sprintf('cuadre_caja_%s_a_%s.pdf', $filters['startDate']->toDateString(), $filters['endDate']->toDateString()));
+    }
+
+    public function exportExcel(Request $request)
+    {
+        $filters = $this->resolveDateRange($request);
+
+        return Excel::download(
+            new CashBoxExport($filters['startDate'], $filters['endDate'], $filters['label']),
+            sprintf('cuadre_caja_%s_a_%s.xlsx', $filters['startDate']->toDateString(), $filters['endDate']->toDateString())
+        );
+    }
+
+    private function resolveDateRange(Request $request): array
+    {
+        $period = $request->get('period', 'daily');
+        $today = Carbon::today();
+
+        switch ($period) {
+            case 'weekly':
+                $startDate = $today->copy()->startOfWeek(Carbon::MONDAY);
+                $endDate = $today->copy()->endOfWeek(Carbon::SUNDAY);
+                $label = 'Semanal';
+                break;
+            case 'biweekly':
+                if ($today->day <= 15) {
+                    $startDate = $today->copy()->startOfMonth();
+                    $endDate = $today->copy()->startOfMonth()->addDays(14);
+                } else {
+                    $startDate = $today->copy()->startOfMonth()->addDays(15);
+                    $endDate = $today->copy()->endOfMonth();
+                }
+                $label = 'Quincenal';
+                break;
+            case 'monthly':
+                $startDate = $today->copy()->startOfMonth();
+                $endDate = $today->copy()->endOfMonth();
+                $label = 'Mensual';
+                break;
+            case 'range':
+                $startDate = $request->filled('start_date')
+                    ? Carbon::parse($request->get('start_date'))
+                    : $today->copy();
+                $endDate = $request->filled('end_date')
+                    ? Carbon::parse($request->get('end_date'))
+                    : $startDate->copy();
+
+                if ($endDate->lt($startDate)) {
+                    [$startDate, $endDate] = [$endDate, $startDate];
+                }
+
+                $label = 'Rango Personalizado';
+                break;
+            case 'daily':
+            default:
+                $day = $request->get('date', $today->toDateString());
+                $startDate = Carbon::parse($day);
+                $endDate = Carbon::parse($day);
+                $label = 'Diario';
+                $period = 'daily';
+                break;
+        }
+
+        return compact('period', 'startDate', 'endDate', 'label');
     }
 }

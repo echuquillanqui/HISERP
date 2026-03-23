@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Cuadre de Caja - {{ $date }}</title>
+    <title>Cuadre de Caja - {{ $startDate }} a {{ $endDate }}</title>
     <style>
         @page { margin: 1.5cm; }
         body { font-family: 'Helvetica', sans-serif; color: #333; line-height: 1.4; font-size: 12px; }
@@ -60,7 +60,7 @@
             </td>
             <td width="30%" align="right">
                 <h3 style="margin:0; color: #3498db; font-size: 14px;">CUADRE DE CAJA</h3>
-                <div style="font-size: 12px; font-weight: bold;">{{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}</div>
+                <div style="font-size: 12px; font-weight: bold;">{{ $rangeLabel }}: {{ \Carbon\Carbon::parse($startDate)->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($endDate)->format('d/m/Y') }}</div>
             </td>
         </tr>
     </table>
@@ -122,7 +122,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="3" style="text-align: center; color: #999;">No se registraron egresos en esta fecha.</td>
+                <td colspan="3" style="text-align: center; color: #999;">No se registraron egresos en este período.</td>
             </tr>
             @endforelse
         </tbody>

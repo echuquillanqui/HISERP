@@ -68,6 +68,7 @@ Route::get('/cashbox', [App\Http\Controllers\CashBoxController::class, 'index'])
 Route::post('/cashbox/expense', [App\Http\Controllers\CashBoxController::class, 'storeExpense'])->name('cashbox.expense');
 Route::put('/cashbox/expense/{expense}', [App\Http\Controllers\CashBoxController::class, 'updateExpense'])->name('cashbox.expense.update');
 Route::get('/cashbox/pdf', [App\Http\Controllers\CashBoxController::class, 'exportPdf'])->name('cashbox.pdf');
+Route::get('/cashbox/excel', [App\Http\Controllers\CashBoxController::class, 'exportExcel'])->name('cashbox.excel');
 
 // 1. PRIMERO tus rutas de atención (Específicas)
 Route::get('/atencion/servicio/{detail}', [App\Http\Controllers\ServiceResultController::class, 'atenderServicio'])
