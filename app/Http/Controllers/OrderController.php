@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{Order, History, Patient, Catalog, Profile, Product, LabResult, OrderDetail, Service, Branch, Package, Template, ReportService};
+use App\Models\{Order, History, Patient, Catalog, Profile, Product, LabResult, OrderDetail, Service, Branch, Package, Template, ReportService, InventoryMovement};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\{DB, Log, Cache, Auth};
 use Illuminate\Support\Str;
@@ -67,12 +67,11 @@ class OrderController extends Controller
 
         try {
             return DB::transaction(function () use ($request, $order, $palabrasClave) {
-                
+                $detallesAnteriores = $order->details()->get();
                 $totalReal = 0;
                 $detallesIdsActuales = [];
 
                 foreach ($request->items as $item) {
-                    // 1. IDENTIFICACIÓN ESTRICTA (EVITAMOS ASIGNACIONES ERRÓNEAS)
                     $tipo = strtolower($item['type'] ?? '');
                     $modelType = null;
 
@@ -88,27 +87,41 @@ class OrderController extends Controller
 
                     if (!$modelType) {
                         Log::error("Tipo de ítem no reconocido: " . $tipo . " para el ítem: " . $item['name']);
-                        continue; 
+                        continue;
                     }
 
-                    // 2. ACTUALIZACIÓN O CREACIÓN SEGURA
+                    $cantidadNueva = (int) ($item['quantity'] ?? 1);
+                    $detalleAnterior = $detallesAnteriores->first(function ($detail) use ($modelType, $item) {
+                        return $detail->itemable_type === $modelType
+                            && (int) $detail->itemable_id === (int) $item['id'];
+                    });
+                    $cantidadAnterior = (int) ($detalleAnterior->quantity ?? 0);
+
                     $detail = OrderDetail::updateOrCreate(
                         [
-                            'order_id'      => $order->id,
-                            'itemable_id'   => $item['id'],
-                            'itemable_type' => $modelType // Se asegura de mantener el tipo correcto
+                            'order_id' => $order->id,
+                            'itemable_id' => $item['id'],
+                            'itemable_type' => $modelType
                         ],
                         [
-                            'name'     => $item['name'],
-                            'quantity' => (int)($item['quantity'] ?? 1),
-                            'price'    => (float)($item['price'] ?? 0)
+                            'name' => $item['name'],
+                            'quantity' => $cantidadNueva,
+                            'price' => (float)($item['price'] ?? 0)
                         ]
                     );
 
                     $detallesIdsActuales[] = $detail->id;
                     $totalReal += $detail->price;
 
-                    // 3. SINCRONIZACIÓN DE LABORATORIO (Solo si no es servicio ni administrativo)
+                    if ($tipo === 'product') {
+                        $delta = $cantidadNueva - $cantidadAnterior;
+                        if ($delta > 0) {
+                            $this->registerOrderProductMovement($order, $detail, (int) $item['id'], $delta, 'salida', 'Salida por edición de orden');
+                        } elseif ($delta < 0) {
+                            $this->registerOrderProductMovement($order, $detail, (int) $item['id'], abs($delta), 'entrada', 'Reingreso por edición de orden');
+                        }
+                    }
+
                     $esAdministrativo = Str::contains(strtoupper($item['name']), $palabrasClave);
                     if (in_array($tipo, ['catalog', 'profile'], true) && !$esAdministrativo) {
                         $this->sincronizarResultadosLab($detail, $item);
@@ -119,12 +132,24 @@ class OrderController extends Controller
                     }
                 }
 
-                // 4. ELIMINACIÓN DE ÍTEMS QUE YA NO ESTÁN EN EL REQUEST
+                $detallesEliminados = $detallesAnteriores->whereNotIn('id', $detallesIdsActuales);
+                foreach ($detallesEliminados as $detalleEliminado) {
+                    if ($detalleEliminado->itemable_type === Product::class) {
+                        $this->registerOrderProductMovement(
+                            $order,
+                            $detalleEliminado,
+                            (int) $detalleEliminado->itemable_id,
+                            (int) $detalleEliminado->quantity,
+                            'entrada',
+                            'Reingreso por eliminación de ítem en orden'
+                        );
+                    }
+                }
+
                 OrderDetail::where('order_id', $order->id)
                     ->whereNotIn('id', $detallesIdsActuales)
                     ->delete();
 
-                // 5. ACTUALIZAR TOTAL
                 $order->update(['total' => $totalReal]);
 
                 return redirect()->route('orders.index')->with('success', 'Orden actualizada correctamente.');
@@ -424,6 +449,10 @@ class OrderController extends Controller
                         'price' => $precioAplicado,
                     ]);
 
+                    if ($item['type'] === 'product') {
+                        $this->registerOrderProductMovement($order, $detail, (int) $item['id'], $cantidad, 'salida', 'Salida por venta desde orden');
+                    }
+
                     // CORRECCIÓN LÓGICA:
                     if ($esAdministrativo) {
                         $generarRegistroHistoria = true; // Si es HISTORIA, activamos la bandera
@@ -580,6 +609,16 @@ class OrderController extends Controller
                 // Al ejecutar delete() en cada detalle, se dispara el evento 'deleting' 
                 // definido en OrderDetail.php que limpia los LabResult asociados.
                 foreach ($order->details as $detail) {
+                    if ($detail->itemable_type === Product::class) {
+                        $this->registerOrderProductMovement(
+                            $order,
+                            $detail,
+                            (int) $detail->itemable_id,
+                            (int) $detail->quantity,
+                            'entrada',
+                            'Reingreso por anulación de orden'
+                        );
+                    }
                     $detail->delete(); 
                 }
 
@@ -593,6 +632,45 @@ class OrderController extends Controller
             // En caso de error, la transacción hace rollback automático
             return back()->withErrors(['error' => 'Error al eliminar la orden: ' . $e->getMessage()]);
         }
+    }
+
+    private function registerOrderProductMovement(
+        Order $order,
+        OrderDetail $detail,
+        int $productId,
+        int $quantity,
+        string $movementType,
+        string $notes
+    ): void {
+        $quantity = max(1, $quantity);
+        $product = Product::lockForUpdate()->findOrFail($productId);
+        $stockBefore = (int) $product->stock;
+
+        $stockAfter = $movementType === 'entrada'
+            ? $stockBefore + $quantity
+            : $stockBefore - $quantity;
+
+        if ($stockAfter < 0) {
+            throw new \RuntimeException("Stock insuficiente para {$product->name}. Stock actual: {$stockBefore}, solicitado: {$quantity}.");
+        }
+
+        $product->update(['stock' => $stockAfter]);
+
+        InventoryMovement::create([
+            'product_id' => $product->id,
+            'order_id' => $order->id,
+            'order_detail_id' => $detail->id,
+            'user_id' => Auth::id(),
+            'movement_type' => $movementType,
+            'source' => 'orden',
+            'quantity' => $quantity,
+            'stock_before' => $stockBefore,
+            'stock_after' => $stockAfter,
+            'unit_cost' => $product->purchase_price,
+            'unit_price' => $product->selling_price,
+            'notes' => $notes,
+            'movement_at' => now(),
+        ]);
     }
 
     public function checkHistory(Patient $patient)

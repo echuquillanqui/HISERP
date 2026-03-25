@@ -10,9 +10,14 @@
                 </h3>
                 <p class="text-muted mb-0">Gestión de inventario y precios de farmacia.</p>
             </div>
-            <a href="{{ route('products.create') }}" class="btn btn-primary px-4 shadow-sm">
-                <i class="bi bi-plus-circle me-2"></i>Nuevo Producto
-            </a>
+            <div class="d-flex gap-2">
+                <a href="{{ route('products.kardex') }}" class="btn btn-outline-secondary px-4 shadow-sm">
+                    <i class="bi bi-journal-text me-2"></i>Kardex
+                </a>
+                <a href="{{ route('products.create') }}" class="btn btn-primary px-4 shadow-sm">
+                    <i class="bi bi-plus-circle me-2"></i>Nuevo Producto
+                </a>
+            </div>
         </div>
     </div>
 

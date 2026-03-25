@@ -32,6 +32,8 @@ Route::resource('areas', App\Http\Controllers\AreaController::class)->middleware
 Route::resource('catalogs', App\Http\Controllers\CatalogController::class);
 Route::resource('profiles', App\Http\Controllers\ProfileController::class);
 Route::resource('products', App\Http\Controllers\ProductController::class);
+Route::get('products-kardex', [App\Http\Controllers\ProductController::class, 'kardex'])->name('products.kardex');
+Route::post('products-kardex/movement', [App\Http\Controllers\ProductController::class, 'storeMovement'])->name('products.kardex.movement');
 Route::resource('services', App\Http\Controllers\ServiceController::class);
 Route::resource('templates', App\Http\Controllers\TemplateController::class);
 Route::resource('packages', App\Http\Controllers\PackageController::class)->middleware('auth');

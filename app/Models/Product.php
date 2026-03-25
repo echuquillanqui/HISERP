@@ -10,8 +10,14 @@ class Product extends Model
     use HasFactory;
 
     protected $fillable = ['code', 'name', 'concentration', 'presentation', 'stock', 'min_stock', 'purchase_price', 'selling_price', 'expiration_date', 'is_active'];
-        
-    public function prescriptionItems() {
+
+    public function prescriptionItems()
+    {
         return $this->hasMany(PrescriptionItem::class);
+    }
+
+    public function inventoryMovements()
+    {
+        return $this->hasMany(InventoryMovement::class);
     }
 }
