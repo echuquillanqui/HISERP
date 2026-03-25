@@ -1,13 +1,23 @@
 @extends('layouts.app')
 
 @section('content')
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h3 class="fw-bold text-primary mb-0"><i class="bi bi-journal-text me-2"></i>Kardex de Medicamentos</h3>
             <p class="text-muted mb-0">Control logístico completo (entradas, salidas y ventas desde órdenes).</p>
         </div>
-        <a href="{{ route('products.index') }}" class="btn btn-light">Volver a productos</a>
+        <div class="d-flex gap-2">
+            <a href="{{ route('products.kardex.pdf', request()->query()) }}" class="btn btn-outline-danger">
+                <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+            </a>
+            <a href="{{ route('products.kardex.excel', request()->query()) }}" class="btn btn-outline-success">
+                <i class="bi bi-file-earmark-excel me-1"></i>Excel
+            </a>
+            <a href="{{ route('products.index') }}" class="btn btn-light">Volver a productos</a>
+        </div>
     </div>
 
     <div class="card border-0 shadow-sm mb-4">
@@ -17,7 +27,7 @@
                 @csrf
                 <div class="col-md-4">
                     <label class="form-label">Medicamento</label>
-                    <select name="product_id" class="form-select" required>
+                    <select name="product_id" id="product_id" class="form-select ts-select" required>
                         <option value="">Seleccione...</option>
                         @foreach($products as $product)
                             <option value="{{ $product->id }}">{{ $product->code }} - {{ $product->name }} (Stock: {{ $product->stock }})</option>
@@ -43,7 +53,18 @@
                     <label class="form-label">Fecha/Hora</label>
                     <input type="datetime-local" name="movement_at" class="form-control">
                 </div>
-                <div class="col-md-10">
+                <div class="col-md-6">
+                    <label class="form-label">Orden relacionada (logística)</label>
+                    <select name="order_id" id="order_id" class="form-select ts-select">
+                        <option value="">Sin orden</option>
+                        @foreach($orders as $order)
+                            <option value="{{ $order->id }}">
+                                {{ $order->code ?? ('#'.$order->id) }} - {{ trim(($order->patient?->first_name ?? '').' '.($order->patient?->last_name ?? '')) ?: 'Paciente no registrado' }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-6">
                     <label class="form-label">Observación</label>
                     <input type="text" name="notes" class="form-control" placeholder="Compra, ajuste, devolución, vencimiento, etc.">
                 </div>
@@ -60,7 +81,7 @@
             <form method="GET" action="{{ route('products.kardex') }}" class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label">Medicamento</label>
-                    <select name="product_id" class="form-select">
+                    <select name="product_id" id="product_filter" class="form-select ts-select">
                         <option value="">Todos</option>
                         @foreach($products as $product)
                             <option value="{{ $product->id }}" {{ (string)($filters['product_id'] ?? '') === (string)$product->id ? 'selected' : '' }}>
@@ -148,7 +169,7 @@
                                     <td>{{ strtoupper($move->source) }}</td>
                                     <td>
                                         @if($move->order_id)
-                                            #{{ $move->order_id }}<br><small>{{ $move->order?->patient?->first_name }} {{ $move->order?->patient?->last_name }}</small>
+                                            {{ $move->order?->code ?? '#'.$move->order_id }}<br><small>{{ $move->order?->patient?->first_name }} {{ $move->order?->patient?->last_name }}</small>
                                         @else
                                             -
                                         @endif
@@ -170,3 +191,23 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        if (typeof TomSelect === 'undefined') {
+            return;
+        }
+
+        document.querySelectorAll('.ts-select').forEach((el) => {
+            if (!el.tomselect) {
+                new TomSelect(el, {
+                    create: false,
+                    allowEmptyOption: true,
+                    placeholder: el.getAttribute('placeholder') || 'Seleccione una opción...'
+                });
+            }
+        });
+    });
+</script>
+@endpush

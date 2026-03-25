@@ -34,6 +34,8 @@ Route::resource('profiles', App\Http\Controllers\ProfileController::class);
 Route::resource('products', App\Http\Controllers\ProductController::class);
 Route::get('products-kardex', [App\Http\Controllers\ProductController::class, 'kardex'])->name('products.kardex');
 Route::post('products-kardex/movement', [App\Http\Controllers\ProductController::class, 'storeMovement'])->name('products.kardex.movement');
+Route::get('products-kardex/pdf', [App\Http\Controllers\ProductController::class, 'exportKardexPdf'])->name('products.kardex.pdf');
+Route::get('products-kardex/excel', [App\Http\Controllers\ProductController::class, 'exportKardexExcel'])->name('products.kardex.excel');
 Route::resource('services', App\Http\Controllers\ServiceController::class);
 Route::resource('templates', App\Http\Controllers\TemplateController::class);
 Route::resource('packages', App\Http\Controllers\PackageController::class)->middleware('auth');

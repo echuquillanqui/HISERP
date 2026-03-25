@@ -2,11 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\InventoryMovementsExport;
+use App\Models\Branch;
 use App\Models\InventoryMovement;
+use App\Models\Order;
 use App\Models\Product;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ProductController extends Controller
 {
@@ -157,24 +162,9 @@ class ProductController extends Controller
             'to_date' => 'nullable|date|after_or_equal:from_date',
         ]);
 
-        $query = InventoryMovement::query()
-            ->with(['product', 'order.patient'])
-            ->orderByDesc('movement_at')
-            ->orderByDesc('id');
-
-        if (!empty($filters['product_id'])) {
-            $query->where('product_id', $filters['product_id']);
-        }
-
-        if (!empty($filters['from_date'])) {
-            $query->whereDate('movement_at', '>=', $filters['from_date']);
-        }
-
-        if (!empty($filters['to_date'])) {
-            $query->whereDate('movement_at', '<=', $filters['to_date']);
-        }
-
-        $movements = $query->paginate(30)->withQueryString();
+        $movements = $this->baseKardexQuery($filters)
+            ->paginate(30)
+            ->withQueryString();
 
         $salesReport = InventoryMovement::query()
             ->selectRaw('product_id, SUM(quantity) as sold_units, SUM(quantity * COALESCE(unit_price, 0)) as sold_total')
@@ -189,8 +179,47 @@ class ProductController extends Controller
             ->get();
 
         $products = Product::orderBy('name')->get(['id', 'name', 'code', 'stock']);
+        $orders = Order::with('patient:id,first_name,last_name')
+            ->latest('id')
+            ->limit(150)
+            ->get(['id', 'code', 'patient_id', 'created_at']);
 
-        return view('products.kardex', compact('movements', 'products', 'salesReport', 'filters'));
+        return view('products.kardex', compact('movements', 'products', 'salesReport', 'filters', 'orders'));
+    }
+
+    public function exportKardexPdf(Request $request)
+    {
+        $filters = $request->validate([
+            'product_id' => 'nullable|exists:products,id',
+            'from_date' => 'nullable|date',
+            'to_date' => 'nullable|date|after_or_equal:from_date',
+        ]);
+
+        $movements = $this->baseKardexQuery($filters)->get();
+        $branch = Branch::first();
+
+        $pdf = Pdf::loadView('products.kardex_pdf', [
+            'movements' => $movements,
+            'filters' => $filters,
+            'branch' => $branch,
+            'generatedAt' => now(),
+        ]);
+
+        return $pdf->download(sprintf('reporte_kardex_%s.pdf', now()->format('Ymd_His')));
+    }
+
+    public function exportKardexExcel(Request $request)
+    {
+        $filters = $request->validate([
+            'product_id' => 'nullable|exists:products,id',
+            'from_date' => 'nullable|date',
+            'to_date' => 'nullable|date|after_or_equal:from_date',
+        ]);
+
+        return Excel::download(
+            new InventoryMovementsExport($filters),
+            sprintf('reporte_kardex_%s.xlsx', now()->format('Ymd_His'))
+        );
     }
 
     public function storeMovement(Request $request)
@@ -200,23 +229,27 @@ class ProductController extends Controller
             'movement_type' => 'required|in:entrada,salida',
             'quantity' => 'required|integer|min:1',
             'unit_cost' => 'nullable|numeric|min:0',
+            'order_id' => 'nullable|exists:orders,id',
             'notes' => 'nullable|string|max:1000',
             'movement_at' => 'nullable|date',
         ]);
 
         DB::transaction(function () use ($validated) {
             $product = Product::lockForUpdate()->findOrFail($validated['product_id']);
+            $linkedOrderId = !empty($validated['order_id']) ? (int) $validated['order_id'] : null;
 
             $this->registerMovement(
                 product: $product,
                 movementType: $validated['movement_type'],
                 quantity: (int) $validated['quantity'],
-                source: 'manual',
-                orderId: null,
+                source: $linkedOrderId ? 'orden' : 'manual',
+                orderId: $linkedOrderId,
                 orderDetailId: null,
                 unitCost: $validated['unit_cost'] ?? null,
                 unitPrice: $product->selling_price,
-                notes: $validated['notes'] ?? 'Movimiento manual de almacén',
+                notes: $validated['notes'] ?? ($linkedOrderId
+                    ? 'Movimiento manual asociado a orden para logística'
+                    : 'Movimiento manual de almacén'),
                 movementAt: !empty($validated['movement_at']) ? $validated['movement_at'] : now(),
                 stockBefore: (int) $product->stock
             );
@@ -237,6 +270,17 @@ class ProductController extends Controller
         } catch (\Exception $e) {
             return back()->with('error', 'No se puede eliminar un producto con historial de ventas/recetas.');
         }
+    }
+
+    private function baseKardexQuery(array $filters)
+    {
+        return InventoryMovement::query()
+            ->with(['product', 'order.patient'])
+            ->when(!empty($filters['product_id']), fn ($q) => $q->where('product_id', $filters['product_id']))
+            ->when(!empty($filters['from_date']), fn ($q) => $q->whereDate('movement_at', '>=', $filters['from_date']))
+            ->when(!empty($filters['to_date']), fn ($q) => $q->whereDate('movement_at', '<=', $filters['to_date']))
+            ->orderByDesc('movement_at')
+            ->orderByDesc('id');
     }
 
     private function registerMovement(
