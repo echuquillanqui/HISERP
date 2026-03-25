@@ -152,7 +152,7 @@
                         </li>
 
                         <li class="nav-item dropdown">
-                            <a id="KardexDropdown" class="nav-link dropdown-toggle {{ Request::is('kardex*') ? 'active' : '' }}" 
+                            <a id="KardexDropdown" class="nav-link dropdown-toggle {{ Request::is('products-kardex*') || Request::is('products*') ? 'active' : '' }}" 
                             href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-funnel me-1"></i> Almacén
                             </a>
@@ -160,6 +160,21 @@
                                 <li>
                                     <a class="dropdown-item py-2" href="{{ route('products.index') }}">
                                         <i class="bi bi-layers me-2 text-info"></i> Productos
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item py-2" href="{{ route('products.kardex.records') }}">
+                                        <i class="bi bi-journal-plus me-2 text-info"></i> Registros de movimientos
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item py-2" href="{{ route('products.kardex.movements') }}">
+                                        <i class="bi bi-journal-text me-2 text-info"></i> Movimientos del kardex
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item py-2" href="{{ route('products.kardex.sold') }}">
+                                        <i class="bi bi-capsule me-2 text-info"></i> Medicamentos vendidos
                                     </a>
                                 </li>
 

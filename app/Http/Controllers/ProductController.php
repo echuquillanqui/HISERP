@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\InventoryMovementsExport;
+use App\Exports\SoldMedicinesExport;
 use App\Models\Branch;
 use App\Models\InventoryMovement;
 use App\Models\Order;
@@ -156,8 +157,37 @@ class ProductController extends Controller
 
     public function kardex(Request $request)
     {
+        return redirect()->route('products.kardex.records', $request->query());
+    }
+
+    public function movementRecords(Request $request)
+    {
         $filters = $request->validate([
             'product_id' => 'nullable|exists:products,id',
+            'movement_type' => 'nullable|in:entrada,salida',
+            'from_date' => 'nullable|date',
+            'to_date' => 'nullable|date|after_or_equal:from_date',
+        ]);
+
+        $movements = $this->baseKardexQuery($filters, ['manual', 'ajuste'])
+            ->paginate(30)
+            ->withQueryString();
+
+        $products = Product::orderBy('name')->get(['id', 'name', 'code', 'stock']);
+        $orders = Order::with('patient:id,first_name,last_name')
+            ->latest('id')
+            ->limit(150)
+            ->get(['id', 'code', 'patient_id', 'created_at']);
+
+        return view('products.kardex_records', compact('movements', 'products', 'filters', 'orders'));
+    }
+
+    public function kardexMovements(Request $request)
+    {
+        $filters = $request->validate([
+            'product_id' => 'nullable|exists:products,id',
+            'movement_type' => 'nullable|in:entrada,salida',
+            'source' => 'nullable|in:manual,ajuste,orden',
             'from_date' => 'nullable|date',
             'to_date' => 'nullable|date|after_or_equal:from_date',
         ]);
@@ -166,31 +196,82 @@ class ProductController extends Controller
             ->paginate(30)
             ->withQueryString();
 
-        $salesReport = InventoryMovement::query()
-            ->selectRaw('product_id, SUM(quantity) as sold_units, SUM(quantity * COALESCE(unit_price, 0)) as sold_total')
-            ->with('product')
-            ->where('source', 'orden')
-            ->where('movement_type', 'salida')
-            ->when(!empty($filters['product_id']), fn ($q) => $q->where('product_id', $filters['product_id']))
-            ->when(!empty($filters['from_date']), fn ($q) => $q->whereDate('movement_at', '>=', $filters['from_date']))
-            ->when(!empty($filters['to_date']), fn ($q) => $q->whereDate('movement_at', '<=', $filters['to_date']))
-            ->groupBy('product_id')
-            ->orderByDesc('sold_units')
-            ->get();
+        $products = Product::orderBy('name')->get(['id', 'name', 'code']);
 
-        $products = Product::orderBy('name')->get(['id', 'name', 'code', 'stock']);
-        $orders = Order::with('patient:id,first_name,last_name')
-            ->latest('id')
-            ->limit(150)
-            ->get(['id', 'code', 'patient_id', 'created_at']);
+        return view('products.kardex_movements', compact('movements', 'products', 'filters'));
+    }
 
-        return view('products.kardex', compact('movements', 'products', 'salesReport', 'filters', 'orders'));
+    public function soldMedicines(Request $request)
+    {
+        $filters = $request->validate([
+            'product_id' => 'nullable|exists:products,id',
+            'from_date' => 'nullable|date',
+            'to_date' => 'nullable|date|after_or_equal:from_date',
+        ]);
+
+        $salesReport = $this->salesReportQuery($filters)
+            ->paginate(30)
+            ->withQueryString();
+
+        $products = Product::orderBy('name')->get(['id', 'name', 'code']);
+
+        return view('products.kardex_sold', compact('salesReport', 'products', 'filters'));
     }
 
     public function exportKardexPdf(Request $request)
     {
+        return $this->exportMovementRecordsPdf($request);
+    }
+
+    public function exportMovementRecordsPdf(Request $request)
+    {
         $filters = $request->validate([
             'product_id' => 'nullable|exists:products,id',
+            'movement_type' => 'nullable|in:entrada,salida',
+            'from_date' => 'nullable|date',
+            'to_date' => 'nullable|date|after_or_equal:from_date',
+        ]);
+
+        $movements = $this->baseKardexQuery($filters, ['manual', 'ajuste'])->get();
+        $branch = Branch::first();
+
+        $pdf = Pdf::loadView('products.kardex_pdf', [
+            'movements' => $movements,
+            'filters' => $filters,
+            'branch' => $branch,
+            'generatedAt' => now(),
+            'title' => 'Reporte de registros de movimientos',
+        ]);
+
+        return $pdf->download(sprintf('reporte_registros_movimientos_%s.pdf', now()->format('Ymd_His')));
+    }
+
+    public function exportKardexExcel(Request $request)
+    {
+        return $this->exportMovementRecordsExcel($request);
+    }
+
+    public function exportMovementRecordsExcel(Request $request)
+    {
+        $filters = $request->validate([
+            'product_id' => 'nullable|exists:products,id',
+            'movement_type' => 'nullable|in:entrada,salida',
+            'from_date' => 'nullable|date',
+            'to_date' => 'nullable|date|after_or_equal:from_date',
+        ]);
+
+        return Excel::download(
+            new InventoryMovementsExport($filters + ['sources' => ['manual', 'ajuste']]),
+            sprintf('reporte_registros_movimientos_%s.xlsx', now()->format('Ymd_His'))
+        );
+    }
+
+    public function exportKardexMovementsPdf(Request $request)
+    {
+        $filters = $request->validate([
+            'product_id' => 'nullable|exists:products,id',
+            'movement_type' => 'nullable|in:entrada,salida',
+            'source' => 'nullable|in:manual,ajuste,orden',
             'from_date' => 'nullable|date',
             'to_date' => 'nullable|date|after_or_equal:from_date',
         ]);
@@ -203,12 +284,50 @@ class ProductController extends Controller
             'filters' => $filters,
             'branch' => $branch,
             'generatedAt' => now(),
+            'title' => 'Reporte de movimientos del kardex',
         ]);
 
-        return $pdf->download(sprintf('reporte_kardex_%s.pdf', now()->format('Ymd_His')));
+        return $pdf->download(sprintf('reporte_movimientos_kardex_%s.pdf', now()->format('Ymd_His')));
     }
 
-    public function exportKardexExcel(Request $request)
+    public function exportKardexMovementsExcel(Request $request)
+    {
+        $filters = $request->validate([
+            'product_id' => 'nullable|exists:products,id',
+            'movement_type' => 'nullable|in:entrada,salida',
+            'source' => 'nullable|in:manual,ajuste,orden',
+            'from_date' => 'nullable|date',
+            'to_date' => 'nullable|date|after_or_equal:from_date',
+        ]);
+
+        return Excel::download(
+            new InventoryMovementsExport($filters),
+            sprintf('reporte_movimientos_kardex_%s.xlsx', now()->format('Ymd_His'))
+        );
+    }
+
+    public function exportSoldMedicinesPdf(Request $request)
+    {
+        $filters = $request->validate([
+            'product_id' => 'nullable|exists:products,id',
+            'from_date' => 'nullable|date',
+            'to_date' => 'nullable|date|after_or_equal:from_date',
+        ]);
+
+        $salesReport = $this->salesReportQuery($filters)->get();
+        $branch = Branch::first();
+
+        $pdf = Pdf::loadView('products.kardex_sold_pdf', [
+            'salesReport' => $salesReport,
+            'filters' => $filters,
+            'branch' => $branch,
+            'generatedAt' => now(),
+        ]);
+
+        return $pdf->download(sprintf('reporte_medicamentos_vendidos_%s.pdf', now()->format('Ymd_His')));
+    }
+
+    public function exportSoldMedicinesExcel(Request $request)
     {
         $filters = $request->validate([
             'product_id' => 'nullable|exists:products,id',
@@ -217,8 +336,8 @@ class ProductController extends Controller
         ]);
 
         return Excel::download(
-            new InventoryMovementsExport($filters),
-            sprintf('reporte_kardex_%s.xlsx', now()->format('Ymd_His'))
+            new SoldMedicinesExport($filters),
+            sprintf('reporte_medicamentos_vendidos_%s.xlsx', now()->format('Ymd_His'))
         );
     }
 
@@ -255,7 +374,7 @@ class ProductController extends Controller
             );
         });
 
-        return redirect()->route('products.kardex')->with('success', 'Movimiento de inventario registrado correctamente.');
+        return redirect()->route('products.kardex.records')->with('success', 'Movimiento de inventario registrado correctamente.');
     }
 
     /**
@@ -272,15 +391,33 @@ class ProductController extends Controller
         }
     }
 
-    private function baseKardexQuery(array $filters)
+    private function baseKardexQuery(array $filters, ?array $sources = null)
     {
+        $sources = $sources ?? (!empty($filters['source']) ? [$filters['source']] : null);
+
         return InventoryMovement::query()
             ->with(['product', 'order.patient'])
             ->when(!empty($filters['product_id']), fn ($q) => $q->where('product_id', $filters['product_id']))
+            ->when(!empty($filters['movement_type']), fn ($q) => $q->where('movement_type', $filters['movement_type']))
+            ->when(!empty($sources), fn ($q) => $q->whereIn('source', $sources))
             ->when(!empty($filters['from_date']), fn ($q) => $q->whereDate('movement_at', '>=', $filters['from_date']))
             ->when(!empty($filters['to_date']), fn ($q) => $q->whereDate('movement_at', '<=', $filters['to_date']))
             ->orderByDesc('movement_at')
             ->orderByDesc('id');
+    }
+
+    private function salesReportQuery(array $filters)
+    {
+        return InventoryMovement::query()
+            ->selectRaw('product_id, SUM(quantity) as sold_units, SUM(quantity * COALESCE(unit_price, 0)) as sold_total')
+            ->with('product')
+            ->where('source', 'orden')
+            ->where('movement_type', 'salida')
+            ->when(!empty($filters['product_id']), fn ($q) => $q->where('product_id', $filters['product_id']))
+            ->when(!empty($filters['from_date']), fn ($q) => $q->whereDate('movement_at', '>=', $filters['from_date']))
+            ->when(!empty($filters['to_date']), fn ($q) => $q->whereDate('movement_at', '<=', $filters['to_date']))
+            ->groupBy('product_id')
+            ->orderByDesc('sold_units');
     }
 
     private function registerMovement(

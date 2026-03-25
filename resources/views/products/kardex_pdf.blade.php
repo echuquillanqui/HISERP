@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="utf-8">
-    <title>Reporte de Kardex</title>
+    <title>{{ $title ?? 'Reporte de Kardex' }}</title>
     <style>
         body { font-family: DejaVu Sans, sans-serif; font-size: 12px; color: #1f2937; }
         h1 { margin: 0 0 6px 0; font-size: 20px; }
@@ -13,7 +13,7 @@
     </style>
 </head>
 <body>
-    <h1>Reporte de Entradas y Salidas (Kardex)</h1>
+    <h1>{{ $title ?? 'Reporte de Entradas y Salidas (Kardex)' }}</h1>
     <div class="meta">
         Sede: {{ $branch?->name ?? 'No configurada' }}<br>
         Generado: {{ $generatedAt->format('d/m/Y H:i') }}<br>
