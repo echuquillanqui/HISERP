@@ -23,9 +23,17 @@
                     <label class="form-label">Medicamento</label>
                     <select name="product_id" class="form-select ts-select">
                         <option value="">Todos</option>
-                        @foreach($products as $product)
-                            <option value="{{ $product->id }}" {{ (string)($filters['product_id'] ?? '') === (string)$product->id ? 'selected' : '' }}>{{ $product->code }} - {{ $product->name }}</option>
-                        @endforeach
+                        @if($selectedProduct)
+                            <option value="{{ $selectedProduct->id }}" selected>
+                                {{ $selectedProduct->code }} - {{ $selectedProduct->name }}
+                                @if($selectedProduct->concentration)
+                                    ({{ $selectedProduct->concentration }})
+                                @endif
+                                @if($selectedProduct->presentation)
+                                    - {{ $selectedProduct->presentation }}
+                                @endif
+                            </option>
+                        @endif
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -72,7 +80,15 @@
                 @forelse($movements as $move)
                     <tr>
                         <td>{{ optional($move->movement_at)->format('d/m/Y H:i') }}</td>
-                        <td>{{ $move->product?->name }}</td>
+                        <td>
+                            {{ $move->product?->name }}
+                            @if($move->product?->concentration)
+                                <span class="text-muted">({{ $move->product->concentration }})</span>
+                            @endif
+                            @if($move->product?->presentation)
+                                <span class="text-secondary">- {{ $move->product->presentation }}</span>
+                            @endif
+                        </td>
                         <td><span class="badge {{ $move->movement_type === 'entrada' ? 'bg-success' : 'bg-danger' }}">{{ strtoupper($move->movement_type) }}</span></td>
                         <td class="text-end">{{ $move->quantity }}</td>
                         <td class="text-end">{{ $move->stock_before }}</td>
@@ -97,7 +113,39 @@
     document.addEventListener('DOMContentLoaded', function () {
         if (typeof TomSelect === 'undefined') return;
         document.querySelectorAll('.ts-select').forEach((el) => {
-            if (!el.tomselect) new TomSelect(el, { create: false, allowEmptyOption: true });
+            if (el.tomselect) return;
+
+            new TomSelect(el, {
+                valueField: 'id',
+                labelField: 'display',
+                searchField: ['code', 'name', 'concentration', 'presentation', 'display'],
+                create: false,
+                allowEmptyOption: true,
+                preload: false,
+                maxOptions: 20,
+                loadThrottle: 350,
+                shouldLoad: (query) => query.length >= 2,
+                load: function (query, callback) {
+                    fetch(`/api/products/search?q=${encodeURIComponent(query || '')}`)
+                        .then(response => response.json())
+                        .then(json => {
+                            const rows = (json.data || []).map((product) => ({
+                                ...product,
+                                display: `${product.code} - ${product.name}${product.concentration ? ` (${product.concentration})` : ''}${product.presentation ? ` - ${product.presentation}` : ''}`,
+                            }));
+                            callback(rows);
+                        })
+                        .catch(() => callback());
+                },
+                render: {
+                    option: function (data, escape) {
+                        return `<div>${escape(data.code)} - ${escape(data.name)}${data.concentration ? ` <span class="text-muted">(${escape(data.concentration)})</span>` : ''}${data.presentation ? ` <span class="text-secondary">- ${escape(data.presentation)}</span>` : ''}</div>`;
+                    },
+                    item: function (data, escape) {
+                        return `<div>${escape(data.code)} - ${escape(data.name)}${data.concentration ? ` <span class="text-muted">(${escape(data.concentration)})</span>` : ''}${data.presentation ? ` <span class="text-secondary">- ${escape(data.presentation)}</span>` : ''}</div>`;
+                    }
+                }
+            });
         });
     });
 </script>

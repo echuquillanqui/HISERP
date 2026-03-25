@@ -196,9 +196,14 @@ class ProductController extends Controller
             ->paginate(30)
             ->withQueryString();
 
-        $products = Product::orderBy('name')->get(['id', 'name', 'code']);
+        $selectedProduct = null;
+        if (!empty($filters['product_id'])) {
+            $selectedProduct = Product::query()
+                ->select(['id', 'code', 'name', 'concentration', 'presentation'])
+                ->find($filters['product_id']);
+        }
 
-        return view('products.kardex_movements', compact('movements', 'products', 'filters'));
+        return view('products.kardex_movements', compact('movements', 'filters', 'selectedProduct'));
     }
 
     public function soldMedicines(Request $request)
