@@ -14,7 +14,7 @@
     </style>
 </head>
 <body>
-    <h1>Reporte de medicamentos vendidos</h1>
+    <h1>Reporte de medicamentos vendidos y devueltos</h1>
     <div class="meta">
         Sede: {{ $branch?->name ?? 'No configurada' }}<br>
         Generado: {{ $generatedAt->format('d/m/Y H:i') }}<br>
@@ -28,6 +28,10 @@
                 <th>Código</th>
                 <th class="right">Unidades vendidas</th>
                 <th class="right">Total vendido</th>
+                <th class="right">Unidades devueltas</th>
+                <th class="right">Total devuelto</th>
+                <th class="right">Unidades netas</th>
+                <th class="right">Total neto</th>
             </tr>
         </thead>
         <tbody>
@@ -37,10 +41,14 @@
                     <td>{{ $row->product?->code ?? '-' }}</td>
                     <td class="right">{{ (int) $row->sold_units }}</td>
                     <td class="right">S/ {{ number_format((float) $row->sold_total, 2) }}</td>
+                    <td class="right">{{ (int) $row->returned_units }}</td>
+                    <td class="right">S/ {{ number_format((float) $row->returned_total, 2) }}</td>
+                    <td class="right">{{ (int) $row->net_units }}</td>
+                    <td class="right">S/ {{ number_format((float) $row->net_total, 2) }}</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="4" style="text-align: center;">Sin ventas en el rango seleccionado.</td>
+                    <td colspan="8" style="text-align: center;">Sin ventas en el rango seleccionado.</td>
                 </tr>
             @endforelse
         </tbody>

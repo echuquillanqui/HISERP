@@ -55,7 +55,19 @@
     <div class="card border-0 shadow-sm">
         <div class="table-responsive">
             <table class="table table-sm align-middle mb-0">
-                <thead><tr><th>Fecha</th><th>Medicamento</th><th>Tipo</th><th class="text-end">Cant.</th><th class="text-end">Antes</th><th class="text-end">Después</th><th>Origen</th><th>Orden</th></tr></thead>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Medicamento</th>
+                        <th>Tipo</th>
+                        <th class="text-end">Cant.</th>
+                        <th class="text-end">Antes</th>
+                        <th class="text-end">Después</th>
+                        <th>Origen</th>
+                        <th>Orden</th>
+                        <th>Observación</th>
+                    </tr>
+                </thead>
                 <tbody>
                 @forelse($movements as $move)
                     <tr>
@@ -67,6 +79,7 @@
                         <td class="text-end">{{ $move->stock_after }}</td>
                         <td>{{ strtoupper($move->source) }}</td>
                         <td>@if($move->order_id){{ $move->order?->code ?? '#'.$move->order_id }}@else-@endif</td>
+                        <td>{{ $move->notes }}</td>
                     </tr>
                 @empty
                     <tr><td colspan="8" class="text-center text-muted py-4">No hay movimientos para mostrar.</td></tr>
