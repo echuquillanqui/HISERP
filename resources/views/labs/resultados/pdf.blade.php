@@ -114,7 +114,7 @@
         }
 
         .result-value {
-            color: #d7263d;
+            color: #000000;
             font-weight: 700;
         }
 
