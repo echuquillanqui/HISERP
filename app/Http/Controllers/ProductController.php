@@ -38,7 +38,8 @@ class ProductController extends Controller
                 $query->where(function ($sub) use ($q) {
                     $sub->where('name', 'like', "%{$q}%")
                         ->orWhere('code', 'like', "%{$q}%")
-                        ->orWhere('concentration', 'like', "%{$q}%");
+                        ->orWhere('concentration', 'like', "%{$q}%")
+                        ->orWhere('presentation', 'like', "%{$q}%");
                 });
             })
             ->when($status !== null && $status !== '', function ($query) use ($status) {

@@ -30,10 +30,18 @@ class SearchController extends Controller
 
     public function products(Request $request)
     {
-        $q = $request->get('q');
-        if (!$q) return response()->json([]);
+        $q = trim((string) $request->get('q', ''));
+        if ($q === '') {
+            return response()->json([]);
+        }
 
-        return Product::where('name', 'like', "%$q%")
+        return Product::query()
+            ->where(function ($query) use ($q) {
+                $query->where('name', 'like', "%{$q}%")
+                    ->orWhere('code', 'like', "%{$q}%")
+                    ->orWhere('concentration', 'like', "%{$q}%")
+                    ->orWhere('presentation', 'like', "%{$q}%");
+            })
             ->select('id', 'name', 'concentration', 'presentation')
             ->limit(10)
             ->get();
