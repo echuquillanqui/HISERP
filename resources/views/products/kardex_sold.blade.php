@@ -24,7 +24,18 @@
                     <select name="product_id" class="form-select ts-select">
                         <option value="">Todos</option>
                         @foreach($products as $product)
-                            <option value="{{ $product->id }}" {{ (string)($filters['product_id'] ?? '') === (string)$product->id ? 'selected' : '' }}>{{ $product->code }} - {{ $product->name }}</option>
+                            <option
+                                value="{{ $product->id }}"
+                                data-code="{{ $product->code }}"
+                                data-name="{{ $product->name }}"
+                                data-concentration="{{ $product->concentration }}"
+                                data-presentation="{{ $product->presentation }}"
+                                {{ (string)($filters['product_id'] ?? '') === (string)$product->id ? 'selected' : '' }}
+                            >
+                                {{ $product->code }} - {{ $product->name }}
+                                @if($product->concentration) ({{ $product->concentration }}) @endif
+                                @if($product->presentation) - {{ $product->presentation }} @endif
+                            </option>
                         @endforeach
                     </select>
                 </div>
@@ -42,7 +53,15 @@
                 <tbody>
                     @forelse($salesReport as $row)
                         <tr>
-                            <td>{{ $row->product?->name ?? 'N/A' }}</td>
+                            <td>
+                                {{ $row->product?->name ?? 'N/A' }}
+                                @if($row->product?->concentration)
+                                    <span class="text-muted">({{ $row->product->concentration }})</span>
+                                @endif
+                                @if($row->product?->presentation)
+                                    <span class="text-secondary">- {{ $row->product->presentation }}</span>
+                                @endif
+                            </td>
                             <td>{{ $row->product?->code ?? '-' }}</td>
                             <td class="text-end">{{ (int) $row->sold_units }}</td>
                             <td class="text-end">S/ {{ number_format((float) $row->sold_total, 2) }}</td>
@@ -67,7 +86,22 @@
     document.addEventListener('DOMContentLoaded', function () {
         if (typeof TomSelect === 'undefined') return;
         document.querySelectorAll('.ts-select').forEach((el) => {
-            if (!el.tomselect) new TomSelect(el, { create: false, allowEmptyOption: true });
+            if (!el.tomselect) {
+                new TomSelect(el, {
+                    create: false,
+                    allowEmptyOption: true,
+                    searchConjunction: 'and',
+                    searchField: ['text', 'code', 'name', 'concentration', 'presentation'],
+                    plugins: {
+                        clear_button: { title: 'Limpiar selección' }
+                    },
+                    onDropdownClose: function () {
+                        this.clearActiveOption();
+                        this.setTextboxValue('');
+                        this.refreshOptions(false);
+                    }
+                });
+            }
         });
     });
 </script>

@@ -30,7 +30,19 @@
                     <select name="product_id" id="product_id" class="form-select ts-select" required>
                         <option value="">Seleccione...</option>
                         @foreach($products as $product)
-                            <option value="{{ $product->id }}">{{ $product->code }} - {{ $product->name }} (Stock: {{ $product->stock }})</option>
+                            <option
+                                value="{{ $product->id }}"
+                                data-code="{{ $product->code }}"
+                                data-name="{{ $product->name }}"
+                                data-concentration="{{ $product->concentration }}"
+                                data-presentation="{{ $product->presentation }}"
+                                data-stock="{{ $product->stock }}"
+                            >
+                                {{ $product->code }} - {{ $product->name }}
+                                @if($product->concentration) ({{ $product->concentration }}) @endif
+                                @if($product->presentation) - {{ $product->presentation }} @endif
+                                (Stock: {{ $product->stock }})
+                            </option>
                         @endforeach
                     </select>
                 </div>
@@ -84,8 +96,17 @@
                     <select name="product_id" id="product_filter" class="form-select ts-select">
                         <option value="">Todos</option>
                         @foreach($products as $product)
-                            <option value="{{ $product->id }}" {{ (string)($filters['product_id'] ?? '') === (string)$product->id ? 'selected' : '' }}>
+                            <option
+                                value="{{ $product->id }}"
+                                data-code="{{ $product->code }}"
+                                data-name="{{ $product->name }}"
+                                data-concentration="{{ $product->concentration }}"
+                                data-presentation="{{ $product->presentation }}"
+                                {{ (string)($filters['product_id'] ?? '') === (string)$product->id ? 'selected' : '' }}
+                            >
                                 {{ $product->code }} - {{ $product->name }}
+                                @if($product->concentration) ({{ $product->concentration }}) @endif
+                                @if($product->presentation) - {{ $product->presentation }} @endif
                             </option>
                         @endforeach
                     </select>
@@ -157,7 +178,15 @@
                             @forelse($movements as $move)
                                 <tr>
                                     <td>{{ optional($move->movement_at)->format('d/m/Y H:i') }}</td>
-                                    <td>{{ $move->product?->name }}</td>
+                                    <td>
+                                        {{ $move->product?->name }}
+                                        @if($move->product?->concentration)
+                                            <span class="text-muted">({{ $move->product->concentration }})</span>
+                                        @endif
+                                        @if($move->product?->presentation)
+                                            <span class="text-secondary">- {{ $move->product->presentation }}</span>
+                                        @endif
+                                    </td>
                                     <td>
                                         <span class="badge {{ $move->movement_type === 'entrada' ? 'bg-success' : 'bg-danger' }}">
                                             {{ strtoupper($move->movement_type) }}
@@ -204,7 +233,17 @@
                 new TomSelect(el, {
                     create: false,
                     allowEmptyOption: true,
-                    placeholder: el.getAttribute('placeholder') || 'Seleccione una opción...'
+                    searchConjunction: 'and',
+                    searchField: ['text', 'code', 'name', 'concentration', 'presentation', 'stock'],
+                    plugins: {
+                        clear_button: { title: 'Limpiar selección' }
+                    },
+                    placeholder: el.getAttribute('placeholder') || 'Seleccione una opción...',
+                    onDropdownClose: function () {
+                        this.clearActiveOption();
+                        this.setTextboxValue('');
+                        this.refreshOptions(false);
+                    }
                 });
             }
         });
