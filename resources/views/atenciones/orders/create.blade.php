@@ -46,8 +46,9 @@
                                 <i :class="historyInfo.is_free ? 'bi bi-check-circle-fill' : 'bi bi-info-circle-fill'" class="fs-4 me-2"></i>
                                 <div>
                                     <span x-text="'El paciente tiene ' + historyInfo.days + ' días desde su última historia (' + historyInfo.date + ').'"></span>
+                                    <strong class="d-block small mt-1" x-text="'Beneficio del paciente: ' + (historyInfo.benefit_label || 'Sin beneficio')"></strong>
                                     <template x-if="historyInfo.is_free">
-                                        <strong class="d-block text-uppercase small">¡Cuenta con el Beneficio de atención gratuita!</strong>
+                                        <strong class="d-block text-uppercase small">¡Cuenta con el beneficio de atención gratuita!</strong>
                                     </template>
                                 </div>
                             </div>

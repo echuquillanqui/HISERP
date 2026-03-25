@@ -16,7 +16,7 @@ class OrderController extends Controller
 {
     private const HISTORY_BENEFIT_CUTOFF_DATE = '2026-03-25';
     private const LEGACY_HISTORY_BENEFIT_DAYS = 30;
-    private const NEW_HISTORY_BENEFIT_DAYS = 5;
+    private const NEW_HISTORY_BENEFIT_DAYS = 15;
 
     /**
      * Mostrar listado de órdenes
@@ -616,11 +616,16 @@ class OrderController extends Controller
             ? self::LEGACY_HISTORY_BENEFIT_DAYS
             : self::NEW_HISTORY_BENEFIT_DAYS;
 
+        $benefitType = $hasLegacyBenefit ? 'anterior' : 'nuevo';
+
         return response()->json([
             'has_history' => true,
             'days' => $daysDiff,
             'date' => $lastHistory->created_at->format('d/m/Y'),
-            'is_free' => $daysDiff <= $benefitDays
+            'is_free' => $daysDiff <= $benefitDays,
+            'benefit_type' => $benefitType,
+            'benefit_days' => $benefitDays,
+            'benefit_label' => sprintf('Beneficio %s (%d días)', ucfirst($benefitType), $benefitDays)
         ]);
     }
 
