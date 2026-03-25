@@ -139,10 +139,18 @@
                 },
                 render: {
                     option: function (data, escape) {
-                        return `<div>${escape(data.code)} - ${escape(data.name)}${data.concentration ? ` <span class="text-muted">(${escape(data.concentration)})</span>` : ''}${data.presentation ? ` <span class="text-secondary">- ${escape(data.presentation)}</span>` : ''}</div>`;
+                        const code = data.code ?? '';
+                        const name = data.name ?? '';
+                        const title = [code, name].filter(Boolean).join(' - ') || data.display || data.text || '';
+
+                        return `<div>${escape(title)}${data.concentration ? ` <span class="text-muted">(${escape(data.concentration)})</span>` : ''}${data.presentation ? ` <span class="text-secondary">- ${escape(data.presentation)}</span>` : ''}</div>`;
                     },
                     item: function (data, escape) {
-                        return `<div>${escape(data.code)} - ${escape(data.name)}${data.concentration ? ` <span class="text-muted">(${escape(data.concentration)})</span>` : ''}${data.presentation ? ` <span class="text-secondary">- ${escape(data.presentation)}</span>` : ''}</div>`;
+                        const code = data.code ?? '';
+                        const name = data.name ?? '';
+                        const title = [code, name].filter(Boolean).join(' - ') || data.display || data.text || '';
+
+                        return `<div>${escape(title)}${data.concentration ? ` <span class="text-muted">(${escape(data.concentration)})</span>` : ''}${data.presentation ? ` <span class="text-secondary">- ${escape(data.presentation)}</span>` : ''}</div>`;
                     }
                 }
             });
