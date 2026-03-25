@@ -37,7 +37,7 @@ class CashBoxIngresosSheet implements FromCollection, WithHeadings, WithTitle, S
 
     public function collection(): Collection
     {
-        return Order::with(['patient'])
+        $rows = Order::with(['patient'])
             ->whereBetween('created_at', [$this->startDate->copy()->startOfDay(), $this->endDate->copy()->endOfDay()])
             ->orderBy('created_at')
             ->get()
@@ -52,6 +52,10 @@ class CashBoxIngresosSheet implements FromCollection, WithHeadings, WithTitle, S
                     sprintf('%s (%s a %s)', $this->rangeLabel, $this->startDate->toDateString(), $this->endDate->toDateString()),
                 ];
             });
+
+        $rows->push([null, null, null, 'TOTAL INGRESOS', (float) $rows->sum(4), null, null]);
+
+        return $rows;
     }
 
     public function title(): string
@@ -79,6 +83,8 @@ class CashBoxIngresosSheet implements FromCollection, WithHeadings, WithTitle, S
                 $event->sheet->getDelegate()->getStyle('E2:E' . $highestRow)
                     ->getNumberFormat()
                     ->setFormatCode('#,##0.00');
+
+                $event->sheet->getDelegate()->getStyle('A' . $highestRow . ':E' . $highestRow)->getFont()->setBold(true);
             },
         ];
     }

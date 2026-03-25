@@ -7,12 +7,17 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\{DB, Log, Cache, Auth};
 use Illuminate\Support\Str;
 use Illuminate\Database\QueryException;
+use Carbon\Carbon;
 
 
 
 
 class OrderController extends Controller
 {
+    private const HISTORY_BENEFIT_CUTOFF_DATE = '2026-03-25';
+    private const LEGACY_HISTORY_BENEFIT_DAYS = 30;
+    private const NEW_HISTORY_BENEFIT_DAYS = 5;
+
     /**
      * Mostrar listado de órdenes
      */
@@ -601,12 +606,21 @@ class OrderController extends Controller
         }
 
         $daysDiff = now()->diffInDays($lastHistory->created_at);
+        $cutoffDate = Carbon::parse(self::HISTORY_BENEFIT_CUTOFF_DATE)->startOfDay();
+
+        $hasLegacyBenefit = \App\Models\History::where('patient_id', $patient->id)
+            ->where('created_at', '<', $cutoffDate)
+            ->exists();
+
+        $benefitDays = $hasLegacyBenefit
+            ? self::LEGACY_HISTORY_BENEFIT_DAYS
+            : self::NEW_HISTORY_BENEFIT_DAYS;
 
         return response()->json([
             'has_history' => true,
             'days' => $daysDiff,
             'date' => $lastHistory->created_at->format('d/m/Y'),
-            'is_free' => $daysDiff <= 30
+            'is_free' => $daysDiff <= $benefitDays
         ]);
     }
 

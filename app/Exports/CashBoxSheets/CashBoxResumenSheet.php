@@ -3,6 +3,7 @@
 namespace App\Exports\CashBoxSheets;
 
 use App\Models\Expense;
+use App\Models\Order;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
@@ -13,7 +14,7 @@ use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 
-class CashBoxEgresosSheet implements FromCollection, WithHeadings, WithTitle, ShouldAutoSize, WithEvents
+class CashBoxResumenSheet implements FromCollection, WithHeadings, WithTitle, ShouldAutoSize, WithEvents
 {
     public function __construct(
         private Carbon $startDate,
@@ -25,9 +26,7 @@ class CashBoxEgresosSheet implements FromCollection, WithHeadings, WithTitle, Sh
     public function headings(): array
     {
         return [
-            'FECHA',
-            'DESCRIPCIÓN',
-            'TIPO COMPROBANTE',
+            'CONCEPTO',
             'MONTO',
             'PERIODO',
         ];
@@ -35,28 +34,36 @@ class CashBoxEgresosSheet implements FromCollection, WithHeadings, WithTitle, Sh
 
     public function collection(): Collection
     {
-        $rows = Expense::query()
+        $totalIngresos = Order::query()
             ->whereBetween('created_at', [$this->startDate->copy()->startOfDay(), $this->endDate->copy()->endOfDay()])
-            ->orderBy('created_at')
-            ->get()
-            ->map(function (Expense $expense) {
-                return [
-                    $expense->created_at?->format('d/m/Y H:i'),
-                    $expense->description,
-                    strtoupper((string) $expense->voucher_type),
-                    (float) $expense->amount,
-                    sprintf('%s (%s a %s)', $this->rangeLabel, $this->startDate->toDateString(), $this->endDate->toDateString()),
-                ];
-            });
+            ->sum('total');
 
-        $rows->push([null, 'TOTAL EGRESOS', null, (float) $rows->sum(3), null]);
+        $totalEgresos = Expense::query()
+            ->whereBetween('created_at', [$this->startDate->copy()->startOfDay(), $this->endDate->copy()->endOfDay()])
+            ->sum('amount');
 
-        return $rows;
+        return collect([
+            [
+                'TOTAL INGRESOS',
+                (float) $totalIngresos,
+                sprintf('%s (%s a %s)', $this->rangeLabel, $this->startDate->toDateString(), $this->endDate->toDateString()),
+            ],
+            [
+                'TOTAL EGRESOS',
+                (float) $totalEgresos,
+                sprintf('%s (%s a %s)', $this->rangeLabel, $this->startDate->toDateString(), $this->endDate->toDateString()),
+            ],
+            [
+                'SALDO NETO',
+                (float) ($totalIngresos - $totalEgresos),
+                sprintf('%s (%s a %s)', $this->rangeLabel, $this->startDate->toDateString(), $this->endDate->toDateString()),
+            ],
+        ]);
     }
 
     public function title(): string
     {
-        return '2. Egresos';
+        return '0. Resumen';
     }
 
     public function registerEvents(): array
@@ -70,17 +77,14 @@ class CashBoxEgresosSheet implements FromCollection, WithHeadings, WithTitle, Sh
                     'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
                     'fill' => [
                         'fillType' => Fill::FILL_SOLID,
-                        'startColor' => ['rgb' => '198754'],
+                        'startColor' => ['rgb' => '212529'],
                     ],
                 ]);
 
-                $event->sheet->getDelegate()->setAutoFilter('A1:' . $highestColumn . $highestRow);
-                $event->sheet->freezePane('A2');
-                $event->sheet->getDelegate()->getStyle('D2:D' . $highestRow)
+                $event->sheet->getDelegate()->getStyle('A2:A' . $highestRow)->getFont()->setBold(true);
+                $event->sheet->getDelegate()->getStyle('B2:B' . $highestRow)
                     ->getNumberFormat()
                     ->setFormatCode('#,##0.00');
-
-                $event->sheet->getDelegate()->getStyle('A' . $highestRow . ':D' . $highestRow)->getFont()->setBold(true);
             },
         ];
     }
