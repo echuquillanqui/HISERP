@@ -22,7 +22,7 @@
                 @csrf
                 <div class="col-md-4">
                     <label class="form-label">Medicamento</label>
-                    <select name="product_id" class="form-select ts-select" required>
+                    <select name="product_id" class="form-select ts-select ts-product-select" required>
                         <option value="">Seleccione...</option>
                         @foreach($products as $product)
                             <option
@@ -86,7 +86,7 @@
             <form method="GET" action="{{ route('products.kardex.records') }}" class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label">Medicamento</label>
-                    <select name="product_id" class="form-select ts-select">
+                    <select name="product_id" class="form-select ts-select ts-product-select">
                         <option value="">Todos</option>
                         @foreach($products as $product)
                             <option
@@ -161,15 +161,47 @@
         if (typeof TomSelect === 'undefined') return;
         document.querySelectorAll('.ts-select').forEach((el) => {
             if (!el.tomselect) {
+                const isProductSelect = el.classList.contains('ts-product-select');
                 new TomSelect(el, {
                     create: false,
                     allowEmptyOption: true,
                     searchConjunction: 'and',
-                    searchField: ['text', 'code', 'name', 'concentration', 'presentation', 'stock'],
+                    searchField: isProductSelect
+                        ? ['text', 'code', 'name', 'concentration', 'presentation', 'stock']
+                        : ['text'],
                     plugins: {
                         clear_button: { title: 'Limpiar selección' }
                     },
-                    placeholder: 'Seleccione una opción...',
+                    placeholder: isProductSelect
+                        ? 'Buscar por código, nombre, concentración o presentación...'
+                        : 'Seleccione una opción...',
+                    render: isProductSelect
+                        ? {
+                            option: function(data, escape) {
+                                if (!data.value) {
+                                    return `<div>${escape(data.text)}</div>`;
+                                }
+
+                                const code = data.code ? `<span class="badge text-bg-light border me-2">${escape(data.code)}</span>` : '';
+                                const concentration = data.concentration ? `<span class="text-muted ms-1">(${escape(data.concentration)})</span>` : '';
+                                const presentation = data.presentation ? `<span class="text-secondary ms-1">- ${escape(data.presentation)}</span>` : '';
+                                const stock = data.stock !== undefined && data.stock !== null && data.stock !== ''
+                                    ? `<small class="d-block text-muted">Stock: ${escape(String(data.stock))}</small>`
+                                    : '';
+
+                                return `<div>${code}<span>${escape(data.name || data.text)}</span>${concentration}${presentation}${stock}</div>`;
+                            },
+                            item: function(data, escape) {
+                                if (!data.value) {
+                                    return `<div>${escape(data.text)}</div>`;
+                                }
+
+                                const concentration = data.concentration ? ` (${escape(data.concentration)})` : '';
+                                const presentation = data.presentation ? ` - ${escape(data.presentation)}` : '';
+                                return `<div>${escape(data.code || '')}${data.code ? ' - ' : ''}${escape(data.name || data.text)}${concentration}${presentation}</div>`;
+                            }
+                        }
+                        : undefined,
                     onDropdownClose: function () {
                         this.clearActiveOption();
                         this.setTextboxValue('');
