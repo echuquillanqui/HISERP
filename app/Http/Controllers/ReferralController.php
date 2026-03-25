@@ -14,8 +14,9 @@ class ReferralController extends Controller
     {
         $query = Referral::with(['patient', 'referralResponsible']);
 
-        if ($request->filled('search')) {
-            $search = $request->search;
+        $search = trim((string) ($request->input('search') ?? $request->input('q') ?? $request->input('term') ?? ''));
+
+        if ($search !== '') {
             $query->where(function($q) use ($search) {
                 $q->where('referral_code', 'LIKE', "%{$search}%")
                 ->orWhere('origin_facility', 'LIKE', "%{$search}%")
@@ -28,10 +29,13 @@ class ReferralController extends Controller
             });
         }
 
-        if ($request->filled('from_date') && $request->filled('to_date')) {
+        $fromDate = $request->input('from_date', $request->input('start_date'));
+        $toDate = $request->input('to_date', $request->input('end_date'));
+
+        if (filled($fromDate) && filled($toDate)) {
             $query->whereBetween('created_at', [
-                Carbon::parse($request->from_date)->startOfDay(),
-                Carbon::parse($request->to_date)->endOfDay()
+                Carbon::parse($fromDate)->startOfDay(),
+                Carbon::parse($toDate)->endOfDay()
             ]);
         }
 
@@ -58,7 +62,7 @@ class ReferralController extends Controller
 
     public function searchPatients(Request $request)
     {
-        $term = trim((string) $request->query('q', ''));
+        $term = trim((string) ($request->query('q') ?? $request->query('term') ?? $request->query('search') ?? ''));
 
         $patients = Patient::query()
             ->when($term !== '', function ($query) use ($term) {
@@ -105,7 +109,7 @@ class ReferralController extends Controller
 
     public function searchCie10(Request $request)
     {
-        $term = trim((string) $request->query('q', ''));
+        $term = trim((string) ($request->query('q') ?? $request->query('term') ?? $request->query('search') ?? ''));
 
         $query = Cie10::query();
 
