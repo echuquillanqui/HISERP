@@ -132,6 +132,8 @@
                         .then(json => {
                             const rows = (json.data || []).map((product) => ({
                                 ...product,
+                                value: product.id,
+                                text: product.name,
                                 display: `${product.code} - ${product.name}${product.concentration ? ` (${product.concentration})` : ''}${product.presentation ? ` - ${product.presentation}` : ''}`,
                             }));
                             callback(rows);
@@ -140,7 +142,7 @@
                 },
                 render: {
                     option: function (data, escape) {
-                        if (!data.value) {
+                        if (!data.id && !data.value) {
                             return `<div class="py-1 px-1">${escape(data.text || '')}</div>`;
                         }
 
@@ -161,7 +163,7 @@
                         `;
                     },
                     item: function (data, escape) {
-                        if (!data.value) {
+                        if (!data.id && !data.value) {
                             return `<div>${escape(data.text || '')}</div>`;
                         }
 

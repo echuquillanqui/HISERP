@@ -179,7 +179,7 @@
                     render: isProductSelect
                         ? {
                             option: function(data, escape) {
-                                if (!data.value) {
+                                if (!data.id && !data.value) {
                                     return `<div class="py-1 px-1">${escape(data.text)}</div>`;
                                 }
 
@@ -203,7 +203,7 @@
                                 `;
                             },
                             item: function(data, escape) {
-                                if (!data.value) {
+                                if (!data.id && !data.value) {
                                     return `<div>${escape(data.text)}</div>`;
                                 }
 
