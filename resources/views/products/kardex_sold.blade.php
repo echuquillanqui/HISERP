@@ -23,20 +23,17 @@
                     <label class="form-label">Medicamento</label>
                     <select name="product_id" class="form-select ts-select">
                         <option value="">Todos</option>
-                        @foreach($products as $product)
-                            <option
-                                value="{{ $product->id }}"
-                                data-code="{{ $product->code }}"
-                                data-name="{{ $product->name }}"
-                                data-concentration="{{ $product->concentration }}"
-                                data-presentation="{{ $product->presentation }}"
-                                {{ (string)($filters['product_id'] ?? '') === (string)$product->id ? 'selected' : '' }}
-                            >
-                                {{ $product->code }} - {{ $product->name }}
-                                @if($product->concentration) ({{ $product->concentration }}) @endif
-                                @if($product->presentation) - {{ $product->presentation }} @endif
+                        @if($selectedProduct)
+                            <option value="{{ $selectedProduct->id }}" selected>
+                                {{ $selectedProduct->code }} - {{ $selectedProduct->name }}
+                                @if($selectedProduct->concentration)
+                                    ({{ $selectedProduct->concentration }})
+                                @endif
+                                @if($selectedProduct->presentation)
+                                    - {{ $selectedProduct->presentation }}
+                                @endif
                             </option>
-                        @endforeach
+                        @endif
                     </select>
                 </div>
                 <div class="col-md-3"><label class="form-label">Desde</label><input type="date" name="from_date" value="{{ $filters['from_date'] ?? '' }}" class="form-control"></div>
@@ -86,55 +83,67 @@
     document.addEventListener('DOMContentLoaded', function () {
         if (typeof TomSelect === 'undefined') return;
         document.querySelectorAll('.ts-select').forEach((el) => {
-            if (!el.tomselect) {
-                new TomSelect(el, {
-                    create: false,
-                    allowEmptyOption: true,
-                    searchConjunction: 'and',
-                    searchField: ['text', 'code', 'name', 'concentration', 'presentation'],
-                    maxOptions: 30,
-                    plugins: {
-                        clear_button: { title: 'Limpiar selección' }
-                    },
-                    placeholder: 'Buscar medicamento (nombre, concentración, presentación o código)...',
-                    render: {
-                        option: function (data, escape) {
-                            if (!data.value) {
-                                return `<div class="py-1 px-1">${escape(data.text)}</div>`;
-                            }
+            if (el.tomselect) return;
 
-                            const code = data.code ? `<span class="badge text-bg-light border">${escape(data.code)}</span>` : '';
-                            const concentration = data.concentration ? `<span class="badge rounded-pill text-bg-info-subtle text-info-emphasis border">${escape(data.concentration)}</span>` : '';
-                            const presentation = data.presentation ? `<span class="badge rounded-pill text-bg-secondary-subtle text-secondary-emphasis border">${escape(data.presentation)}</span>` : '';
-
-                            return `
-                                <div class="py-2 px-1">
-                                    <div class="d-flex flex-wrap gap-1 align-items-center mb-1">
-                                        ${code}
-                                        ${concentration}
-                                        ${presentation}
-                                    </div>
-                                    <div class="fw-semibold">${escape(data.name || data.text)}</div>
-                                </div>
-                            `;
-                        },
-                        item: function (data, escape) {
-                            if (!data.value) {
-                                return `<div>${escape(data.text)}</div>`;
-                            }
-
-                            const concentration = data.concentration ? ` · ${escape(data.concentration)}` : '';
-                            const presentation = data.presentation ? ` · ${escape(data.presentation)}` : '';
-                            return `<div>${escape(data.name || data.text)}${concentration}${presentation}</div>`;
+            new TomSelect(el, {
+                valueField: 'id',
+                labelField: 'display',
+                searchField: ['code', 'name', 'concentration', 'presentation', 'display'],
+                create: false,
+                allowEmptyOption: true,
+                preload: false,
+                maxOptions: 30,
+                loadThrottle: 350,
+                shouldLoad: (query) => query.length >= 2,
+                placeholder: 'Buscar medicamento (nombre, concentración, presentación o código)...',
+                load: function (query, callback) {
+                    fetch(`/api/products/search?q=${encodeURIComponent(query || '')}`)
+                        .then(response => response.json())
+                        .then(json => {
+                            const rows = (json.data || []).map((product) => ({
+                                ...product,
+                                value: product.id,
+                                text: product.name,
+                                display: `${product.code} - ${product.name}${product.concentration ? ` (${product.concentration})` : ''}${product.presentation ? ` - ${product.presentation}` : ''}`,
+                            }));
+                            callback(rows);
+                        })
+                        .catch(() => callback());
+                },
+                render: {
+                    option: function (data, escape) {
+                        if (!data.id && !data.value) {
+                            return `<div class="py-1 px-1">${escape(data.text || '')}</div>`;
                         }
+
+                        const code = data.code ? `<span class="badge text-bg-light border">${escape(data.code)}</span>` : '';
+                        const concentration = data.concentration ? `<span class="badge rounded-pill text-bg-info-subtle text-info-emphasis border">${escape(data.concentration)}</span>` : '';
+                        const presentation = data.presentation ? `<span class="badge rounded-pill text-bg-secondary-subtle text-secondary-emphasis border">${escape(data.presentation)}</span>` : '';
+                        const name = data.name || data.display || data.text || '';
+
+                        return `
+                            <div class="py-2 px-1">
+                                <div class="d-flex flex-wrap gap-1 align-items-center mb-1">
+                                    ${code}
+                                    ${concentration}
+                                    ${presentation}
+                                </div>
+                                <div class="fw-semibold">${escape(name)}</div>
+                            </div>
+                        `;
                     },
-                    onDropdownClose: function () {
-                        this.clearActiveOption();
-                        this.setTextboxValue('');
-                        this.refreshOptions(false);
+                    item: function (data, escape) {
+                        if (!data.id && !data.value) {
+                            return `<div>${escape(data.text || '')}</div>`;
+                        }
+
+                        const name = data.name || data.display || data.text || '';
+                        const concentration = data.concentration ? ` · ${escape(data.concentration)}` : '';
+                        const presentation = data.presentation ? ` · ${escape(data.presentation)}` : '';
+                        return `<div>${escape(name)}${concentration}${presentation}</div>`;
                     }
-                });
-            }
+                }
+            });
         });
     });
 </script>

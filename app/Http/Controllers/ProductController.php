@@ -174,13 +174,32 @@ class ProductController extends Controller
             ->paginate(30)
             ->withQueryString();
 
-        $products = Product::orderBy('name')->get(['id', 'name', 'code', 'stock']);
         $orders = Order::with('patient:id,first_name,last_name')
             ->latest('id')
             ->limit(150)
             ->get(['id', 'code', 'patient_id', 'created_at']);
 
-        return view('products.kardex_records', compact('movements', 'products', 'filters', 'orders'));
+        $selectedFilterProduct = null;
+        if (!empty($filters['product_id'])) {
+            $selectedFilterProduct = Product::query()
+                ->select(['id', 'code', 'name', 'concentration', 'presentation'])
+                ->find($filters['product_id']);
+        }
+
+        $selectedManualProduct = null;
+        if (old('product_id')) {
+            $selectedManualProduct = Product::query()
+                ->select(['id', 'code', 'name', 'concentration', 'presentation', 'stock'])
+                ->find((int) old('product_id'));
+        }
+
+        return view('products.kardex_records', compact(
+            'movements',
+            'filters',
+            'orders',
+            'selectedFilterProduct',
+            'selectedManualProduct'
+        ));
     }
 
     public function kardexMovements(Request $request)
@@ -219,9 +238,14 @@ class ProductController extends Controller
             ->paginate(30)
             ->withQueryString();
 
-        $products = Product::orderBy('name')->get(['id', 'name', 'code']);
+        $selectedProduct = null;
+        if (!empty($filters['product_id'])) {
+            $selectedProduct = Product::query()
+                ->select(['id', 'code', 'name', 'concentration', 'presentation'])
+                ->find($filters['product_id']);
+        }
 
-        return view('products.kardex_sold', compact('salesReport', 'products', 'filters'));
+        return view('products.kardex_sold', compact('salesReport', 'filters', 'selectedProduct'));
     }
 
     public function exportKardexPdf(Request $request)

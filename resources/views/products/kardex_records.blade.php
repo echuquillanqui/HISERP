@@ -22,23 +22,20 @@
                 @csrf
                 <div class="col-md-4">
                     <label class="form-label">Medicamento</label>
-                    <select name="product_id" class="form-select ts-select ts-product-select" required>
+                    <select name="product_id" class="form-select ts-product-search" required>
                         <option value="">Seleccione...</option>
-                        @foreach($products as $product)
-                            <option
-                                value="{{ $product->id }}"
-                                data-code="{{ $product->code }}"
-                                data-name="{{ $product->name }}"
-                                data-concentration="{{ $product->concentration }}"
-                                data-presentation="{{ $product->presentation }}"
-                                data-stock="{{ $product->stock }}"
-                            >
-                                {{ $product->code }} - {{ $product->name }}
-                                @if($product->concentration) ({{ $product->concentration }}) @endif
-                                @if($product->presentation) - {{ $product->presentation }} @endif
-                                (Stock: {{ $product->stock }})
+                        @if($selectedManualProduct)
+                            <option value="{{ $selectedManualProduct->id }}" selected>
+                                {{ $selectedManualProduct->code }} - {{ $selectedManualProduct->name }}
+                                @if($selectedManualProduct->concentration)
+                                    ({{ $selectedManualProduct->concentration }})
+                                @endif
+                                @if($selectedManualProduct->presentation)
+                                    - {{ $selectedManualProduct->presentation }}
+                                @endif
+                                (Stock: {{ $selectedManualProduct->stock }})
                             </option>
-                        @endforeach
+                        @endif
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -62,7 +59,7 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Orden relacionada (logística)</label>
-                    <select name="order_id" class="form-select ts-select">
+                    <select name="order_id" class="form-select ts-select-local">
                         <option value="">Sin orden</option>
                         @foreach($orders as $order)
                             <option value="{{ $order->id }}">{{ $order->code ?? ('#'.$order->id) }} - {{ trim(($order->patient?->first_name ?? '').' '.($order->patient?->last_name ?? '')) ?: 'Paciente no registrado' }}</option>
@@ -86,22 +83,19 @@
             <form method="GET" action="{{ route('products.kardex.records') }}" class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label">Medicamento</label>
-                    <select name="product_id" class="form-select ts-select ts-product-select">
+                    <select name="product_id" class="form-select ts-product-search">
                         <option value="">Todos</option>
-                        @foreach($products as $product)
-                            <option
-                                value="{{ $product->id }}"
-                                data-code="{{ $product->code }}"
-                                data-name="{{ $product->name }}"
-                                data-concentration="{{ $product->concentration }}"
-                                data-presentation="{{ $product->presentation }}"
-                                {{ (string)($filters['product_id'] ?? '') === (string)$product->id ? 'selected' : '' }}
-                            >
-                                {{ $product->code }} - {{ $product->name }}
-                                @if($product->concentration) ({{ $product->concentration }}) @endif
-                                @if($product->presentation) - {{ $product->presentation }} @endif
+                        @if($selectedFilterProduct)
+                            <option value="{{ $selectedFilterProduct->id }}" selected>
+                                {{ $selectedFilterProduct->code }} - {{ $selectedFilterProduct->name }}
+                                @if($selectedFilterProduct->concentration)
+                                    ({{ $selectedFilterProduct->concentration }})
+                                @endif
+                                @if($selectedFilterProduct->presentation)
+                                    - {{ $selectedFilterProduct->presentation }}
+                                @endif
                             </option>
-                        @endforeach
+                        @endif
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -159,68 +153,87 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         if (typeof TomSelect === 'undefined') return;
-        document.querySelectorAll('.ts-select').forEach((el) => {
-            if (!el.tomselect) {
-                const isProductSelect = el.classList.contains('ts-product-select');
-                new TomSelect(el, {
-                    create: false,
-                    allowEmptyOption: true,
-                    searchConjunction: 'and',
-                    searchField: isProductSelect
-                        ? ['text', 'code', 'name', 'concentration', 'presentation', 'stock']
-                        : ['text'],
-                    plugins: {
-                        clear_button: { title: 'Limpiar selección' }
-                    },
-                    placeholder: isProductSelect
-                        ? 'Buscar medicamento (nombre, concentración, presentación o código)...'
-                        : 'Seleccione una opción...',
-                    maxOptions: isProductSelect ? 30 : 50,
-                    render: isProductSelect
-                        ? {
-                            option: function(data, escape) {
-                                if (!data.id && !data.value) {
-                                    return `<div class="py-1 px-1">${escape(data.text)}</div>`;
-                                }
+        document.querySelectorAll('.ts-product-search').forEach((el) => {
+            if (el.tomselect) return;
 
-                                const code = data.code ? `<span class="badge text-bg-light border">${escape(data.code)}</span>` : '';
-                                const concentration = data.concentration ? `<span class="badge rounded-pill text-bg-info-subtle text-info-emphasis border">${escape(data.concentration)}</span>` : '';
-                                const presentation = data.presentation ? `<span class="badge rounded-pill text-bg-secondary-subtle text-secondary-emphasis border">${escape(data.presentation)}</span>` : '';
-                                const stock = data.stock !== undefined && data.stock !== null && data.stock !== ''
-                                    ? `<small class="d-block text-muted mt-1">Stock actual: ${escape(String(data.stock))}</small>`
-                                    : '';
-
-                                return `
-                                    <div class="py-2 px-1">
-                                        <div class="d-flex flex-wrap gap-1 align-items-center mb-1">
-                                            ${code}
-                                            ${concentration}
-                                            ${presentation}
-                                        </div>
-                                        <div class="fw-semibold">${escape(data.name || data.text)}</div>
-                                        ${stock}
-                                    </div>
-                                `;
-                            },
-                            item: function(data, escape) {
-                                if (!data.id && !data.value) {
-                                    return `<div>${escape(data.text)}</div>`;
-                                }
-
-                                const concentration = data.concentration ? ` · ${escape(data.concentration)}` : '';
-                                const presentation = data.presentation ? ` · ${escape(data.presentation)}` : '';
-                                return `<div>${escape(data.name || data.text)}${concentration}${presentation}</div>`;
-                            }
+            new TomSelect(el, {
+                valueField: 'id',
+                labelField: 'display',
+                searchField: ['code', 'name', 'concentration', 'presentation', 'display'],
+                create: false,
+                allowEmptyOption: true,
+                preload: false,
+                maxOptions: 30,
+                loadThrottle: 350,
+                shouldLoad: (query) => query.length >= 2,
+                placeholder: 'Buscar medicamento (nombre, concentración, presentación o código)...',
+                load: function (query, callback) {
+                    fetch(`/api/products/search?q=${encodeURIComponent(query || '')}`)
+                        .then(response => response.json())
+                        .then(json => {
+                            const rows = (json.data || []).map((product) => ({
+                                ...product,
+                                value: product.id,
+                                text: product.name,
+                                display: `${product.code} - ${product.name}${product.concentration ? ` (${product.concentration})` : ''}${product.presentation ? ` - ${product.presentation}` : ''}`,
+                            }));
+                            callback(rows);
+                        })
+                        .catch(() => callback());
+                },
+                render: {
+                    option: function (data, escape) {
+                        if (!data.id && !data.value) {
+                            return `<div class="py-1 px-1">${escape(data.text || '')}</div>`;
                         }
-                        : undefined,
-                    emptyOptionLabel: 'Sin resultados',
-                    onDropdownClose: function () {
-                        this.clearActiveOption();
-                        this.setTextboxValue('');
-                        this.refreshOptions(false);
+
+                        const code = data.code ? `<span class="badge text-bg-light border">${escape(data.code)}</span>` : '';
+                        const concentration = data.concentration ? `<span class="badge rounded-pill text-bg-info-subtle text-info-emphasis border">${escape(data.concentration)}</span>` : '';
+                        const presentation = data.presentation ? `<span class="badge rounded-pill text-bg-secondary-subtle text-secondary-emphasis border">${escape(data.presentation)}</span>` : '';
+                        const stock = data.stock !== undefined && data.stock !== null && data.stock !== ''
+                            ? `<small class="d-block text-muted mt-1">Stock actual: ${escape(String(data.stock))}</small>`
+                            : '';
+                        const name = data.name || data.display || data.text || '';
+
+                        return `
+                            <div class="py-2 px-1">
+                                <div class="d-flex flex-wrap gap-1 align-items-center mb-1">
+                                    ${code}
+                                    ${concentration}
+                                    ${presentation}
+                                </div>
+                                <div class="fw-semibold">${escape(name)}</div>
+                                ${stock}
+                            </div>
+                        `;
+                    },
+                    item: function (data, escape) {
+                        if (!data.id && !data.value) {
+                            return `<div>${escape(data.text || '')}</div>`;
+                        }
+
+                        const name = data.name || data.display || data.text || '';
+                        const concentration = data.concentration ? ` · ${escape(data.concentration)}` : '';
+                        const presentation = data.presentation ? ` · ${escape(data.presentation)}` : '';
+                        return `<div>${escape(name)}${concentration}${presentation}</div>`;
                     }
-                });
-            }
+                }
+            });
+        });
+
+        document.querySelectorAll('.ts-select-local').forEach((el) => {
+            if (el.tomselect) return;
+
+            new TomSelect(el, {
+                create: false,
+                allowEmptyOption: true,
+                searchField: ['text'],
+                plugins: {
+                    clear_button: { title: 'Limpiar selección' }
+                },
+                placeholder: 'Seleccione una opción...',
+                maxOptions: 50
+            });
         });
     });
 </script>
