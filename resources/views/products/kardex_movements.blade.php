@@ -122,9 +122,10 @@
                 create: false,
                 allowEmptyOption: true,
                 preload: false,
-                maxOptions: 20,
+                maxOptions: 30,
                 loadThrottle: 350,
                 shouldLoad: (query) => query.length >= 2,
+                placeholder: 'Buscar medicamento (nombre, concentración, presentación o código)...',
                 load: function (query, callback) {
                     fetch(`/api/products/search?q=${encodeURIComponent(query || '')}`)
                         .then(response => response.json())
@@ -139,18 +140,35 @@
                 },
                 render: {
                     option: function (data, escape) {
-                        const code = data.code ?? '';
-                        const name = data.name ?? '';
-                        const title = [code, name].filter(Boolean).join(' - ') || data.display || data.text || '';
+                        if (!data.value) {
+                            return `<div class="py-1 px-1">${escape(data.text || '')}</div>`;
+                        }
 
-                        return `<div>${escape(title)}${data.concentration ? ` <span class="text-muted">(${escape(data.concentration)})</span>` : ''}${data.presentation ? ` <span class="text-secondary">- ${escape(data.presentation)}</span>` : ''}</div>`;
+                        const code = data.code ? `<span class="badge text-bg-light border">${escape(data.code)}</span>` : '';
+                        const concentration = data.concentration ? `<span class="badge rounded-pill text-bg-info-subtle text-info-emphasis border">${escape(data.concentration)}</span>` : '';
+                        const presentation = data.presentation ? `<span class="badge rounded-pill text-bg-secondary-subtle text-secondary-emphasis border">${escape(data.presentation)}</span>` : '';
+                        const name = data.name || data.display || data.text || '';
+
+                        return `
+                            <div class="py-2 px-1">
+                                <div class="d-flex flex-wrap gap-1 align-items-center mb-1">
+                                    ${code}
+                                    ${concentration}
+                                    ${presentation}
+                                </div>
+                                <div class="fw-semibold">${escape(name)}</div>
+                            </div>
+                        `;
                     },
                     item: function (data, escape) {
-                        const code = data.code ?? '';
-                        const name = data.name ?? '';
-                        const title = [code, name].filter(Boolean).join(' - ') || data.display || data.text || '';
+                        if (!data.value) {
+                            return `<div>${escape(data.text || '')}</div>`;
+                        }
 
-                        return `<div>${escape(title)}${data.concentration ? ` <span class="text-muted">(${escape(data.concentration)})</span>` : ''}${data.presentation ? ` <span class="text-secondary">- ${escape(data.presentation)}</span>` : ''}</div>`;
+                        const name = data.name || data.display || data.text || '';
+                        const concentration = data.concentration ? ` · ${escape(data.concentration)}` : '';
+                        const presentation = data.presentation ? ` · ${escape(data.presentation)}` : '';
+                        return `<div>${escape(name)}${concentration}${presentation}</div>`;
                     }
                 }
             });

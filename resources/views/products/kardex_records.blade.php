@@ -173,35 +173,47 @@
                         clear_button: { title: 'Limpiar selección' }
                     },
                     placeholder: isProductSelect
-                        ? 'Buscar por código, nombre, concentración o presentación...'
+                        ? 'Buscar medicamento (nombre, concentración, presentación o código)...'
                         : 'Seleccione una opción...',
+                    maxOptions: isProductSelect ? 30 : 50,
                     render: isProductSelect
                         ? {
                             option: function(data, escape) {
                                 if (!data.value) {
-                                    return `<div>${escape(data.text)}</div>`;
+                                    return `<div class="py-1 px-1">${escape(data.text)}</div>`;
                                 }
 
-                                const code = data.code ? `<span class="badge text-bg-light border me-2">${escape(data.code)}</span>` : '';
-                                const concentration = data.concentration ? `<span class="text-muted ms-1">(${escape(data.concentration)})</span>` : '';
-                                const presentation = data.presentation ? `<span class="text-secondary ms-1">- ${escape(data.presentation)}</span>` : '';
+                                const code = data.code ? `<span class="badge text-bg-light border">${escape(data.code)}</span>` : '';
+                                const concentration = data.concentration ? `<span class="badge rounded-pill text-bg-info-subtle text-info-emphasis border">${escape(data.concentration)}</span>` : '';
+                                const presentation = data.presentation ? `<span class="badge rounded-pill text-bg-secondary-subtle text-secondary-emphasis border">${escape(data.presentation)}</span>` : '';
                                 const stock = data.stock !== undefined && data.stock !== null && data.stock !== ''
-                                    ? `<small class="d-block text-muted">Stock: ${escape(String(data.stock))}</small>`
+                                    ? `<small class="d-block text-muted mt-1">Stock actual: ${escape(String(data.stock))}</small>`
                                     : '';
 
-                                return `<div>${code}<span>${escape(data.name || data.text)}</span>${concentration}${presentation}${stock}</div>`;
+                                return `
+                                    <div class="py-2 px-1">
+                                        <div class="d-flex flex-wrap gap-1 align-items-center mb-1">
+                                            ${code}
+                                            ${concentration}
+                                            ${presentation}
+                                        </div>
+                                        <div class="fw-semibold">${escape(data.name || data.text)}</div>
+                                        ${stock}
+                                    </div>
+                                `;
                             },
                             item: function(data, escape) {
                                 if (!data.value) {
                                     return `<div>${escape(data.text)}</div>`;
                                 }
 
-                                const concentration = data.concentration ? ` (${escape(data.concentration)})` : '';
-                                const presentation = data.presentation ? ` - ${escape(data.presentation)}` : '';
-                                return `<div>${escape(data.code || '')}${data.code ? ' - ' : ''}${escape(data.name || data.text)}${concentration}${presentation}</div>`;
+                                const concentration = data.concentration ? ` · ${escape(data.concentration)}` : '';
+                                const presentation = data.presentation ? ` · ${escape(data.presentation)}` : '';
+                                return `<div>${escape(data.name || data.text)}${concentration}${presentation}</div>`;
                             }
                         }
                         : undefined,
+                    emptyOptionLabel: 'Sin resultados',
                     onDropdownClose: function () {
                         this.clearActiveOption();
                         this.setTextboxValue('');

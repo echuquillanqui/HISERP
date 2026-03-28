@@ -92,8 +92,41 @@
                     allowEmptyOption: true,
                     searchConjunction: 'and',
                     searchField: ['text', 'code', 'name', 'concentration', 'presentation'],
+                    maxOptions: 30,
                     plugins: {
                         clear_button: { title: 'Limpiar selección' }
+                    },
+                    placeholder: 'Buscar medicamento (nombre, concentración, presentación o código)...',
+                    render: {
+                        option: function (data, escape) {
+                            if (!data.value) {
+                                return `<div class="py-1 px-1">${escape(data.text)}</div>`;
+                            }
+
+                            const code = data.code ? `<span class="badge text-bg-light border">${escape(data.code)}</span>` : '';
+                            const concentration = data.concentration ? `<span class="badge rounded-pill text-bg-info-subtle text-info-emphasis border">${escape(data.concentration)}</span>` : '';
+                            const presentation = data.presentation ? `<span class="badge rounded-pill text-bg-secondary-subtle text-secondary-emphasis border">${escape(data.presentation)}</span>` : '';
+
+                            return `
+                                <div class="py-2 px-1">
+                                    <div class="d-flex flex-wrap gap-1 align-items-center mb-1">
+                                        ${code}
+                                        ${concentration}
+                                        ${presentation}
+                                    </div>
+                                    <div class="fw-semibold">${escape(data.name || data.text)}</div>
+                                </div>
+                            `;
+                        },
+                        item: function (data, escape) {
+                            if (!data.value) {
+                                return `<div>${escape(data.text)}</div>`;
+                            }
+
+                            const concentration = data.concentration ? ` · ${escape(data.concentration)}` : '';
+                            const presentation = data.presentation ? ` · ${escape(data.presentation)}` : '';
+                            return `<div>${escape(data.name || data.text)}${concentration}${presentation}</div>`;
+                        }
                     },
                     onDropdownClose: function () {
                         this.clearActiveOption();
