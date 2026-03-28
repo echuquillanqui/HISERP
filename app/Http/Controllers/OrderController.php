@@ -261,10 +261,12 @@ class OrderController extends Controller
                 });
 
             $products = Product::query()
-                ->select(['id', 'name', 'concentration', 'selling_price'])
+                ->select(['id', 'name', 'concentration', 'presentation', 'selling_price'])
                 ->where('is_active', true)
                 ->where(function ($query) use ($q) {
                     $this->applyFlexibleSearch($query, 'name', $q);
+                    $this->applyFlexibleSearch($query, 'concentration', $q);
+                    $this->applyFlexibleSearch($query, 'presentation', $q);
                 })
                 ->orderBy('name')
                 ->limit(8)
@@ -273,6 +275,7 @@ class OrderController extends Controller
                     'id' => $product->id,
                     'name' => $product->name,
                     'concentration' => $product->concentration,
+                    'presentation' => $product->presentation,
                     'price' => $product->selling_price ?? 0,
                     'type' => 'product',
                     'area' => 'PRODUCTO',

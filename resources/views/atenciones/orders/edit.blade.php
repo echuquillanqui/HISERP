@@ -184,7 +184,8 @@ function orderSystem() {
                 quantity: {{ $detail->quantity ?? 1 }},
                 unit_price: {{ $detail->quantity ? ($detail->price / $detail->quantity) : $detail->price }},
                 uid: "{{ (class_basename($detail->itemable_type) == 'Service' ? 'service' : (class_basename($detail->itemable_type) == 'Product' ? 'product' : (class_basename($detail->itemable_type) == 'Profile' ? 'profile' : 'catalog'))) . $detail->itemable_id }}",
-                concentration: "{{ class_basename($detail->itemable_type) == 'Product' ? ($detail->itemable->concentration ?? '') : '' }}"
+                concentration: "{{ class_basename($detail->itemable_type) == 'Product' ? ($detail->itemable->concentration ?? '') : '' }}",
+                presentation: "{{ class_basename($detail->itemable_type) == 'Product' ? ($detail->itemable->presentation ?? '') : '' }}"
             },
             @endforeach
         ],
@@ -221,20 +222,25 @@ function orderSystem() {
                 ? ` [${item.area}]`
                 : '';
 
+            const productMeta = (item) => {
+                const parts = [item.concentration, item.presentation].filter(Boolean);
+                return parts.length ? ` (${parts.join(' / ')})` : '';
+            };
+
             const itemSelect = new TomSelect('#item_select', {
-                valueField: 'uid', labelField: 'display_name', searchField: ['name', 'area', 'display_name'],
+                valueField: 'uid', labelField: 'display_name', searchField: ['name', 'concentration', 'presentation', 'area', 'display_name'],
                 maxOptions: 30, loadThrottle: 350, shouldLoad: (q) => q.length >= 2,
                 load: (q, cb) => {
                     if (this.itemSearchController) this.itemSearchController.abort();
                     this.itemSearchController = new AbortController();
                     fetch(`/search-items?q=${encodeURIComponent(q)}`, { signal: this.itemSearchController.signal })
                         .then(r=>r.json())
-                        .then(j=>cb(j.map(i=>({ ...i, uid: i.type+i.id, area: i.area || 'SIN ÁREA', display_name: `${i.name}${i.concentration ? ' (' + i.concentration + ')' : ''}${areaSuffix(i)} [${typeLabel(i.type)}]`}))))
+                        .then(j=>cb(j.map(i=>({ ...i, uid: i.type+i.id, area: i.area || 'SIN ÁREA', display_name: `${i.name}${productMeta(i)}${areaSuffix(i)} [${typeLabel(i.type)}]`}))))
                         .catch(()=>cb());
                 },
                 render: {
-                    option: (data, escape) => `<div>${escape(data.name)}${data.concentration ? ` <span class=\"text-muted\">(${escape(data.concentration)})</span>` : ''}${areaSuffix(data) ? ` <span class=\"text-secondary fw-semibold\">${escape(areaSuffix(data))}</span>` : ''} <span class=\"text-primary fw-bold\">[${escape(typeLabel(data.type))}]</span></div>`,
-                    item: (data, escape) => `<div>${escape(data.name)}${data.concentration ? ` <span class=\"text-muted\">(${escape(data.concentration)})</span>` : ''}${areaSuffix(data) ? ` <span class=\"text-secondary fw-semibold\">${escape(areaSuffix(data))}</span>` : ''} <span class=\"text-primary fw-bold\">[${escape(typeLabel(data.type))}]</span></div>`
+                    option: (data, escape) => `<div>${escape(data.name)}${productMeta(data) ? ` <span class=\"text-muted\">${escape(productMeta(data))}</span>` : ''}${areaSuffix(data) ? ` <span class=\"text-secondary fw-semibold\">${escape(areaSuffix(data))}</span>` : ''} <span class=\"text-primary fw-bold\">[${escape(typeLabel(data.type))}]</span></div>`,
+                    item: (data, escape) => `<div>${escape(data.name)}${productMeta(data) ? ` <span class=\"text-muted\">${escape(productMeta(data))}</span>` : ''}${areaSuffix(data) ? ` <span class=\"text-secondary fw-semibold\">${escape(areaSuffix(data))}</span>` : ''} <span class=\"text-primary fw-bold\">[${escape(typeLabel(data.type))}]</span></div>`
                 },
                 onChange: (v) => {
                     if(!v) return;
@@ -281,7 +287,8 @@ function orderSystem() {
             .finally(() => this.patientFormLoading = false);
         },
         itemDisplay(item) {
-            return item.concentration ? `${item.name} (${item.concentration})` : item.name;
+            const parts = [item.concentration, item.presentation].filter(Boolean);
+            return parts.length ? `${item.name} (${parts.join(' / ')})` : item.name;
         },
         filteredCart() {
             const term = this.cartSearch.toLowerCase();
