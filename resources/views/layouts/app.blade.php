@@ -44,14 +44,14 @@
             align-items: center;
         }
 
-        .nav-link {
+        .navbar-custom .nav-link {
             color: rgba(255, 255, 255, 0.85) !important;
             font-weight: 500;
             margin: 0 5px;
             transition: all 0.2s;
         }
 
-        .nav-link:hover, .nav-link.active {
+        .navbar-custom .nav-link:hover, .navbar-custom .nav-link.active {
             color: var(--cian-clinico) !important;
         }
 
@@ -82,6 +82,7 @@
             background-color: var(--cian-clinico);
         }
     </style>
+    @stack('styles')
 </head>
 <body>
     <div id="app">
