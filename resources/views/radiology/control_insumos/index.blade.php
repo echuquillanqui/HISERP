@@ -121,32 +121,144 @@
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
-                    <h6 class="fw-bold mb-3"><i class="bi bi-clock-history me-1"></i>Últimos registros de entrada</h6>
-                    <div class="table-responsive">
-                        <table class="table align-middle">
-                            <thead>
-                                <tr>
-                                    <th>Fecha</th>
-                                    <th class="text-end">Placas +</th>
-                                    <th class="text-end">Iopamidol +</th>
-                                    <th>Notas</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($entries as $entry)
-                                    <tr>
-                                        <td>{{ $entry->created_at?->format('d/m/Y H:i') }}</td>
-                                        <td class="text-end">{{ number_format($entry->plates_in) }}</td>
-                                        <td class="text-end">{{ number_format($entry->iopamidol_in, 2) }}</td>
-                                        <td>{{ $entry->notes ?: '—' }}</td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="4" class="text-center text-muted py-4">Sin registros de entrada.</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+                    <h6 class="fw-bold mb-3"><i class="bi bi-journal-text me-1"></i>Reporte de movimientos (últimos 50)</h6>
+                    <ul class="nav nav-tabs report-tabs mb-3" id="movementTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="plates-in-tab" data-bs-toggle="tab" data-bs-target="#plates-in-pane" type="button" role="tab" aria-controls="plates-in-pane" aria-selected="true">
+                                Entradas Placas
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="plates-out-tab" data-bs-toggle="tab" data-bs-target="#plates-out-pane" type="button" role="tab" aria-controls="plates-out-pane" aria-selected="false">
+                                Salidas Placas
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="iopamidol-in-tab" data-bs-toggle="tab" data-bs-target="#iopamidol-in-pane" type="button" role="tab" aria-controls="iopamidol-in-pane" aria-selected="false">
+                                Entradas Iopamidol
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="iopamidol-out-tab" data-bs-toggle="tab" data-bs-target="#iopamidol-out-pane" type="button" role="tab" aria-controls="iopamidol-out-pane" aria-selected="false">
+                                Salidas Iopamidol
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="movementTabsContent">
+                        <div class="tab-pane fade show active" id="plates-in-pane" role="tabpanel" aria-labelledby="plates-in-tab" tabindex="0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle report-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha</th>
+                                            <th class="text-end">Placas +</th>
+                                            <th>Notas</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @php($platesEntries = $entries->filter(fn($entry) => (int) $entry->plates_in > 0))
+                                        @forelse($platesEntries as $entry)
+                                            <tr>
+                                                <td>{{ $entry->created_at?->format('d/m/Y H:i') }}</td>
+                                                <td class="text-end fw-semibold text-success">{{ number_format($entry->plates_in) }}</td>
+                                                <td>{{ $entry->notes ?: '—' }}</td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="3" class="text-center text-muted py-4">Sin entradas de placas para el periodo.</td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="plates-out-pane" role="tabpanel" aria-labelledby="plates-out-tab" tabindex="0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle report-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha</th>
+                                            <th>Orden</th>
+                                            <th>Paciente</th>
+                                            <th class="text-end">Placas -</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse($platesOutputs as $result)
+                                            <tr>
+                                                <td>{{ optional($result->result_date)->format('d/m/Y') }}</td>
+                                                <td>{{ $result->orderTomography->code ?? '—' }}</td>
+                                                <td>{{ trim(($result->patient->last_name ?? '') . ' ' . ($result->patient->first_name ?? '')) ?: '—' }}</td>
+                                                <td class="text-end fw-semibold text-danger">{{ number_format($result->plates_used) }}</td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="4" class="text-center text-muted py-4">Sin salidas de placas para el periodo.</td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="iopamidol-in-pane" role="tabpanel" aria-labelledby="iopamidol-in-tab" tabindex="0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle report-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha</th>
+                                            <th class="text-end">Iopamidol + (ml)</th>
+                                            <th>Notas</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @php($iopamidolEntries = $entries->filter(fn($entry) => (float) $entry->iopamidol_in > 0))
+                                        @forelse($iopamidolEntries as $entry)
+                                            <tr>
+                                                <td>{{ $entry->created_at?->format('d/m/Y H:i') }}</td>
+                                                <td class="text-end fw-semibold text-success">{{ number_format($entry->iopamidol_in, 2) }}</td>
+                                                <td>{{ $entry->notes ?: '—' }}</td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="3" class="text-center text-muted py-4">Sin entradas de iopamidol para el periodo.</td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="iopamidol-out-pane" role="tabpanel" aria-labelledby="iopamidol-out-tab" tabindex="0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle report-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha</th>
+                                            <th>Orden</th>
+                                            <th>Paciente</th>
+                                            <th class="text-end">Iopamidol - (ml)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse($iopamidolOutputs as $result)
+                                            <tr>
+                                                <td>{{ optional($result->result_date)->format('d/m/Y') }}</td>
+                                                <td>{{ $result->orderTomography->code ?? '—' }}</td>
+                                                <td>{{ trim(($result->patient->last_name ?? '') . ' ' . ($result->patient->first_name ?? '')) ?: '—' }}</td>
+                                                <td class="text-end fw-semibold text-danger">{{ number_format($result->iopamidol_used, 2) }}</td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="4" class="text-center text-muted py-4">Sin salidas de iopamidol para el periodo.</td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -154,6 +266,29 @@
     </div>
 </div>
 @endsection
+
+@push('styles')
+<style>
+    .report-tabs .nav-link {
+        color: #0d6efd;
+        border-radius: .6rem .6rem 0 0;
+        font-weight: 600;
+    }
+    .report-tabs .nav-link.active {
+        color: #fff;
+        background: linear-gradient(90deg, #0d6efd, #20c997);
+        border-color: #0d6efd #0d6efd transparent;
+    }
+    .report-table thead th {
+        border-top: 2px solid #20c997;
+        border-bottom: 2px solid #0d6efd;
+        background-color: #eef7ff;
+        color: #0f2f57;
+        font-size: .84rem;
+        letter-spacing: .02em;
+    }
+</style>
+@endpush
 
 
 @push('scripts')

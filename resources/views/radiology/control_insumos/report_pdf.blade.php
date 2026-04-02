@@ -8,8 +8,14 @@
         h3 { margin: 0 0 4px 0; }
         .meta { margin-bottom: 8px; }
         table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #999; padding: 3px; text-align: left; }
-        th { background: #d9ead3; font-size: 8px; }
+        th, td { border: 1px solid #8da7c7; padding: 3px; text-align: left; }
+        th {
+            background: #eaf3ff;
+            color: #0f2f57;
+            border-top: 2px solid #20c997;
+            border-bottom: 2px solid #0d6efd;
+            font-size: 8px;
+        }
     </style>
 </head>
 <body>

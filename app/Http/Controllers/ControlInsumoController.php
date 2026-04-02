@@ -45,13 +45,35 @@ class ControlInsumoController extends Controller
         ];
 
         $entries = TomographySupplyControl::query()
+            ->when($filters['startDate'], fn ($query) => $query->whereDate('created_at', '>=', $filters['startDate']->toDateString()))
+            ->when($filters['endDate'], fn ($query) => $query->whereDate('created_at', '<=', $filters['endDate']->toDateString()))
             ->latest('id')
-            ->limit(20)
+            ->limit(50)
+            ->get();
+
+        $platesOutputs = TomographyResult::query()
+            ->with(['patient:id,first_name,last_name', 'orderTomography:id,code'])
+            ->when($filters['startDate'], fn ($query) => $query->whereDate('result_date', '>=', $filters['startDate']->toDateString()))
+            ->when($filters['endDate'], fn ($query) => $query->whereDate('result_date', '<=', $filters['endDate']->toDateString()))
+            ->where('plates_used', '>', 0)
+            ->orderByDesc('result_date')
+            ->limit(50)
+            ->get();
+
+        $iopamidolOutputs = TomographyResult::query()
+            ->with(['patient:id,first_name,last_name', 'orderTomography:id,code'])
+            ->when($filters['startDate'], fn ($query) => $query->whereDate('result_date', '>=', $filters['startDate']->toDateString()))
+            ->when($filters['endDate'], fn ($query) => $query->whereDate('result_date', '<=', $filters['endDate']->toDateString()))
+            ->where('iopamidol_used', '>', 0)
+            ->orderByDesc('result_date')
+            ->limit(50)
             ->get();
 
         return view('radiology.control_insumos.index', [
             'summary' => $summary,
             'entries' => $entries,
+            'platesOutputs' => $platesOutputs,
+            'iopamidolOutputs' => $iopamidolOutputs,
             'filters' => [
                 'from' => $filters['startDate']->toDateString(),
                 'to' => $filters['endDate']->toDateString(),
