@@ -9,8 +9,6 @@ class AgreementController extends Controller
 {
     public function index(Request $request)
     {
-        $this->authorize('viewAny', Agreement::class);
-
         if ($request->ajax()) {
             $search = trim((string) $request->input('search', ''));
             $perPage = (int) $request->input('per_page', 10);

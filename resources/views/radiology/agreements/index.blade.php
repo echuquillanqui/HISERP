@@ -66,9 +66,6 @@
                                             </template>
                                         </div>
                                     </template>
-                                    <template x-if="!agreement.can_edit && !agreement.can_delete">
-                                        <span class="text-muted small">Sin permisos</span>
-                                    </template>
                                 </td>
                             </tr>
                         </template>
