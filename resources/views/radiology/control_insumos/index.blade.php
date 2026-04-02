@@ -270,9 +270,12 @@
 @push('styles')
 <style>
     .report-tabs .nav-link {
-        color: #0d6efd;
+        color: #17406b !important;
+        background-color: #eaf3ff;
+        border: 1px solid #bed8f7;
         border-radius: .6rem .6rem 0 0;
         font-weight: 600;
+        margin-right: .25rem;
     }
     .report-tabs .nav-link.active {
         color: #fff;

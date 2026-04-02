@@ -4,17 +4,28 @@
     <meta charset="UTF-8">
     <title>Reporte Operativo Tomografía</title>
     <style>
-        body { font-family: DejaVu Sans, sans-serif; font-size: 9px; }
+        @page { margin: 14px; }
+        body { font-family: DejaVu Sans, sans-serif; font-size: 7px; color: #16385f; }
         h3 { margin: 0 0 4px 0; }
         .meta { margin-bottom: 8px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #8da7c7; padding: 3px; text-align: left; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            word-wrap: break-word;
+        }
+        th, td {
+            border: 1px solid #8da7c7;
+            padding: 2px;
+            text-align: left;
+            vertical-align: top;
+        }
         th {
             background: #eaf3ff;
             color: #0f2f57;
             border-top: 2px solid #20c997;
             border-bottom: 2px solid #0d6efd;
-            font-size: 8px;
+            font-size: 7px;
         }
     </style>
 </head>

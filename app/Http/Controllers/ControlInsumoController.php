@@ -96,7 +96,7 @@ class ControlInsumoController extends Controller
             'rangeLabel' => $filters['label'],
             'startDate' => $filters['startDate'],
             'endDate' => $filters['endDate'],
-        ])->setPaper('a4', 'landscape');
+        ])->setPaper('a3', 'landscape');
 
         return $pdf->download(sprintf(
             'reporte_tomografia_%s_a_%s.pdf',
