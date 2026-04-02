@@ -7,13 +7,18 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Agreement extends Model
+class Radiography extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'description',
-        'status',
+        'private_price',
+        'plate_usage',
+    ];
+
+    protected $casts = [
+        'private_price' => 'decimal:2',
     ];
 
     public function orderTomographies(): HasMany
@@ -21,9 +26,14 @@ class Agreement extends Model
         return $this->hasMany(OrderTomography::class);
     }
 
-    public function radiographies(): BelongsToMany
+    public function agreementPrices(): HasMany
     {
-        return $this->belongsToMany(Radiography::class, 'radiography_agreement_prices')
+        return $this->hasMany(RadiographyAgreementPrice::class);
+    }
+
+    public function agreements(): BelongsToMany
+    {
+        return $this->belongsToMany(Agreement::class, 'radiography_agreement_prices')
             ->withPivot('price')
             ->withTimestamps();
     }

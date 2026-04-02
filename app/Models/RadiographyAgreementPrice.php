@@ -6,23 +6,20 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class OrderTomography extends Model
+class RadiographyAgreementPrice extends Model
 {
     use HasFactory;
 
+    protected $table = 'radiography_agreement_prices';
+
     protected $fillable = [
-        'code',
-        'patient_id',
         'radiography_id',
         'agreement_id',
-        'user_id',
-        'service_type',
-        'total',
-        'payment_type',
-        'care_medium',
-        'document_type',
-        'document_number',
-        'ip_address',
+        'price',
+    ];
+
+    protected $casts = [
+        'price' => 'decimal:2',
     ];
 
     public function radiography(): BelongsTo

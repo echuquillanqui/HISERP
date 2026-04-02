@@ -115,3 +115,4 @@ Route::get('/referrals/{id}/pdf-essalud', [App\Http\Controllers\ReferralControll
     ->name('referrals.pdf.essalud');
 Route::resource('referrals', App\Http\Controllers\ReferralController::class);
 Route::resource('convenios', App\Http\Controllers\AgreementController::class);
+Route::resource('radiographies', App\Http\Controllers\RadiographyController::class)->middleware('auth');
