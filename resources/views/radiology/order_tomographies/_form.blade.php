@@ -168,17 +168,25 @@
     </div>
 </div>
 
+@php
+    $radiographiesPayload = $radiographies->map(function ($radiography) {
+        return [
+            'id' => $radiography->id,
+            'description' => $radiography->description,
+            'private_price' => (float) ($radiography->private_price ?? 0),
+            'agreement_prices' => $radiography->agreementPrices->map(function ($price) {
+                return [
+                    'agreement_id' => (int) $price->agreement_id,
+                    'price' => (float) ($price->price ?? 0),
+                ];
+            })->values(),
+        ];
+    })->values();
+@endphp
+
 <script>
 function tomographyOrderForm() {
-    const radiographies = @json($radiographies->map(fn($radiography) => [
-        'id' => $radiography->id,
-        'description' => $radiography->description,
-        'private_price' => (float) ($radiography->private_price ?? 0),
-        'agreement_prices' => $radiography->agreementPrices->map(fn($price) => [
-            'agreement_id' => (int) $price->agreement_id,
-            'price' => (float) ($price->price ?? 0),
-        ])->values(),
-    ])->values());
+    const radiographies = @json($radiographiesPayload);
 
     return {
         selectedRadiographyId: '',
