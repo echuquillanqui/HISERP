@@ -51,7 +51,16 @@
                                     <div class="fw-semibold" x-text="`${item.patient?.last_name ?? ''} ${item.patient?.first_name ?? ''}`"></div>
                                     <small class="text-muted" x-text="item.patient?.dni ?? '-' "></small>
                                 </td>
-                                <td x-text="item.radiography?.description ?? '-' "></td>
+                                <td>
+                                    <template x-if="(item.items ?? []).length > 0">
+                                        <div>
+                                            <span x-text="item.items.map(detail => detail.radiography?.description).filter(Boolean).join(', ')"></span>
+                                        </div>
+                                    </template>
+                                    <template x-if="(item.items ?? []).length === 0">
+                                        <span x-text="item.radiography?.description ?? '-' "></span>
+                                    </template>
+                                </td>
                                 <td><span class="badge bg-info-subtle text-info" x-text="item.service_type"></span></td>
                                 <td x-text="`S/ ${Number(item.total ?? 0).toFixed(2)}`"></td>
                                 <td class="text-end pe-4">
