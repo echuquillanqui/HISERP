@@ -124,22 +124,22 @@
                     <h6 class="fw-bold mb-3"><i class="bi bi-journal-text me-1"></i>Reporte de movimientos (últimos 50)</h6>
                     <ul class="nav nav-tabs report-tabs mb-3" id="movementTabs" role="tablist">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="plates-in-tab" data-bs-toggle="tab" data-bs-target="#plates-in-pane" type="button" role="tab" aria-controls="plates-in-pane" aria-selected="true">
+                            <button class="nav-link movement-tab-link active" id="plates-in-tab" data-bs-toggle="tab" data-bs-target="#plates-in-pane" type="button" role="tab" aria-controls="plates-in-pane" aria-selected="true">
                                 Entradas Placas
                             </button>
                         </li>
-                        <li class="nav-item border" role="presentation">
-                            <button class="nav-link" id="plates-out-tab" data-bs-toggle="tab" data-bs-target="#plates-out-pane" type="button" role="tab" aria-controls="plates-out-pane" aria-selected="false">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link movement-tab-link" id="plates-out-tab" data-bs-toggle="tab" data-bs-target="#plates-out-pane" type="button" role="tab" aria-controls="plates-out-pane" aria-selected="false">
                                 Salidas Placas
                             </button>
                         </li>
-                        <li class="nav-item border" role="presentation">
-                            <button class="nav-link" id="iopamidol-in-tab" data-bs-toggle="tab" data-bs-target="#iopamidol-in-pane" type="button" role="tab" aria-controls="iopamidol-in-pane" aria-selected="false">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link movement-tab-link" id="iopamidol-in-tab" data-bs-toggle="tab" data-bs-target="#iopamidol-in-pane" type="button" role="tab" aria-controls="iopamidol-in-pane" aria-selected="false">
                                 Entradas Iopamidol
                             </button>
                         </li>
-                        <li class="nav-item border" role="presentation">
-                            <button class="nav-link" id="iopamidol-out-tab" data-bs-toggle="tab" data-bs-target="#iopamidol-out-pane" type="button" role="tab" aria-controls="iopamidol-out-pane" aria-selected="false">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link movement-tab-link" id="iopamidol-out-tab" data-bs-toggle="tab" data-bs-target="#iopamidol-out-pane" type="button" role="tab" aria-controls="iopamidol-out-pane" aria-selected="false">
                                 Salidas Iopamidol
                             </button>
                         </li>
@@ -269,18 +269,29 @@
 
 @push('styles')
 <style>
-    .report-tabs .nav-link {
+    .report-tabs {
+        border-bottom: 1px solid #d3e4fb;
+        gap: .35rem;
+        flex-wrap: wrap;
+    }
+    .report-tabs .movement-tab-link {
         color: #17406b !important;
-        background-color: #eaf3ff;
-        border: 1px solid #bed8f7;
+        background-color: #eaf3ff !important;
+        border: 1px solid #bed8f7 !important;
         border-radius: .6rem .6rem 0 0;
         font-weight: 600;
-        margin-right: .25rem;
+        margin-right: 0;
+        transition: all .2s ease-in-out;
     }
-    .report-tabs .nav-link.active {
-        color: #fff;
-        background: linear-gradient(90deg, #0d6efd, #20c997);
-        border-color: #0d6efd #0d6efd transparent;
+    .report-tabs .movement-tab-link:hover,
+    .report-tabs .movement-tab-link:focus {
+        color: #0b315d !important;
+        background-color: #dbeeff !important;
+    }
+    .report-tabs .movement-tab-link.active {
+        color: #fff !important;
+        background: linear-gradient(90deg, #0d6efd, #20c997) !important;
+        border-color: #0d6efd #0d6efd transparent !important;
     }
     .report-table thead th {
         border-top: 2px solid #20c997;
