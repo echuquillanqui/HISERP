@@ -209,6 +209,40 @@
                         </li>
 
                         <li class="nav-item dropdown">
+                            <a id="radiologyDropdown" class="nav-link dropdown-toggle {{ Request::is('convenios*') || Request::is('tomografias*') || Request::is('order-tomografia*') || Request::is('control-insumos*') || Request::is('resultados*') ? 'active' : '' }}"
+                            href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-radioactive me-1"></i> RADIOLOGIA
+                            </a>
+                            <ul class="dropdown-menu shadow-sm" aria-labelledby="radiologyDropdown">
+                                <li>
+                                    <a class="dropdown-item py-2" href="{{ route('convenios.index') }}">
+                                        <i class="bi bi-people me-2 text-info"></i> Convenios
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item py-2" href="{{ url('/tomografias') }}">
+                                        <i class="bi bi-image me-2 text-info"></i> Tomografias
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item py-2" href="{{ url('/order-tomografia') }}">
+                                        <i class="bi bi-clipboard2-pulse me-2 text-info"></i> order tomografia
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item py-2" href="{{ url('/control-insumos') }}">
+                                        <i class="bi bi-boxes me-2 text-info"></i> control insumos
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item py-2" href="{{ url('/resultados') }}">
+                                        <i class="bi bi-file-earmark-medical me-2 text-info"></i> resultados
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li class="nav-item dropdown">
                             <a id="labDropdown" class="nav-link dropdown-toggle {{ Request::is('orders*') || Request::is('histories*') || Request::is('lab-results*') || Request::is('serviceresults*') || Request::is('referrals*') ? 'active' : '' }}" 
                             href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="bi bi-postcard-heart me-1"></i> Atenciones
