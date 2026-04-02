@@ -7,12 +7,13 @@
             <h3 class="fw-bold" style="color: var(--azul-clinico)">
                 <i class="bi bi-people-fill me-2"></i>Gestión de Convenios
             </h3>
-            <p class="text-muted mb-0">Búsqueda dinámica y paginación con Alpine.js.</p>
         </div>
         <div class="col-md-4 text-md-end mt-3 mt-md-0">
-            <a href="{{ route('convenios.create') }}" class="btn btn-primary-custom shadow-sm px-4">
-                <i class="bi bi-plus-circle me-2"></i>Nuevo Convenio
-            </a>
+            @if($canCreate)
+                <a href="{{ route('convenios.create') }}" class="btn btn-primary-custom shadow-sm px-4">
+                    <i class="bi bi-plus-circle me-2"></i>Nuevo Convenio
+                </a>
+            @endif
         </div>
     </div>
 
