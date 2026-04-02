@@ -81,7 +81,7 @@
     <table class="table" style="margin-top: -1px;">
         <tr>
             <td style="width: 50%;"><span class="label">Estado General</span><span class="data-text">{{ strtoupper($referral->general_state ?? 'ESTABLE') }}</span></td>
-            <td style="width: 50%;"><span class="label">Pulmones</span><span class="data-text">{{ strtoupper($referral->respiratory_system ?? 'NORMAL') }}</span></td>
+            <td style="width: 50%;"><span class="label">Pulmones</span><span class="data-text">{{ strtoupper($referral->lungs ?? 'NORMAL') }}</span></td>
         </tr>
         <tr>
             <td style="width: 50%;"><span class="label">CV (Cardiovascular)</span><span class="data-text">{{ strtoupper($referral->cardiovascular ) }}</span></td>
