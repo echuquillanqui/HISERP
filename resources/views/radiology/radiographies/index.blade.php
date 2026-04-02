@@ -36,6 +36,7 @@
                     <thead class="bg-light text-secondary small fw-bold text-uppercase">
                         <tr>
                             <th class="ps-4 py-3">Descripción</th>
+                            <th>Contraste</th>
                             <th>Precio Particular</th>
                             <th>Uso de Placas</th>
                             <th>Convenios con Precio</th>
@@ -46,6 +47,7 @@
                         <template x-for="item in radiographies" :key="item.id">
                             <tr>
                                 <td class="ps-4 fw-semibold" x-text="item.description"></td>
+                                <td x-text="item.contrast_type === 'CON_CONTRASTE' ? 'CON CONTRASTE' : 'SIN CONTRASTE'"></td>
                                 <td x-text="item.private_price ? `S/ ${Number(item.private_price).toFixed(2)}` : '-' "></td>
                                 <td x-text="item.plate_usage"></td>
                                 <td x-text="item.agreement_prices_count"></td>
@@ -63,7 +65,7 @@
                         </template>
 
                         <tr x-show="radiographies.length === 0">
-                            <td colspan="5" class="text-center py-5">
+                            <td colspan="6" class="text-center py-5">
                                 <h5 class="text-secondary fw-bold mb-1">No hay radiografías para mostrar</h5>
                                 <p class="text-muted mb-0">Intenta con otro término de búsqueda.</p>
                             </td>

@@ -2,6 +2,13 @@
     <label class="form-label">Descripción</label>
     <input type="text" name="description" class="form-control" value="{{ old('description', $radiography->description) }}" required>
 </div>
+<div class="mb-3">
+    <label class="form-label">Tipo de Contraste</label>
+    <select name="contrast_type" class="form-select" required>
+        <option value="CON_CONTRASTE" @selected(old('contrast_type', $radiography->contrast_type) === 'CON_CONTRASTE')>CON CONTRASTE</option>
+        <option value="SIN_CONTRASTE" @selected(old('contrast_type', $radiography->contrast_type ?? 'SIN_CONTRASTE') === 'SIN_CONTRASTE')>SIN CONTRASTE</option>
+    </select>
+</div>
 <div class="row">
     <div class="col-md-6 mb-3">
         <label class="form-label">Precio Particular</label>

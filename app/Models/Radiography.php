@@ -13,6 +13,7 @@ class Radiography extends Model
 
     protected $fillable = [
         'description',
+        'contrast_type',
         'private_price',
         'plate_usage',
     ];

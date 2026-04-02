@@ -19,7 +19,7 @@ class AgreementPolicy
 
     public function create(User $user): bool
     {
-        return in_array($user->role, ['superadmin', 'administracion'], true);
+        return $user->role === 'superadmin';
     }
 
     public function update(User $user, Agreement $agreement): bool

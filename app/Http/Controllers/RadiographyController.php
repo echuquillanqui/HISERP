@@ -31,6 +31,7 @@ class RadiographyController extends Controller
 
         $radiography = Radiography::create([
             'description' => $data['description'],
+            'contrast_type' => $data['contrast_type'],
             'private_price' => $data['private_price'] ?? null,
             'plate_usage' => $data['plate_usage'] ?? 0,
         ]);
@@ -54,6 +55,7 @@ class RadiographyController extends Controller
 
         $radiography->update([
             'description' => $data['description'],
+            'contrast_type' => $data['contrast_type'],
             'private_price' => $data['private_price'] ?? null,
             'plate_usage' => $data['plate_usage'] ?? 0,
         ]);
@@ -97,6 +99,7 @@ class RadiographyController extends Controller
     {
         return $request->validate([
             'description' => ['required', 'string', 'max:255', 'unique:radiographies,description,' . $radiographyId],
+            'contrast_type' => ['required', 'in:CON_CONTRASTE,SIN_CONTRASTE'],
             'private_price' => ['nullable', 'numeric', 'min:0'],
             'plate_usage' => ['nullable', 'integer', 'min:0'],
             'agreement_prices' => ['nullable', 'array'],
