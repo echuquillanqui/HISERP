@@ -25,6 +25,20 @@ class OrderTomography extends Model
         'ip_address',
     ];
 
+    protected $casts = [
+        'total' => 'decimal:2',
+    ];
+
+    public function patient(): BelongsTo
+    {
+        return $this->belongsTo(Patient::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
     public function radiography(): BelongsTo
     {
         return $this->belongsTo(Radiography::class);
