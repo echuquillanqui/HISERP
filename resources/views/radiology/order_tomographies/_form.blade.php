@@ -27,14 +27,7 @@
 
     <div class="col-md-6">
         <label class="form-label">Paciente</label>
-        <select name="patient_id" class="form-select" required>
-            <option value="">Seleccione un paciente</option>
-            @foreach($patients as $patient)
-                <option value="{{ $patient->id }}" @selected(old('patient_id', $orderTomography->patient_id) == $patient->id)>
-                    {{ $patient->dni }} - {{ $patient->last_name }} {{ $patient->first_name }}
-                </option>
-            @endforeach
-        </select>
+        <select name="patient_id" id="patient_id" class="form-select" required></select>
     </div>
 
     <div class="col-md-6">
@@ -56,9 +49,6 @@
         <label class="form-label">Convenio (opcional)</label>
         <select name="agreement_id" id="agreement_id" class="form-select">
             <option value="">Sin convenio</option>
-            @foreach($agreements as $agreement)
-                <option value="{{ $agreement->id }}" @selected($selectedAgreement == $agreement->id)>{{ $agreement->description }}</option>
-            @endforeach
         </select>
     </div>
 
@@ -94,17 +84,78 @@
 
 <script>
 (function () {
+    const selectedPatient = @json($selectedPatient);
+    const selectedPatientId = @json((string) old('patient_id', $orderTomography->patient_id ?? ''));
+    const selectedAgreementId = @json((string) ($selectedAgreement ?? ''));
+    const agreementsById = @json($agreements->mapWithKeys(fn($agreement) => [(string) $agreement->id => $agreement->description]));
+
+    const patientSelectElement = document.getElementById('patient_id');
     const radiography = document.getElementById('radiography_id');
     const agreement = document.getElementById('agreement_id');
     const total = document.getElementById('total');
 
-    if (!radiography || !agreement || !total) return;
+    if (!patientSelectElement || !radiography || !agreement || !total) return;
+
+    const patientSelect = new TomSelect('#patient_id', {
+        valueField: 'id',
+        labelField: 'display',
+        searchField: ['dni', 'display'],
+        preload: true,
+        maxOptions: 20,
+        loadThrottle: 350,
+        shouldLoad: (query) => query.length >= 2 || query.length === 0,
+        load: (query, callback) => {
+            fetch(`/search-patients?q=${encodeURIComponent(query || '')}`)
+                .then((response) => response.json())
+                .then((patients) => callback(
+                    patients.map((patient) => ({
+                        ...patient,
+                        display: `${patient.dni} - ${patient.last_name} ${patient.first_name}`,
+                    }))
+                ))
+                .catch(() => callback());
+        },
+    });
+
+    if (selectedPatient?.id) {
+        patientSelect.addOption({
+            ...selectedPatient,
+            display: `${selectedPatient.dni} - ${selectedPatient.last_name} ${selectedPatient.first_name}`,
+        });
+    }
+
+    if (selectedPatientId) {
+        patientSelect.setValue(String(selectedPatientId), true);
+    }
+
+    function renderAgreementOptions(keepSelection = true) {
+        const selected = radiography.options[radiography.selectedIndex];
+        const agreementPrices = selected?.value
+            ? JSON.parse(selected.dataset.agreementPrices || '[]')
+            : [];
+        const selectedValue = keepSelection ? String(agreement.value || selectedAgreementId || '') : '';
+        const validIds = agreementPrices
+            .map((item) => String(item.agreement_id))
+            .filter((id) => agreementsById[id]);
+
+        agreement.innerHTML = '<option value="">Sin convenio</option>';
+
+        validIds.forEach((id) => {
+            const option = document.createElement('option');
+            option.value = id;
+            option.textContent = agreementsById[id];
+            agreement.appendChild(option);
+        });
+
+        agreement.value = validIds.includes(selectedValue) ? selectedValue : '';
+    }
 
     function updateTotal() {
-        if (total.value !== '') return;
-
         const selected = radiography.options[radiography.selectedIndex];
-        if (!selected || !selected.value) return;
+        if (!selected || !selected.value) {
+            total.value = '';
+            return;
+        }
 
         const privatePrice = Number(selected.dataset.privatePrice || 0);
         const agreementPrices = JSON.parse(selected.dataset.agreementPrices || '[]');
@@ -116,8 +167,12 @@
         total.value = price.toFixed(2);
     }
 
-    radiography.addEventListener('change', updateTotal);
+    radiography.addEventListener('change', () => {
+        renderAgreementOptions();
+        updateTotal();
+    });
     agreement.addEventListener('change', updateTotal);
+    renderAgreementOptions();
     updateTotal();
 })();
 </script>

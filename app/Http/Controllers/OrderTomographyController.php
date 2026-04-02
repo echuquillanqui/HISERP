@@ -22,10 +22,14 @@ class OrderTomographyController extends Controller
 
     public function create()
     {
+        $selectedPatientId = old('patient_id');
+
         return view('radiology.order_tomographies.create', [
-            'patients' => Patient::orderBy('last_name')->orderBy('first_name')->get(['id', 'dni', 'first_name', 'last_name']),
             'radiographies' => Radiography::with('agreementPrices')->orderBy('description')->get(['id', 'description', 'private_price']),
             'agreements' => Agreement::where('status', 'ACTIVE')->orderBy('description')->get(['id', 'description']),
+            'selectedPatient' => $selectedPatientId
+                ? Patient::find($selectedPatientId, ['id', 'dni', 'first_name', 'last_name'])
+                : null,
             'nextCode' => $this->generateCode(),
         ]);
     }
@@ -55,11 +59,15 @@ class OrderTomographyController extends Controller
 
     public function edit(OrderTomography $order_tomografium)
     {
+        $selectedPatientId = old('patient_id', $order_tomografium->patient_id);
+
         return view('radiology.order_tomographies.edit', [
             'orderTomography' => $order_tomografium,
-            'patients' => Patient::orderBy('last_name')->orderBy('first_name')->get(['id', 'dni', 'first_name', 'last_name']),
             'radiographies' => Radiography::with('agreementPrices')->orderBy('description')->get(['id', 'description', 'private_price']),
             'agreements' => Agreement::where('status', 'ACTIVE')->orderBy('description')->get(['id', 'description']),
+            'selectedPatient' => $selectedPatientId
+                ? Patient::find($selectedPatientId, ['id', 'dni', 'first_name', 'last_name'])
+                : null,
         ]);
     }
 
