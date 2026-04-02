@@ -14,18 +14,39 @@
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
             <form method="GET" action="{{ route('control-insumos.index') }}" class="row g-2 align-items-end">
-                <div class="col-md-4">
+                <div class="col-md-3">
+                    <label class="form-label">Periodo</label>
+                    <select name="period" id="period" class="form-select">
+                        <option value="daily" {{ ($filters['period'] ?? 'daily') === 'daily' ? 'selected' : '' }}>Diario</option>
+                        <option value="weekly" {{ ($filters['period'] ?? '') === 'weekly' ? 'selected' : '' }}>Semanal</option>
+                        <option value="biweekly" {{ ($filters['period'] ?? '') === 'biweekly' ? 'selected' : '' }}>Quincenal</option>
+                        <option value="monthly" {{ ($filters['period'] ?? '') === 'monthly' ? 'selected' : '' }}>Mensual</option>
+                        <option value="range" {{ ($filters['period'] ?? '') === 'range' ? 'selected' : '' }}>Rango de fechas</option>
+                    </select>
+                </div>
+                <div class="col-md-3" id="dailyDateWrapper">
+                    <label class="form-label">Fecha</label>
+                    <input type="date" name="date" class="form-control" value="{{ $filters['date'] ?? '' }}">
+                </div>
+                <div class="col-md-3 range-date">
                     <label class="form-label">Desde</label>
-                    <input type="date" name="from" class="form-control" value="{{ $filters['from'] ?? '' }}">
+                    <input type="date" name="start_date" class="form-control" value="{{ $filters['start_date'] ?? '' }}">
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3 range-date">
                     <label class="form-label">Hasta</label>
-                    <input type="date" name="to" class="form-control" value="{{ $filters['to'] ?? '' }}">
+                    <input type="date" name="end_date" class="form-control" value="{{ $filters['end_date'] ?? '' }}">
                 </div>
-                <div class="col-md-4 d-grid">
+                <div class="col-md-12 d-flex flex-wrap gap-2 justify-content-end mt-2">
                     <button class="btn btn-primary" type="submit"><i class="bi bi-search me-1"></i>Filtrar</button>
+                    <a class="btn btn-danger" href="{{ route('control-insumos.report.pdf', ['period' => $filters['period'] ?? 'daily', 'date' => $filters['date'] ?? '', 'start_date' => $filters['start_date'] ?? '', 'end_date' => $filters['end_date'] ?? '']) }}">
+                        <i class="bi bi-filetype-pdf me-1"></i>PDF
+                    </a>
+                    <a class="btn btn-success" href="{{ route('control-insumos.report.excel', ['period' => $filters['period'] ?? 'daily', 'date' => $filters['date'] ?? '', 'start_date' => $filters['start_date'] ?? '', 'end_date' => $filters['end_date'] ?? '']) }}">
+                        <i class="bi bi-file-earmark-excel me-1"></i>Excel
+                    </a>
                 </div>
             </form>
+            <small class="text-muted d-block mt-2">Periodo {{ $filters['range_label'] ?? 'Diario' }}: {{ \Carbon\Carbon::parse($filters['from'])->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($filters['to'])->format('d/m/Y') }}</small>
         </div>
     </div>
 
@@ -133,3 +154,28 @@
     </div>
 </div>
 @endsection
+
+
+@push('scripts')
+<script>
+    (function () {
+        const periodSelect = document.getElementById('period');
+        const rangeDateBlocks = document.querySelectorAll('.range-date');
+        const dailyWrapper = document.getElementById('dailyDateWrapper');
+
+        function toggleControlDateFilters() {
+            if (!periodSelect) return;
+            const isRange = periodSelect.value === 'range';
+            rangeDateBlocks.forEach((el) => el.classList.toggle('d-none', !isRange));
+            if (dailyWrapper) {
+                dailyWrapper.classList.toggle('d-none', isRange);
+            }
+        }
+
+        if (periodSelect) {
+            periodSelect.addEventListener('change', toggleControlDateFilters);
+            toggleControlDateFilters();
+        }
+    })();
+</script>
+@endpush

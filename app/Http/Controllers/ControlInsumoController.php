@@ -2,25 +2,28 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\TomographyOperationalReportExport;
 use App\Models\OrderTomography;
 use App\Models\TomographyResult;
 use App\Models\TomographySupplyControl;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ControlInsumoController extends Controller
 {
     public function index(Request $request)
     {
-        $from = $request->input('from');
-        $to = $request->input('to');
+        $filters = $this->resolveDateRange($request);
 
         $resultsQuery = TomographyResult::query()
-            ->when($from, fn ($query) => $query->whereDate('result_date', '>=', $from))
-            ->when($to, fn ($query) => $query->whereDate('result_date', '<=', $to));
+            ->when($filters['startDate'], fn ($query) => $query->whereDate('result_date', '>=', $filters['startDate']->toDateString()))
+            ->when($filters['endDate'], fn ($query) => $query->whereDate('result_date', '<=', $filters['endDate']->toDateString()));
 
         $entriesQuery = TomographySupplyControl::query()
-            ->when($from, fn ($query) => $query->whereDate('created_at', '>=', $from))
-            ->when($to, fn ($query) => $query->whereDate('created_at', '<=', $to));
+            ->when($filters['startDate'], fn ($query) => $query->whereDate('created_at', '>=', $filters['startDate']->toDateString()))
+            ->when($filters['endDate'], fn ($query) => $query->whereDate('created_at', '<=', $filters['endDate']->toDateString()));
 
         $platesIn = (int) (clone $entriesQuery)->sum('plates_in');
         $iopamidolIn = (float) (clone $entriesQuery)->sum('iopamidol_in');
@@ -36,8 +39,7 @@ class ControlInsumoController extends Controller
             'iopamidol_out' => round($iopamidolOutResults, 2),
             'iopamidol_balance' => round($iopamidolIn - $iopamidolOutResults, 2),
             'orders_count' => OrderTomography::query()
-                ->when($from, fn ($query) => $query->whereDate('created_at', '>=', $from))
-                ->when($to, fn ($query) => $query->whereDate('created_at', '<=', $to))
+                ->whereBetween('created_at', [$filters['startDate']->copy()->startOfDay(), $filters['endDate']->copy()->endOfDay()])
                 ->count(),
             'results_count' => (clone $resultsQuery)->count(),
         ];
@@ -50,8 +52,46 @@ class ControlInsumoController extends Controller
         return view('radiology.control_insumos.index', [
             'summary' => $summary,
             'entries' => $entries,
-            'filters' => ['from' => $from, 'to' => $to],
+            'filters' => [
+                'from' => $filters['startDate']->toDateString(),
+                'to' => $filters['endDate']->toDateString(),
+                'period' => $filters['period'],
+                'date' => $filters['startDate']->toDateString(),
+                'start_date' => $filters['startDate']->toDateString(),
+                'end_date' => $filters['endDate']->toDateString(),
+                'range_label' => $filters['label'],
+            ],
         ]);
+    }
+
+    public function exportPdf(Request $request)
+    {
+        $filters = $this->resolveDateRange($request);
+        $rows = $this->buildOperationalReportRows($filters['startDate'], $filters['endDate']);
+
+        $pdf = Pdf::loadView('radiology.control_insumos.report_pdf', [
+            'rows' => $rows,
+            'rangeLabel' => $filters['label'],
+            'startDate' => $filters['startDate'],
+            'endDate' => $filters['endDate'],
+        ])->setPaper('a4', 'landscape');
+
+        return $pdf->download(sprintf(
+            'reporte_tomografia_%s_a_%s.pdf',
+            $filters['startDate']->toDateString(),
+            $filters['endDate']->toDateString()
+        ));
+    }
+
+    public function exportExcel(Request $request)
+    {
+        $filters = $this->resolveDateRange($request);
+        $rows = $this->buildOperationalReportRows($filters['startDate'], $filters['endDate']);
+
+        return Excel::download(
+            new TomographyOperationalReportExport($rows, $filters['startDate'], $filters['endDate'], $filters['label']),
+            sprintf('reporte_tomografia_%s_a_%s.xlsx', $filters['startDate']->toDateString(), $filters['endDate']->toDateString())
+        );
     }
 
     public function store(Request $request)
@@ -82,5 +122,146 @@ class ControlInsumoController extends Controller
         ]);
 
         return redirect()->route('control-insumos.index')->with('success', 'Entrada registrada correctamente.');
+    }
+
+    private function resolveDateRange(Request $request): array
+    {
+        $period = $request->get('period', 'daily');
+        $today = Carbon::today();
+
+        switch ($period) {
+            case 'weekly':
+                $startDate = $today->copy()->startOfWeek(Carbon::MONDAY);
+                $endDate = $today->copy()->endOfWeek(Carbon::SUNDAY);
+                $label = 'Semanal';
+                break;
+            case 'biweekly':
+                if ($today->day <= 15) {
+                    $startDate = $today->copy()->startOfMonth();
+                    $endDate = $today->copy()->startOfMonth()->addDays(14);
+                } else {
+                    $startDate = $today->copy()->startOfMonth()->addDays(15);
+                    $endDate = $today->copy()->endOfMonth();
+                }
+                $label = 'Quincenal';
+                break;
+            case 'monthly':
+                $startDate = $today->copy()->startOfMonth();
+                $endDate = $today->copy()->endOfMonth();
+                $label = 'Mensual';
+                break;
+            case 'range':
+                $startDate = $request->filled('start_date') ? Carbon::parse($request->string('start_date')) : $today->copy();
+                $endDate = $request->filled('end_date') ? Carbon::parse($request->string('end_date')) : $startDate->copy();
+                if ($endDate->lt($startDate)) {
+                    [$startDate, $endDate] = [$endDate, $startDate];
+                }
+                $label = 'Rango Personalizado';
+                break;
+            case 'daily':
+            default:
+                $day = $request->get('date', $request->get('from', $today->toDateString()));
+                $startDate = Carbon::parse($day);
+                $endDate = Carbon::parse($day);
+                $label = 'Diario';
+                $period = 'daily';
+                break;
+        }
+
+        return compact('period', 'startDate', 'endDate', 'label');
+    }
+
+    private function buildOperationalReportRows(Carbon $startDate, Carbon $endDate): array
+    {
+        $orders = OrderTomography::query()
+            ->with([
+                'patient:id,dni,first_name,last_name',
+                'agreement:id,description',
+                'items.radiography:id,description',
+                'result.requestingDoctor:id,name',
+                'result.reportSigner:id,name',
+                'user:id,name',
+            ])
+            ->whereBetween('created_at', [$startDate->copy()->startOfDay(), $endDate->copy()->endOfDay()])
+            ->orderBy('created_at')
+            ->get();
+
+        $rows = [];
+
+        foreach ($orders as $index => $order) {
+            $result = $order->result;
+            $rowDate = $result?->result_date ? Carbon::parse($result->result_date) : Carbon::parse($order->created_at);
+
+            $platesBalance = (int) TomographySupplyControl::query()
+                ->whereDate('created_at', '<=', $rowDate->toDateString())
+                ->sum('plates_in')
+                - (int) TomographyResult::query()
+                    ->whereDate('result_date', '<=', $rowDate->toDateString())
+                    ->sum('plates_used');
+
+            $iopamidolBalance = (float) TomographySupplyControl::query()
+                ->whereDate('created_at', '<=', $rowDate->toDateString())
+                ->sum('iopamidol_in')
+                - (float) TomographyResult::query()
+                    ->whereDate('result_date', '<=', $rowDate->toDateString())
+                    ->sum('iopamidol_used');
+
+            $paymentType = (string) $order->payment_type;
+            $total = (float) ($order->total ?? 0);
+
+            $rows[] = [
+                'numero' => $index + 1,
+                'fecha' => $rowDate->format('d/m/Y'),
+                'paciente' => trim(($order->patient->last_name ?? '') . ' ' . ($order->patient->first_name ?? '')),
+                'dni' => $order->patient->dni ?? '-',
+                'orden_servicio' => $order->code,
+                'tipo_tomografia' => $order->items->pluck('radiography.description')->filter()->join(', '),
+                'sc_cc' => (float) ($result?->iopamidol_used ?? 0) > 0 ? 'C/C' : 'S/C',
+                'uso_iopamidol' => (float) ($result?->iopamidol_used ?? 0),
+                'convenio' => $order->agreement->description ?? '-',
+                'servicio' => $this->mapServiceType($order->service_type),
+                'efectivo' => $paymentType === 'CASH' ? $total : 0,
+                'yape' => $paymentType === 'YAPE' ? $total : 0,
+                'transferencia' => $paymentType === 'TRANSFER' ? $total : 0,
+                'por_cobrar' => $paymentType === 'PENDING_PAYMENT' ? $total : 0,
+                'placas_entregadas' => (int) ($result?->plates_used ?? 0),
+                'saldo_placas' => $platesBalance,
+                'saldo_iopamidol' => round($iopamidolBalance, 2),
+                'medico_solicitante' => $result?->requestingDoctor?->name ?? '-',
+                'doctor_informe' => $result?->reportSigner?->name ?? '-',
+                'medio' => $this->mapCareMedium($order->care_medium),
+                'boleta_factura' => $this->mapDocumentType($order->document_type),
+                'numero_doc' => $order->document_number ?? '-',
+                'recepcion' => $order->user->name ?? '-',
+            ];
+        }
+
+        return $rows;
+    }
+
+    private function mapServiceType(?string $type): string
+    {
+        return match ($type) {
+            'EMERGENCY' => 'Emergencia',
+            'AGREEMENT' => 'Convenio',
+            default => 'Particular',
+        };
+    }
+
+    private function mapCareMedium(?string $medium): string
+    {
+        return match ($medium) {
+            'AMBULANCE' => 'Ambulancia',
+            default => 'Ambulatorio',
+        };
+    }
+
+    private function mapDocumentType(?string $type): string
+    {
+        return match ($type) {
+            'RECEIPT' => 'Boleta',
+            'INVOICE' => 'Factura',
+            default => '-',
+        };
     }
 }

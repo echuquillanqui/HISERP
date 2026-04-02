@@ -226,11 +226,6 @@
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item py-2" href="{{ url('/tomografias') }}">
-                                        <i class="bi bi-image me-2 text-info"></i> Tomografias
-                                    </a>
-                                </li>
-                                <li>
                                     <a class="dropdown-item py-2" href="{{ url('/order-tomografia') }}">
                                         <i class="bi bi-clipboard2-pulse me-2 text-info"></i> order tomografia
                                     </a>

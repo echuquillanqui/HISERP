@@ -124,3 +124,5 @@ Route::put('/resultados/{resultado}', [App\Http\Controllers\TomographyResultCont
 Route::get('/resultados/{resultado}', [App\Http\Controllers\TomographyResultController::class, 'show'])->middleware('auth')->name('tomography-results.show');
 Route::get('/control-insumos', [App\Http\Controllers\ControlInsumoController::class, 'index'])->middleware('auth')->name('control-insumos.index');
 Route::post('/control-insumos', [App\Http\Controllers\ControlInsumoController::class, 'store'])->middleware('auth')->name('control-insumos.store');
+Route::get('/control-insumos/reporte/pdf', [App\Http\Controllers\ControlInsumoController::class, 'exportPdf'])->middleware('auth')->name('control-insumos.report.pdf');
+Route::get('/control-insumos/reporte/excel', [App\Http\Controllers\ControlInsumoController::class, 'exportExcel'])->middleware('auth')->name('control-insumos.report.excel');
