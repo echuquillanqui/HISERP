@@ -58,13 +58,10 @@
                         <label class="form-label">Convenio (opcional)</label>
                         <select name="agreement_id" id="agreement_id" x-model="agreementId" @change="onAgreementChange" class="form-select">
                             <option value="">Particular (sin convenio)</option>
-                            <template x-for="agreement in availableAgreements" :key="agreement.id">
+                            <template x-for="agreement in agreements" :key="agreement.id">
                                 <option :value="agreement.id" x-text="agreement.description"></option>
                             </template>
                         </select>
-                        <small class="text-muted" x-show="selectedRadiographyId && availableAgreements.length === 0">
-                            La tomografía seleccionada no tiene convenios configurados.
-                        </small>
                     </div>
                 </div>
             </div>
@@ -78,12 +75,7 @@
                 <div class="row g-2 align-items-end mb-3">
                     <div class="col-md-8">
                         <label class="form-label">Tomografía / Estudio</label>
-                        <select id="radiography_selector" class="form-select" x-model="selectedRadiographyId" @change="syncAvailableAgreements()">
-                            <option value="">Seleccione estudio</option>
-                            @foreach($radiographies as $radiography)
-                                <option value="{{ $radiography->id }}">{{ $radiography->description }}</option>
-                            @endforeach
-                        </select>
+                        <select id="radiography_selector" class="form-select"></select>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Cantidad</label>
@@ -197,14 +189,15 @@ function tomographyOrderForm() {
         selectedQuantity: 1,
         items: [],
         total: 0,
-        availableAgreements: agreements,
+        agreements,
+        radiographySelect: null,
         agreementId: @json((string) ($selectedAgreement ?? '')),
         serviceType: @json(old('service_type', $orderTomography->service_type ?? 'PRIVATE')),
 
         init() {
             this.initPatientSelect();
+            this.initRadiographySelect();
             this.loadInitialItems();
-            this.syncAvailableAgreements();
             this.refreshPrices();
             this.refreshTotal();
         },
@@ -244,6 +237,23 @@ function tomographyOrderForm() {
             if (selectedPatientId) {
                 patientSelect.setValue(String(selectedPatientId), true);
             }
+        },
+
+        initRadiographySelect() {
+            this.radiographySelect = new TomSelect('#radiography_selector', {
+                valueField: 'id',
+                labelField: 'description',
+                searchField: ['description'],
+                maxOptions: 20,
+                options: radiographies,
+                render: {
+                    option: (data, escape) => `<div>${escape(data.description)}</div>`,
+                    item: (data, escape) => `<div>${escape(data.description)}</div>`,
+                },
+                onChange: (value) => {
+                    this.selectedRadiographyId = value ? String(value) : '';
+                },
+            });
         },
 
         loadInitialItems() {
@@ -299,7 +309,9 @@ function tomographyOrderForm() {
 
             this.selectedRadiographyId = '';
             this.selectedQuantity = 1;
-            this.syncAvailableAgreements();
+            if (this.radiographySelect) {
+                this.radiographySelect.clear(true);
+            }
             this.refreshTotal();
         },
 
@@ -317,22 +329,6 @@ function tomographyOrderForm() {
 
             this.refreshPrices();
             this.refreshTotal();
-        },
-
-        syncAvailableAgreements() {
-            const radiography = this.findRadiography(this.selectedRadiographyId);
-            if (!radiography) {
-                this.availableAgreements = agreements;
-                return;
-            }
-
-            const allowedIds = new Set((radiography.agreement_prices || []).map((item) => Number(item.agreement_id)));
-            this.availableAgreements = agreements.filter((item) => allowedIds.has(Number(item.id)));
-
-            if (this.agreementId && !allowedIds.has(Number(this.agreementId))) {
-                this.agreementId = '';
-                this.onAgreementChange();
-            }
         },
 
         refreshPrices() {
