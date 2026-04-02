@@ -1,0 +1,36 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('tomography_supply_controls', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('order_tomography_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('radiography_id')->nullable()->constrained()->nullOnDelete();
+            $table->unsignedInteger('plates_in')->default(0);
+            $table->unsignedInteger('plates_out')->default(0);
+            $table->decimal('iopamidol_in', 10, 2)->default(0);
+            $table->decimal('iopamidol_out', 10, 2)->default(0);
+            $table->unsignedInteger('plates_balance')->default(0);
+            $table->decimal('iopamidol_balance', 10, 2)->default(0);
+            $table->string('notes')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('tomography_supply_controls');
+    }
+};
