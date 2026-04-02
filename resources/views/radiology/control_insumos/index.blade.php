@@ -7,7 +7,7 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
         <div>
             <h3 class="fw-bold text-primary mb-1"><i class="bi bi-boxes me-2"></i>Control de Insumos de Tomografía</h3>
-            <p class="text-muted mb-0">Control exclusivo de placas e iopamidol consumidos por órdenes y resultados.</p>
+            <p class="text-muted mb-0">Control exclusivo de placas e iopamidol consumidos por resultados de tomografía.</p>
         </div>
     </div>
 
@@ -58,7 +58,7 @@
                     <small class="text-muted d-block">Consumo del periodo</small>
                     <div class="d-flex justify-content-between"><span>Órdenes de tomografía</span><strong>{{ number_format($summary['orders_count']) }}</strong></div>
                     <div class="d-flex justify-content-between"><span>Resultados emitidos</span><strong>{{ number_format($summary['results_count']) }}</strong></div>
-                    <small class="text-muted d-block mt-2">Las placas se consumen por órdenes + resultados. El iopamidol por resultados.</small>
+                    <small class="text-muted d-block mt-2">El gasto de placas e iopamidol se calcula desde resultados de tomografía.</small>
                 </div>
             </div>
         </div>

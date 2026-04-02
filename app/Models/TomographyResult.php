@@ -38,4 +38,15 @@ class TomographyResult extends Model
     {
         return $this->belongsTo(Patient::class);
     }
+
+    public function requestingDoctor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'requesting_doctor_id');
+    }
+
+    public function reportSigner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'report_signer_id');
+    }
 }
+

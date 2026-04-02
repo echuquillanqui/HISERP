@@ -117,5 +117,10 @@ Route::resource('referrals', App\Http\Controllers\ReferralController::class);
 Route::resource('convenios', App\Http\Controllers\AgreementController::class);
 Route::resource('radiographies', App\Http\Controllers\RadiographyController::class)->middleware('auth');
 Route::resource('order-tomografia', App\Http\Controllers\OrderTomographyController::class)->middleware('auth');
+
+Route::get('/resultados', [App\Http\Controllers\TomographyResultController::class, 'index'])->middleware('auth')->name('tomography-results.index');
+Route::get('/resultados/{resultado}/edit', [App\Http\Controllers\TomographyResultController::class, 'edit'])->middleware('auth')->name('tomography-results.edit');
+Route::put('/resultados/{resultado}', [App\Http\Controllers\TomographyResultController::class, 'update'])->middleware('auth')->name('tomography-results.update');
+Route::get('/resultados/{resultado}', [App\Http\Controllers\TomographyResultController::class, 'show'])->middleware('auth')->name('tomography-results.show');
 Route::get('/control-insumos', [App\Http\Controllers\ControlInsumoController::class, 'index'])->middleware('auth')->name('control-insumos.index');
 Route::post('/control-insumos', [App\Http\Controllers\ControlInsumoController::class, 'store'])->middleware('auth')->name('control-insumos.store');

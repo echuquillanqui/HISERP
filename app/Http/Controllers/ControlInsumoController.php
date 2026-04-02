@@ -14,11 +14,6 @@ class ControlInsumoController extends Controller
         $from = $request->input('from');
         $to = $request->input('to');
 
-        $ordersQuery = OrderTomography::query()
-            ->with(['items.radiography:id,plate_usage'])
-            ->when($from, fn ($query) => $query->whereDate('created_at', '>=', $from))
-            ->when($to, fn ($query) => $query->whereDate('created_at', '<=', $to));
-
         $resultsQuery = TomographyResult::query()
             ->when($from, fn ($query) => $query->whereDate('result_date', '>=', $from))
             ->when($to, fn ($query) => $query->whereDate('result_date', '<=', $to));
@@ -30,24 +25,20 @@ class ControlInsumoController extends Controller
         $platesIn = (int) (clone $entriesQuery)->sum('plates_in');
         $iopamidolIn = (float) (clone $entriesQuery)->sum('iopamidol_in');
 
-        $platesOutOrders = (clone $ordersQuery)->get()->sum(function (OrderTomography $order) {
-            return $order->items->sum(function ($item) {
-                $plateUsage = (int) ($item->radiography->plate_usage ?? 0);
-                return ((int) $item->quantity) * $plateUsage;
-            });
-        });
-
         $platesOutResults = (int) (clone $resultsQuery)->sum('plates_used');
         $iopamidolOutResults = (float) (clone $resultsQuery)->sum('iopamidol_used');
 
         $summary = [
             'plates_in' => $platesIn,
-            'plates_out' => (int) $platesOutOrders + $platesOutResults,
-            'plates_balance' => $platesIn - ((int) $platesOutOrders + $platesOutResults),
+            'plates_out' => $platesOutResults,
+            'plates_balance' => $platesIn - $platesOutResults,
             'iopamidol_in' => round($iopamidolIn, 2),
             'iopamidol_out' => round($iopamidolOutResults, 2),
             'iopamidol_balance' => round($iopamidolIn - $iopamidolOutResults, 2),
-            'orders_count' => (clone $ordersQuery)->count(),
+            'orders_count' => OrderTomography::query()
+                ->when($from, fn ($query) => $query->whereDate('created_at', '>=', $from))
+                ->when($to, fn ($query) => $query->whereDate('created_at', '<=', $to))
+                ->count(),
             'results_count' => (clone $resultsQuery)->count(),
         ];
 
@@ -78,12 +69,7 @@ class ControlInsumoController extends Controller
             return back()->withErrors(['plates_in' => 'Debe registrar al menos una entrada de placas o iopamidol.'])->withInput();
         }
 
-        $currentPlatesBalance = (int) TomographySupplyControl::sum('plates_in')
-            - ((int) OrderTomography::with(['items.radiography:id,plate_usage'])->get()->sum(function (OrderTomography $order) {
-                return $order->items->sum(function ($item) {
-                    return ((int) $item->quantity) * ((int) ($item->radiography->plate_usage ?? 0));
-                });
-            }) + (int) TomographyResult::sum('plates_used'));
+        $currentPlatesBalance = (int) TomographySupplyControl::sum('plates_in') - (int) TomographyResult::sum('plates_used');
 
         $currentIopamidolBalance = (float) TomographySupplyControl::sum('iopamidol_in') - (float) TomographyResult::sum('iopamidol_used');
 
