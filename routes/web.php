@@ -113,5 +113,5 @@ Route::get('/referrals/{id}/pdf', [App\Http\Controllers\ReferralController::clas
     ->name('referrals.pdf');
 Route::get('/referrals/{id}/pdf-essalud', [App\Http\Controllers\ReferralController::class, 'downloadPdfEssalud'])
     ->name('referrals.pdf.essalud');
-Route::resource('referrals', App\Http\Controllers\ReferralController::class)->middleware('auth');
-Route::resource('convenios', App\Http\Controllers\AgreementController::class)->middleware('auth');
+Route::resource('referrals', App\Http\Controllers\ReferralController::class);
+Route::resource('convenios', App\Http\Controllers\AgreementController::class);
