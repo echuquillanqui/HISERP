@@ -327,6 +327,14 @@
             didOpen: () => { playSuccessSound(); }
         });
     @endif
+
+    @if(session('error'))
+        Swal.fire({
+            icon: 'warning',
+            title: 'No se pudo completar la operación',
+            text: "{{ session('error') }}"
+        });
+    @endif
 </script>    
 @stack('scripts')
 </body>

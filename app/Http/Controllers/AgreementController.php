@@ -84,6 +84,13 @@ class AgreementController extends Controller
     {
         $this->authorize('delete', $convenio);
 
+        if ($convenio->orderTomographies()->exists()) {
+            return redirect()->route('convenios.index')->with(
+                'error',
+                'No se puede eliminar el convenio porque está asociado a una o más tomografías.'
+            );
+        }
+
         $convenio->delete();
 
         return redirect()->route('convenios.index')->with('success', 'Convenio eliminado correctamente.');
