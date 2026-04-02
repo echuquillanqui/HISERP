@@ -128,17 +128,17 @@
                                 Entradas Placas
                             </button>
                         </li>
-                        <li class="nav-item" role="presentation">
+                        <li class="nav-item border" role="presentation">
                             <button class="nav-link" id="plates-out-tab" data-bs-toggle="tab" data-bs-target="#plates-out-pane" type="button" role="tab" aria-controls="plates-out-pane" aria-selected="false">
                                 Salidas Placas
                             </button>
                         </li>
-                        <li class="nav-item" role="presentation">
+                        <li class="nav-item border" role="presentation">
                             <button class="nav-link" id="iopamidol-in-tab" data-bs-toggle="tab" data-bs-target="#iopamidol-in-pane" type="button" role="tab" aria-controls="iopamidol-in-pane" aria-selected="false">
                                 Entradas Iopamidol
                             </button>
                         </li>
-                        <li class="nav-item" role="presentation">
+                        <li class="nav-item border" role="presentation">
                             <button class="nav-link" id="iopamidol-out-tab" data-bs-toggle="tab" data-bs-target="#iopamidol-out-pane" type="button" role="tab" aria-controls="iopamidol-out-pane" aria-selected="false">
                                 Salidas Iopamidol
                             </button>
