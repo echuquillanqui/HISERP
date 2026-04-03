@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             SpecialtySeeder::class,
             UserSeeder::class,
             AreaSeeder::class,
+            IopamidolBrandSeeder::class,
             //ProductSeeder::class,
             Cie10Seeder::class,
             //PatientSeeder::class,

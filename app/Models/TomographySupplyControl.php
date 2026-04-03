@@ -17,6 +17,9 @@ class TomographySupplyControl extends Model
         'plates_out',
         'iopamidol_in',
         'iopamidol_out',
+        'iopamidol_brand_id',
+        'iopamidol_presentation_ml',
+        'iopamidol_units',
         'plates_balance',
         'iopamidol_balance',
         'notes',
@@ -26,6 +29,8 @@ class TomographySupplyControl extends Model
         'iopamidol_in' => 'decimal:2',
         'iopamidol_out' => 'decimal:2',
         'iopamidol_balance' => 'decimal:2',
+        'iopamidol_presentation_ml' => 'integer',
+        'iopamidol_units' => 'integer',
     ];
 
     public function orderTomography(): BelongsTo
@@ -36,5 +41,10 @@ class TomographySupplyControl extends Model
     public function radiography(): BelongsTo
     {
         return $this->belongsTo(Radiography::class);
+    }
+
+    public function iopamidolBrand(): BelongsTo
+    {
+        return $this->belongsTo(IopamidolBrand::class);
     }
 }

@@ -100,9 +100,34 @@
                             @enderror
                         </div>
                         <div class="col-12">
-                            <label class="form-label">Iopamidol (ml)</label>
-                            <input type="number" min="0" step="0.01" class="form-control @error('iopamidol_in') is-invalid @enderror" name="iopamidol_in" value="{{ old('iopamidol_in', 0) }}">
-                            @error('iopamidol_in')
+                            <label class="form-label">Marca de iopamidol</label>
+                            <select class="form-select @error('iopamidol_brand_id') is-invalid @enderror" name="iopamidol_brand_id">
+                                <option value="">Seleccione marca</option>
+                                @foreach($iopamidolBrands as $brand)
+                                    <option value="{{ $brand->id }}" {{ (string) old('iopamidol_brand_id') === (string) $brand->id ? 'selected' : '' }}>
+                                        {{ $brand->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('iopamidol_brand_id')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Presentación (ml)</label>
+                            <select class="form-select @error('iopamidol_presentation_ml') is-invalid @enderror" name="iopamidol_presentation_ml">
+                                <option value="">Sin iopamidol</option>
+                                <option value="50" {{ old('iopamidol_presentation_ml') == 50 ? 'selected' : '' }}>50 ml</option>
+                                <option value="100" {{ old('iopamidol_presentation_ml') == 100 ? 'selected' : '' }}>100 ml</option>
+                            </select>
+                            @error('iopamidol_presentation_ml')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Cantidad de frascos</label>
+                            <input type="number" min="1" class="form-control @error('iopamidol_units') is-invalid @enderror" name="iopamidol_units" value="{{ old('iopamidol_units', 1) }}">
+                            @error('iopamidol_units')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
@@ -209,6 +234,9 @@
                                     <thead>
                                         <tr>
                                             <th>Fecha</th>
+                                            <th>Marca</th>
+                                            <th>Presentación</th>
+                                            <th class="text-end">Frascos</th>
                                             <th class="text-end">Iopamidol + (ml)</th>
                                             <th>Notas</th>
                                         </tr>
@@ -218,12 +246,15 @@
                                         @forelse($iopamidolEntries as $entry)
                                             <tr>
                                                 <td>{{ $entry->created_at?->format('d/m/Y H:i') }}</td>
+                                                <td>{{ $entry->iopamidolBrand?->name ?? '—' }}</td>
+                                                <td>{{ $entry->iopamidol_presentation_ml ? $entry->iopamidol_presentation_ml . ' ml' : '—' }}</td>
+                                                <td class="text-end">{{ $entry->iopamidol_units ?: '—' }}</td>
                                                 <td class="text-end fw-semibold text-success">{{ number_format($entry->iopamidol_in, 2) }}</td>
                                                 <td>{{ $entry->notes ?: '—' }}</td>
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="3" class="text-center text-muted py-4">Sin entradas de iopamidol para el periodo.</td>
+                                                <td colspan="6" class="text-center text-muted py-4">Sin entradas de iopamidol para el periodo.</td>
                                             </tr>
                                         @endforelse
                                     </tbody>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\TomographyOperationalReportExport;
+use App\Models\IopamidolBrand;
 use App\Models\OrderTomography;
 use App\Models\TomographyResult;
 use App\Models\TomographySupplyControl;
@@ -31,13 +32,27 @@ class ControlInsumoController extends Controller
         $platesOutResults = (int) (clone $resultsQuery)->sum('plates_used');
         $iopamidolOutResults = (float) (clone $resultsQuery)->sum('iopamidol_used');
 
+        $platesOpeningBalance = (int) TomographySupplyControl::query()
+            ->whereDate('created_at', '<', $filters['startDate']->toDateString())
+            ->sum('plates_in')
+            - (int) TomographyResult::query()
+                ->whereDate('result_date', '<', $filters['startDate']->toDateString())
+                ->sum('plates_used');
+
+        $iopamidolOpeningBalance = (float) TomographySupplyControl::query()
+            ->whereDate('created_at', '<', $filters['startDate']->toDateString())
+            ->sum('iopamidol_in')
+            - (float) TomographyResult::query()
+                ->whereDate('result_date', '<', $filters['startDate']->toDateString())
+                ->sum('iopamidol_used');
+
         $summary = [
             'plates_in' => $platesIn,
             'plates_out' => $platesOutResults,
-            'plates_balance' => $platesIn - $platesOutResults,
+            'plates_balance' => $platesOpeningBalance + $platesIn - $platesOutResults,
             'iopamidol_in' => round($iopamidolIn, 2),
             'iopamidol_out' => round($iopamidolOutResults, 2),
-            'iopamidol_balance' => round($iopamidolIn - $iopamidolOutResults, 2),
+            'iopamidol_balance' => round($iopamidolOpeningBalance + $iopamidolIn - $iopamidolOutResults, 2),
             'orders_count' => OrderTomography::query()
                 ->whereBetween('created_at', [$filters['startDate']->copy()->startOfDay(), $filters['endDate']->copy()->endOfDay()])
                 ->count(),
@@ -45,6 +60,7 @@ class ControlInsumoController extends Controller
         ];
 
         $entries = TomographySupplyControl::query()
+            ->with('iopamidolBrand:id,name')
             ->when($filters['startDate'], fn ($query) => $query->whereDate('created_at', '>=', $filters['startDate']->toDateString()))
             ->when($filters['endDate'], fn ($query) => $query->whereDate('created_at', '<=', $filters['endDate']->toDateString()))
             ->latest('id')
@@ -74,6 +90,7 @@ class ControlInsumoController extends Controller
             'entries' => $entries,
             'platesOutputs' => $platesOutputs,
             'iopamidolOutputs' => $iopamidolOutputs,
+            'iopamidolBrands' => IopamidolBrand::query()->orderBy('name')->get(['id', 'name']),
             'filters' => [
                 'from' => $filters['startDate']->toDateString(),
                 'to' => $filters['endDate']->toDateString(),
@@ -120,12 +137,20 @@ class ControlInsumoController extends Controller
     {
         $data = $request->validate([
             'plates_in' => ['nullable', 'integer', 'min:0'],
-            'iopamidol_in' => ['nullable', 'numeric', 'min:0'],
+            'iopamidol_brand_id' => ['nullable', 'exists:iopamidol_brands,id'],
+            'iopamidol_presentation_ml' => ['nullable', 'integer', 'in:50,100'],
+            'iopamidol_units' => ['nullable', 'integer', 'min:1'],
             'notes' => ['nullable', 'string', 'max:255'],
         ]);
 
         $platesIn = (int) ($data['plates_in'] ?? 0);
-        $iopamidolIn = (float) ($data['iopamidol_in'] ?? 0);
+        $iopamidolPresentation = isset($data['iopamidol_presentation_ml']) ? (int) $data['iopamidol_presentation_ml'] : null;
+        $iopamidolUnits = $iopamidolPresentation ? (int) ($data['iopamidol_units'] ?? 1) : 0;
+        $iopamidolIn = (float) (($iopamidolPresentation && $iopamidolUnits > 0) ? $iopamidolPresentation * $iopamidolUnits : 0);
+
+        if ($iopamidolPresentation && empty($data['iopamidol_brand_id'])) {
+            return back()->withErrors(['iopamidol_brand_id' => 'Seleccione una marca para el iopamidol.'])->withInput();
+        }
 
         if ($platesIn === 0 && $iopamidolIn === 0.0) {
             return back()->withErrors(['plates_in' => 'Debe registrar al menos una entrada de placas o iopamidol.'])->withInput();
@@ -138,6 +163,9 @@ class ControlInsumoController extends Controller
         TomographySupplyControl::create([
             'plates_in' => $platesIn,
             'iopamidol_in' => $iopamidolIn,
+            'iopamidol_brand_id' => $iopamidolPresentation ? $data['iopamidol_brand_id'] : null,
+            'iopamidol_presentation_ml' => $iopamidolPresentation,
+            'iopamidol_units' => $iopamidolUnits,
             'plates_balance' => $currentPlatesBalance + $platesIn,
             'iopamidol_balance' => round($currentIopamidolBalance + $iopamidolIn, 2),
             'notes' => $data['notes'] ?? null,
