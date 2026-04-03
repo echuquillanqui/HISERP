@@ -212,7 +212,7 @@
                         <li class="nav-item dropdown">
                             <a id="radiologyDropdown" class="nav-link dropdown-toggle {{ Request::is('convenios*') || Request::is('radiographies*') || Request::is('tomografias*') || Request::is('order-tomografia*') || Request::is('control-insumos*') || Request::is('resultados*') ? 'active' : '' }}"
                             href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="bi bi-radioactive me-1"></i> RADIOLOGIA
+                                <i class="bi bi-radioactive me-1"></i> Placas Tomograficas
                             </a>
                             <ul class="dropdown-menu shadow-sm" aria-labelledby="radiologyDropdown">
                                 <li>
