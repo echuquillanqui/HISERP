@@ -10,6 +10,7 @@ use App\Models\TomographySupplyControl;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ControlInsumoController extends Controller
@@ -172,6 +173,30 @@ class ControlInsumoController extends Controller
         ]);
 
         return redirect()->route('control-insumos.index')->with('success', 'Entrada registrada correctamente.');
+    }
+
+    public function storeBrand(Request $request)
+    {
+        $data = $request->validate([
+            'name' => [
+                'required',
+                'string',
+                'max:100',
+                Rule::unique('iopamidol_brands', 'name'),
+            ],
+        ], [
+            'name.required' => 'Ingrese el nombre de la marca.',
+            'name.unique' => 'La marca ya está registrada.',
+        ]);
+
+        IopamidolBrand::create([
+            'name' => trim($data['name']),
+            'is_active' => true,
+        ]);
+
+        return redirect()
+            ->route('control-insumos.index')
+            ->with('success', 'Marca de iopamidol registrada correctamente.');
     }
 
     private function resolveDateRange(Request $request): array

@@ -101,14 +101,19 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label">Marca de iopamidol</label>
-                            <select class="form-select @error('iopamidol_brand_id') is-invalid @enderror" name="iopamidol_brand_id">
-                                <option value="">Seleccione marca</option>
-                                @foreach($iopamidolBrands as $brand)
-                                    <option value="{{ $brand->id }}" {{ (string) old('iopamidol_brand_id') === (string) $brand->id ? 'selected' : '' }}>
-                                        {{ $brand->name }}
-                                    </option>
-                                @endforeach
-                            </select>
+                            <div class="d-flex gap-2 align-items-start">
+                                <select class="form-select @error('iopamidol_brand_id') is-invalid @enderror" name="iopamidol_brand_id">
+                                    <option value="">Seleccione marca</option>
+                                    @foreach($iopamidolBrands as $brand)
+                                        <option value="{{ $brand->id }}" {{ (string) old('iopamidol_brand_id') === (string) $brand->id ? 'selected' : '' }}>
+                                            {{ $brand->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#createIopamidolBrandModal" title="Agregar nueva marca">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </div>
                             @error('iopamidol_brand_id')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -296,6 +301,33 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="createIopamidolBrandModal" tabindex="-1" aria-labelledby="createIopamidolBrandModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ route('control-insumos.brands.store') }}" method="POST">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createIopamidolBrandModalLabel">
+                        <i class="bi bi-capsule-pill me-1"></i>Nueva marca de iopamidol
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label">Nombre de marca</label>
+                    <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name') }}" placeholder="Ej. Iopamiron" required>
+                    @error('name')
+                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                    @enderror
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i>Guardar marca</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('styles')
@@ -356,6 +388,13 @@
             periodSelect.addEventListener('change', toggleControlDateFilters);
             toggleControlDateFilters();
         }
+
+        @if($errors->has('name'))
+            const brandModalElement = document.getElementById('createIopamidolBrandModal');
+            if (brandModalElement && window.bootstrap?.Modal) {
+                window.bootstrap.Modal.getOrCreateInstance(brandModalElement).show();
+            }
+        @endif
     })();
 </script>
 @endpush
