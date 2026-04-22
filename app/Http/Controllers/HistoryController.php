@@ -55,6 +55,12 @@ class HistoryController extends Controller
             'prescription.items.product', 
             'labItems'
         ]);
+
+        $lastGeneratedHistory = History::where('patient_id', $history->patient_id)
+            ->where('id', '!=', $history->id)
+            ->where('created_at', '<', now())
+            ->latest('created_at')
+            ->first();
         
         // 2. Historial clínico/laboratorio del paciente (ordenado por fecha desc + paginación)
         $patientHistoryTimeline = History::where('patient_id', $history->patient_id)
@@ -105,6 +111,7 @@ class HistoryController extends Controller
         // 5. Retornamos la vista con las variables necesarias
         return view('atenciones.histories.edit', compact(
             'history', 
+            'lastGeneratedHistory',
             'patientHistoryTimeline', 
             'orderLabResults', 
             'areasConContenido'

@@ -362,6 +362,25 @@
                                     <i class="bi bi-clock-history me-2"></i>Historial clínico y de laboratorio
                                 </h5>
 
+                                @if($lastGeneratedHistory)
+                                    <div class="alert alert-info d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+                                        <div>
+                                            <div class="fw-semibold">Última historia generada antes de hoy</div>
+                                            <small class="text-muted">
+                                                Fecha: {{ $lastGeneratedHistory->created_at?->format('d/m/Y H:i') }}
+                                            </small>
+                                        </div>
+                                        <a
+                                            href="{{ route('histories.print_history', $lastGeneratedHistory->id) }}"
+                                            target="_blank"
+                                            rel="noopener"
+                                            class="btn btn-outline-danger btn-sm"
+                                        >
+                                            <i class="bi bi-file-earmark-pdf me-1"></i>Ver PDF de la última historia
+                                        </a>
+                                    </div>
+                                @endif
+
                                 @forelse($patientHistoryTimeline as $timelineHistory)
                                     <div class="card border-0 shadow-sm mb-3">
                                         <div class="card-header d-flex justify-content-between align-items-center bg-light">
