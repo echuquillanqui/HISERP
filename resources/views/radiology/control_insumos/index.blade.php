@@ -62,16 +62,18 @@
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <small class="text-muted d-block">Iopamidol (ml)</small>
-                    <div class="d-flex justify-content-between"><span>Entradas</span><strong>{{ number_format($summary['iopamidol_in'], 2) }}</strong></div>
-                    <div class="d-flex justify-content-between"><span>Salidas</span><strong>{{ number_format($summary['iopamidol_out'], 2) }}</strong></div>
-                    <div class="d-flex justify-content-between"><span>Saldo</span><strong class="{{ $summary['iopamidol_balance'] < 0 ? 'text-danger' : 'text-success' }}">{{ number_format($summary['iopamidol_balance'], 2) }}</strong></div>
+        @foreach($iopamidolPresentationSummary as $iopamidolControl)
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <small class="text-muted d-block">Iopamidol {{ $iopamidolControl['presentation_ml'] }} ml (frascos)</small>
+                        <div class="d-flex justify-content-between"><span>Entradas</span><strong>{{ number_format($iopamidolControl['in_units']) }}</strong></div>
+                        <div class="d-flex justify-content-between"><span>Salidas</span><strong>{{ number_format($iopamidolControl['out_units']) }}</strong></div>
+                        <div class="d-flex justify-content-between"><span>Saldo</span><strong class="{{ $iopamidolControl['balance_units'] < 0 ? 'text-danger' : 'text-success' }}">{{ number_format($iopamidolControl['balance_units']) }}</strong></div>
+                    </div>
                 </div>
             </div>
-        </div>
+        @endforeach
 
         <div class="col-md-4">
             <div class="card border-0 shadow-sm h-100">
@@ -242,7 +244,7 @@
                                             <th>Marca</th>
                                             <th>Presentación</th>
                                             <th class="text-end">Frascos</th>
-                                            <th class="text-end">Iopamidol + (ml)</th>
+                                            <th class="text-end">Ingreso convertido (ml)</th>
                                             <th>Notas</th>
                                         </tr>
                                     </thead>
@@ -275,7 +277,9 @@
                                             <th>Fecha</th>
                                             <th>Orden</th>
                                             <th>Paciente</th>
-                                            <th class="text-end">Iopamidol - (ml)</th>
+                                            <th>Marca</th>
+                                            <th>Presentación</th>
+                                            <th class="text-end">Frascos -</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -284,11 +288,13 @@
                                                 <td>{{ optional($result->result_date)->format('d/m/Y') }}</td>
                                                 <td>{{ $result->orderTomography->code ?? '—' }}</td>
                                                 <td>{{ trim(($result->patient->last_name ?? '') . ' ' . ($result->patient->first_name ?? '')) ?: '—' }}</td>
-                                                <td class="text-end fw-semibold text-danger">{{ number_format($result->iopamidol_used, 2) }}</td>
+                                                <td>{{ $result->iopamidolBrand?->name ?? "—" }}</td>
+                                                <td>{{ $result->iopamidol_presentation_ml ? $result->iopamidol_presentation_ml . " ml" : "—" }}</td>
+                                                <td class="text-end fw-semibold text-danger">{{ number_format($result->iopamidol_units ?? 0) }}</td>
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="4" class="text-center text-muted py-4">Sin salidas de iopamidol para el periodo.</td>
+                                                <td colspan="6" class="text-center text-muted py-4">Sin salidas de iopamidol para el periodo.</td>
                                             </tr>
                                         @endforelse
                                     </tbody>

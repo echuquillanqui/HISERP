@@ -682,8 +682,24 @@ class OrderController extends Controller
             ->latest()
             ->first();
 
+        $lastOrder = Order::where('patient_id', $patient->id)
+            ->latest('created_at')
+            ->first();
+
+        $previousOrder = null;
+        if ($lastOrder) {
+            $previousOrder = Order::where('patient_id', $patient->id)
+                ->where('created_at', '<', $lastOrder->created_at)
+                ->latest('created_at')
+                ->first();
+        }
+
         if (!$lastHistory) {
-            return response()->json(['has_history' => false]);
+            return response()->json([
+                'has_history' => false,
+                'last_order_date' => optional($lastOrder?->created_at)->format('d/m/Y'),
+                'previous_order_date' => optional($previousOrder?->created_at)->format('d/m/Y'),
+            ]);
         }
 
         $daysDiff = now()->diffInDays($lastHistory->created_at);
@@ -703,6 +719,8 @@ class OrderController extends Controller
             'has_history' => true,
             'days' => $daysDiff,
             'date' => $lastHistory->created_at->format('d/m/Y'),
+            'last_order_date' => optional($lastOrder?->created_at)->format('d/m/Y'),
+            'previous_order_date' => optional($previousOrder?->created_at)->format('d/m/Y'),
             'is_free' => $daysDiff <= $benefitDays,
             'benefit_type' => $benefitType,
             'benefit_days' => $benefitDays,

@@ -18,6 +18,9 @@ class TomographyResult extends Model
         'result_date',
         'plates_used',
         'iopamidol_used',
+        'iopamidol_brand_id',
+        'iopamidol_presentation_ml',
+        'iopamidol_units',
         'general_description',
         'result_description',
         'conclusion',
@@ -27,6 +30,8 @@ class TomographyResult extends Model
     protected $casts = [
         'result_date' => 'date',
         'iopamidol_used' => 'decimal:2',
+        'iopamidol_presentation_ml' => 'integer',
+        'iopamidol_units' => 'integer',
     ];
 
     public function orderTomography(): BelongsTo
@@ -48,5 +53,11 @@ class TomographyResult extends Model
     {
         return $this->belongsTo(User::class, 'report_signer_id');
     }
+
+    public function iopamidolBrand(): BelongsTo
+    {
+        return $this->belongsTo(IopamidolBrand::class, 'iopamidol_brand_id');
+    }
+
 }
 

@@ -33,6 +33,34 @@ class ControlInsumoController extends Controller
         $platesOutResults = (int) (clone $resultsQuery)->sum('plates_used');
         $iopamidolOutResults = (float) (clone $resultsQuery)->sum('iopamidol_used');
 
+        $presentations = [50, 100];
+        $iopamidolPresentationSummary = collect($presentations)->map(function (int $presentation) use ($entriesQuery, $resultsQuery, $filters) {
+            $inUnits = (int) (clone $entriesQuery)
+                ->where('iopamidol_presentation_ml', $presentation)
+                ->sum('iopamidol_units');
+
+            $outUnits = (int) (clone $resultsQuery)
+                ->where('iopamidol_presentation_ml', $presentation)
+                ->sum('iopamidol_units');
+
+            $openingInUnits = (int) TomographySupplyControl::query()
+                ->whereDate('created_at', '<', $filters['startDate']->toDateString())
+                ->where('iopamidol_presentation_ml', $presentation)
+                ->sum('iopamidol_units');
+
+            $openingOutUnits = (int) TomographyResult::query()
+                ->whereDate('result_date', '<', $filters['startDate']->toDateString())
+                ->where('iopamidol_presentation_ml', $presentation)
+                ->sum('iopamidol_units');
+
+            return [
+                'presentation_ml' => $presentation,
+                'in_units' => $inUnits,
+                'out_units' => $outUnits,
+                'balance_units' => ($openingInUnits - $openingOutUnits) + $inUnits - $outUnits,
+            ];
+        })->all();
+
         $platesOpeningBalance = (int) TomographySupplyControl::query()
             ->whereDate('created_at', '<', $filters['startDate']->toDateString())
             ->sum('plates_in')
@@ -78,7 +106,7 @@ class ControlInsumoController extends Controller
             ->get();
 
         $iopamidolOutputs = TomographyResult::query()
-            ->with(['patient:id,first_name,last_name', 'orderTomography:id,code'])
+            ->with(['patient:id,first_name,last_name', 'orderTomography:id,code', 'iopamidolBrand:id,name'])
             ->when($filters['startDate'], fn ($query) => $query->whereDate('result_date', '>=', $filters['startDate']->toDateString()))
             ->when($filters['endDate'], fn ($query) => $query->whereDate('result_date', '<=', $filters['endDate']->toDateString()))
             ->where('iopamidol_used', '>', 0)
@@ -92,6 +120,7 @@ class ControlInsumoController extends Controller
             'platesOutputs' => $platesOutputs,
             'iopamidolOutputs' => $iopamidolOutputs,
             'iopamidolBrands' => IopamidolBrand::query()->orderBy('name')->get(['id', 'name']),
+            'iopamidolPresentationSummary' => $iopamidolPresentationSummary,
             'filters' => [
                 'from' => $filters['startDate']->toDateString(),
                 'to' => $filters['endDate']->toDateString(),

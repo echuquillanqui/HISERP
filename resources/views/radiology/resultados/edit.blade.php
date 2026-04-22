@@ -35,8 +35,36 @@
                         <small class="text-muted">Sugerido por orden: {{ $suggestedPlates }} (editable).</small>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label fw-semibold">Iopamidol usado (ml)</label>
-                        <input type="number" step="0.01" min="0" name="iopamidol_used" class="form-control" value="{{ old('iopamidol_used', $result->iopamidol_used ?? 0) }}">
+                        <label class="form-label fw-semibold">Marca de iopamidol</label>
+                        <select name="iopamidol_brand_id" class="form-select @error('iopamidol_brand_id') is-invalid @enderror">
+                            <option value="">Sin contraste</option>
+                            @foreach($iopamidolBrands as $brand)
+                                <option value="{{ $brand->id }}" {{ (string) old('iopamidol_brand_id', $result->iopamidol_brand_id ?? '') === (string) $brand->id ? 'selected' : '' }}>
+                                    {{ $brand->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('iopamidol_brand_id')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Presentación de iopamidol</label>
+                        <select name="iopamidol_presentation_ml" class="form-select @error('iopamidol_presentation_ml') is-invalid @enderror">
+                            <option value="">Sin contraste</option>
+                            <option value="50" {{ (string) old('iopamidol_presentation_ml', $result->iopamidol_presentation_ml ?? '') === '50' ? 'selected' : '' }}>50 ml</option>
+                            <option value="100" {{ (string) old('iopamidol_presentation_ml', $result->iopamidol_presentation_ml ?? '') === '100' ? 'selected' : '' }}>100 ml</option>
+                        </select>
+                        @error('iopamidol_presentation_ml')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Frascos de iopamidol usados</label>
+                        <input type="number" min="0" name="iopamidol_units" class="form-control @error('iopamidol_units') is-invalid @enderror" value="{{ old('iopamidol_units', $result->iopamidol_units ?? 0) }}">
+                        @error('iopamidol_units')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Médico solicitante</label>
