@@ -50,7 +50,7 @@
                                         <span class="d-block small mt-1" x-text="'Última orden generada: ' + historyInfo.last_order_date"></span>
                                     </template>
                                     <template x-if="historyInfo.previous_order_date">
-                                        <span class="d-block small" x-text="'Orden anterior a esa fecha: ' + historyInfo.previous_order_date"></span>
+                                        <span class="d-block small text-danger text-md" x-text="'Orden anterior a esa fecha: ' + historyInfo.previous_order_date"></span>
                                     </template>
                                     <strong class="d-block small mt-1" x-text="'Beneficio del paciente: ' + (historyInfo.benefit_label || 'Sin beneficio')"></strong>
                                     <template x-if="historyInfo.is_free">
