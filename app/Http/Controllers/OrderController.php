@@ -7,16 +7,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\{DB, Log, Cache, Auth};
 use Illuminate\Support\Str;
 use Illuminate\Database\QueryException;
-use Carbon\Carbon;
 
 
 
 
 class OrderController extends Controller
 {
-    private const HISTORY_BENEFIT_CUTOFF_DATE = '2026-05-07';
-    private const LEGACY_HISTORY_BENEFIT_DAYS = 30;
-    private const NEW_HISTORY_BENEFIT_DAYS = 15;
+    private const HISTORY_BENEFIT_DAYS = 15;
 
     /**
      * Mostrar listado de órdenes
@@ -703,14 +700,7 @@ class OrderController extends Controller
         }
 
         $daysDiff = now()->diffInDays($lastHistory->created_at);
-        $cutoffDate = Carbon::parse(self::HISTORY_BENEFIT_CUTOFF_DATE)->startOfDay();
-        $useNewBenefit = now()->startOfDay()->greaterThanOrEqualTo($cutoffDate);
-
-        $benefitDays = $useNewBenefit
-            ? self::NEW_HISTORY_BENEFIT_DAYS
-            : self::LEGACY_HISTORY_BENEFIT_DAYS;
-
-        $benefitType = $useNewBenefit ? 'nuevo' : 'anterior';
+        $benefitDays = self::HISTORY_BENEFIT_DAYS;
 
         return response()->json([
             'has_history' => true,
@@ -719,9 +709,9 @@ class OrderController extends Controller
             'last_order_date' => optional($lastOrder?->created_at)->format('d/m/Y'),
             'previous_order_date' => optional($previousOrder?->created_at)->format('d/m/Y'),
             'is_free' => $daysDiff <= $benefitDays,
-            'benefit_type' => $benefitType,
+            'benefit_type' => 'general',
             'benefit_days' => $benefitDays,
-            'benefit_label' => sprintf('Beneficio %s (%d días)', ucfirst($benefitType), $benefitDays)
+            'benefit_label' => sprintf('Beneficio general (%d días)', $benefitDays)
         ]);
     }
 
