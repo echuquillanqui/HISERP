@@ -14,7 +14,7 @@ use Carbon\Carbon;
 
 class OrderController extends Controller
 {
-    private const HISTORY_BENEFIT_CUTOFF_DATE = '2026-03-25';
+    private const HISTORY_BENEFIT_CUTOFF_DATE = '2026-05-07';
     private const LEGACY_HISTORY_BENEFIT_DAYS = 30;
     private const NEW_HISTORY_BENEFIT_DAYS = 15;
 
@@ -704,16 +704,13 @@ class OrderController extends Controller
 
         $daysDiff = now()->diffInDays($lastHistory->created_at);
         $cutoffDate = Carbon::parse(self::HISTORY_BENEFIT_CUTOFF_DATE)->startOfDay();
+        $useNewBenefit = now()->startOfDay()->greaterThanOrEqualTo($cutoffDate);
 
-        $hasLegacyBenefit = \App\Models\History::where('patient_id', $patient->id)
-            ->where('created_at', '<', $cutoffDate)
-            ->exists();
+        $benefitDays = $useNewBenefit
+            ? self::NEW_HISTORY_BENEFIT_DAYS
+            : self::LEGACY_HISTORY_BENEFIT_DAYS;
 
-        $benefitDays = $hasLegacyBenefit
-            ? self::LEGACY_HISTORY_BENEFIT_DAYS
-            : self::NEW_HISTORY_BENEFIT_DAYS;
-
-        $benefitType = $hasLegacyBenefit ? 'anterior' : 'nuevo';
+        $benefitType = $useNewBenefit ? 'nuevo' : 'anterior';
 
         return response()->json([
             'has_history' => true,
