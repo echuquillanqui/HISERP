@@ -18,10 +18,40 @@ class OrderController extends Controller
     /**
      * Mostrar listado de órdenes
      */
-    public function index()
+    public function index(Request $request)
     {
-        $orders = Order::with('patient')->latest()->paginate(15);
-        return view('atenciones.orders.index', compact('orders'));
+        $search = trim((string) $request->query('search', ''));
+        $date = $request->query('date', now()->toDateString());
+        $searchTerms = preg_split('/\s+/', $search, -1, PREG_SPLIT_NO_EMPTY);
+
+        $orders = Order::with(['patient', 'user', 'history'])
+            ->when($date, function ($query) use ($date) {
+                $query->whereDate('created_at', $date);
+            })
+            ->when($search, function ($query) use ($search, $searchTerms) {
+                $query->where(function ($query) use ($search, $searchTerms) {
+                    $query->where('code', 'like', "%{$search}%")
+                        ->orWhere('payment_status', 'like', "%{$search}%")
+                        ->orWhereHas('patient', function ($query) use ($search, $searchTerms) {
+                            $query->where('dni', 'like', "%{$search}%")
+                                ->orWhere('first_name', 'like', "%{$search}%")
+                                ->orWhere('last_name', 'like', "%{$search}%")
+                                ->orWhere(function ($query) use ($searchTerms) {
+                                    foreach ($searchTerms as $term) {
+                                        $query->where(function ($query) use ($term) {
+                                            $query->where('first_name', 'like', "%{$term}%")
+                                                ->orWhere('last_name', 'like', "%{$term}%");
+                                        });
+                                    }
+                                });
+                        });
+                });
+            })
+            ->latest()
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('atenciones.orders.index', compact('orders', 'search', 'date'));
     }
 
     /**

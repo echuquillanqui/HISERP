@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container" x-data="{ filterDate: '{{ date('Y-m-d') }}', search: '' }">
+<div class="container">
     <div class="row mb-4 align-items-center">
         <div class="col-md-6">
             <h3 class="fw-bold" style="color: var(--azul-clinico)">
@@ -18,14 +18,45 @@
     <div class="card border-0 shadow-sm">
         <div class="card-body p-0">
             <div class="p-4 border-bottom bg-light-subtle">
-                <div class="row g-3">
-                    <div class="col-md-8">
-                        <input type="text" x-model="search" class="form-control shadow-sm" placeholder="Buscar por código, DNI o nombre del paciente...">
+                <form method="GET" action="{{ route('orders.index') }}" class="row g-3 align-items-end" x-data="{ submitTimer: null, submitFilters() { clearTimeout(this.submitTimer); this.submitTimer = setTimeout(() => this.$el.submit(), 350); } }">
+                    <div class="col-md-7">
+                        <label for="search" class="form-label small fw-semibold text-muted">Buscar orden o paciente</label>
+                        <input
+                            type="text"
+                            id="search"
+                            name="search"
+                            value="{{ $search }}"
+                            class="form-control shadow-sm"
+                            placeholder="Buscar por código, DNI, nombre, apellido o estado..."
+                            autocomplete="off"
+                            @input="submitFilters"
+                        >
                     </div>
-                    <div class="col-md-4">
-                        <input type="date" x-model="filterDate" class="form-control shadow-sm">
+                    <div class="col-md-3">
+                        <label for="date" class="form-label small fw-semibold text-muted">Fecha de atención</label>
+                        <input
+                            type="date"
+                            id="date"
+                            name="date"
+                            value="{{ $date }}"
+                            class="form-control shadow-sm"
+                            @change="$el.form.submit()"
+                        >
                     </div>
-                </div>
+                    <div class="col-md-2 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary-custom shadow-sm flex-fill">
+                            <i class="bi bi-search me-1"></i> Buscar
+                        </button>
+                        <a href="{{ route('orders.index') }}" class="btn btn-outline-secondary shadow-sm" title="Limpiar filtros">
+                            <i class="bi bi-x-lg"></i>
+                        </a>
+                    </div>
+                    <div class="col-12">
+                        <div class="small text-muted">
+                            Mostrando {{ $orders->total() }} resultado(s) para los filtros aplicados.
+                        </div>
+                    </div>
+                </form>
             </div>
 
             <div class="table-responsive">
@@ -46,12 +77,11 @@
                         @php
                             $fullName = ($order->patient->first_name ?? '') . ' ' . ($order->patient->last_name ?? '');
                             $dni = $order->patient->dni ?? 'N/A';
-                            $dateStr = $order->created_at->format('Y-m-d');
                             // Lógica de permisos
                             $isSuperAdmin = auth()->user()->role === 'superadmin';
                             $canModify = $isSuperAdmin || $order->payment_status !== 'pagado';
                         @endphp
-                        <tr x-show="('{{ strtolower($order->code) }} {{ strtolower($fullName) }} {{ $dni }}'.includes(search.toLowerCase())) && (filterDate === '' || '{{ $dateStr }}' === filterDate)">
+                        <tr>
                             <td class="ps-4 fw-bold text-primary">{{ $order->code }}</td>
                             <td>
                                 <div class="fw-bold text-dark">{{ $fullName }}</div>
@@ -130,6 +160,9 @@
                 <div class="text-center py-5">
                     <i class="bi bi-search text-muted display-1"></i>
                     <p class="mt-3 text-muted">No se encontraron órdenes para los criterios seleccionados.</p>
+                    <a href="{{ route('orders.index') }}" class="btn btn-outline-primary btn-sm mt-2">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i> Limpiar filtros
+                    </a>
                 </div>
             @endif
 
