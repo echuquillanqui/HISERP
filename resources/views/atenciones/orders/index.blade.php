@@ -18,7 +18,7 @@
     <div class="card border-0 shadow-sm">
         <div class="card-body p-0">
             <div class="p-4 border-bottom bg-light-subtle">
-                <form method="GET" action="{{ route('orders.index') }}" class="row g-3 align-items-end" x-data="{ submitTimer: null, submitFilters() { clearTimeout(this.submitTimer); this.submitTimer = setTimeout(() => this.$el.submit(), 350); } }">
+                <form method="GET" action="{{ route('orders.index') }}" class="row g-3 align-items-end">
                     <div class="col-md-7">
                         <label for="search" class="form-label small fw-semibold text-muted">Buscar orden o paciente</label>
                         <input
@@ -27,9 +27,8 @@
                             name="search"
                             value="{{ $search }}"
                             class="form-control shadow-sm"
-                            placeholder="Buscar por código, DNI, nombre, apellido o estado..."
+                            placeholder="Buscar por código, DNI, nombre, apellido..."
                             autocomplete="off"
-                            @input="submitFilters"
                         >
                     </div>
                     <div class="col-md-3">
@@ -40,7 +39,6 @@
                             name="date"
                             value="{{ $date }}"
                             class="form-control shadow-sm"
-                            @change="$el.form.submit()"
                         >
                     </div>
                     <div class="col-md-2 d-flex gap-2">
@@ -53,7 +51,7 @@
                     </div>
                     <div class="col-12">
                         <div class="small text-muted">
-                            Mostrando {{ $orders->total() }} resultado(s) para los filtros aplicados.
+                            Mostrando {{ $orders->count() }} de {{ $orders->total() }} resultado(s) para los filtros aplicados.
                         </div>
                     </div>
                 </form>

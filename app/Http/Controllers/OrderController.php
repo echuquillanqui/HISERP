@@ -21,7 +21,14 @@ class OrderController extends Controller
     public function index(Request $request)
     {
         $search = trim((string) $request->query('search', ''));
-        $date = $request->query('date', now()->toDateString());
+        // Cambiamos para que no asigne 'hoy' automáticamente si hay una búsqueda de texto en curso
+        $date = $request->query('date');
+        
+        // Si no hay búsqueda ni fecha seleccionada, entonces por defecto mostramos lo de hoy
+        if (empty($search) && empty($date)) {
+            $date = now()->toDateString();
+        }
+
         $searchTerms = preg_split('/\s+/', $search, -1, PREG_SPLIT_NO_EMPTY);
 
         $orders = Order::with(['patient', 'user', 'history'])
@@ -49,7 +56,7 @@ class OrderController extends Controller
             })
             ->latest()
             ->paginate(15)
-            ->withQueryString();
+            ->withQueryString(); // Esto mantiene los parámetros en los links de paginación
 
         return view('atenciones.orders.index', compact('orders', 'search', 'date'));
     }
