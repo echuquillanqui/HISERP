@@ -19,42 +19,37 @@
         <div class="card-body p-0">
             <div class="p-4 border-bottom bg-light-subtle">
                 <form method="GET" action="{{ route('orders.index') }}" class="row g-3 align-items-end">
-                    <div class="col-md-7">
-                        <label for="search" class="form-label small fw-semibold text-muted">Buscar orden o paciente</label>
-                        <input
-                            type="text"
-                            id="search"
-                            name="search"
-                            value="{{ $search }}"
-                            class="form-control shadow-sm"
-                            placeholder="Buscar por código, DNI, nombre, apellido..."
-                            autocomplete="off"
-                        >
-                    </div>
-                    <div class="col-md-3">
-                        <label for="date" class="form-label small fw-semibold text-muted">Fecha de atención</label>
-                        <input
-                            type="date"
-                            id="date"
-                            name="date"
-                            value="{{ $date }}"
-                            class="form-control shadow-sm"
-                        >
-                    </div>
-                    <div class="col-md-2 d-flex gap-2">
-                        <button type="submit" class="btn btn-primary-custom shadow-sm flex-fill">
-                            <i class="bi bi-search me-1"></i> Buscar
-                        </button>
-                        <a href="{{ route('orders.index') }}" class="btn btn-outline-secondary shadow-sm" title="Limpiar filtros">
-                            <i class="bi bi-x-lg"></i>
-                        </a>
-                    </div>
-                    <div class="col-12">
-                        <div class="small text-muted">
-                            Mostrando {{ $orders->count() }} de {{ $orders->total() }} resultado(s) para los filtros aplicados.
-                        </div>
-                    </div>
-                </form>
+    <div class="col-md-7">
+        <label for="search" class="form-label small fw-semibold text-muted">Buscar orden o paciente</label>
+        <input
+            type="text"
+            id="search"
+            name="search"
+            value="{{ $search }}"
+            class="form-control shadow-sm"
+            placeholder="Buscar por código, DNI o nombre del paciente..."
+            autocomplete="off"
+        >
+    </div>
+    <div class="col-md-3">
+        <label for="date" class="form-label small fw-semibold text-muted">Fecha de atención</label>
+        <input
+            type="date"
+            id="date"
+            name="date"
+            value="{{ $date }}"
+            class="form-control shadow-sm"
+            onchange="this.form.submit()" >
+    </div>
+    <div class="col-md-2 d-flex gap-2">
+        <button type="submit" class="btn btn-primary-custom shadow-sm flex-fill">
+            <i class="bi bi-search me-1"></i> Buscar
+        </button>
+        <a href="{{ route('orders.index') }}" class="btn btn-outline-secondary shadow-sm" title="Limpiar filtros">
+            <i class="bi bi-x-lg"></i>
+        </a>
+    </div>
+</form>
             </div>
 
             <div class="table-responsive">
