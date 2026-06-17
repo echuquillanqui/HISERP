@@ -18,50 +18,57 @@ class OrderController extends Controller
     /**
      * Mostrar listado de órdenes
      */
+    /**
+     * Mostrar listado de órdenes con filtro diario por defecto
+     */
     public function index(Request $request)
     {
-        // Capturamos limpiamente los parámetros
-        $search = trim((string) $request->query('search', ''));
-        $date = $request->query('date');
+        // 1. Limpiamos los valores recibidos por la URL
+        $search = $request->filled('search') ? trim((string) $request->input('search')) : null;
+        $date = $request->filled('date') ? $request->input('date') : null;
 
-        // Si ambos campos están completamente vacíos, por cortesía mostramos solo lo de hoy
-        if (empty($search) && empty($date)) {
+        // 2. LÓGICA DE DEFECTO: Si no hay fecha ni término de búsqueda, forzamos el día de hoy
+        if (is_null($search) && is_null($date)) {
             $date = now()->toDateString();
         }
 
-        $orders = Order::with(['patient', 'user', 'history'])
-            // 1. Filtro estricto de fecha (Si existe, se aplica SIEMPRE con un AND)
-            ->when($date, function ($query) use ($date) {
-                return $query->whereDate('created_at', $date);
-            })
-            // 2. Filtro de búsqueda (Encapsulado en un sub-bloque aislado)
-            ->when($search, function ($query) use ($search) {
-                $searchTerms = preg_split('/\s+/', $search, -1, PREG_SPLIT_NO_EMPTY);
-                
-                // Usamos un where anidado para no romper los "AND" anteriores
-                return $query->where(function ($subQuery) use ($search, $searchTerms) {
-                    $subQuery->where('code', 'like', "%{$search}%")
-                        ->orWhere('payment_status', 'like', "%{$search}%")
-                        ->orWhereHas('patient', function ($patientQuery) use ($search, $searchTerms) {
-                            $patientQuery->where(function ($q) use ($search, $searchTerms) {
-                                $q->where('dni', 'like', "%{$search}%")
-                                ->orWhere('first_name', 'like', "%{$search}%")
-                                ->orWhere('last_name', 'like', "%{$search}%");
-                                
-                                // Búsqueda por términos separados (Nombre y Apellido juntos)
-                                if (count($searchTerms) > 1) {
-                                    foreach ($searchTerms as $term) {
-                                        $q->orWhere('first_name', 'like', "%{$term}%")
-                                        ->orWhere('last_name', 'like', "%{$term}%");
-                                    }
+        // 3. Inicializamos la consulta base
+        $query = Order::with(['patient', 'user', 'history']);
+
+        // 4. Aplicamos el filtro de fecha (solo si está definido)
+        if (!is_null($date)) {
+            $query->whereDate('created_at', $date);
+        }
+
+        // 5. Aplicamos el filtro de búsqueda por texto (Aislado completamente)
+        if (!is_null($search)) {
+            $searchTerms = preg_split('/\s+/', $search, -1, PREG_SPLIT_NO_EMPTY);
+            
+            $query->where(function ($subQuery) use ($search, $searchTerms) {
+                $subQuery->where('code', 'like', "%{$search}%")
+                    ->orWhere('payment_status', 'like', "%{$search}%")
+                    ->orWhereHas('patient', function ($patientQuery) use ($search, $searchTerms) {
+                        $patientQuery->where(function ($q) use ($search, $searchTerms) {
+                            $q->where('dni', 'like', "%{$search}%")
+                              ->orWhere('first_name', 'like', "%{$search}%")
+                              ->orWhere('last_name', 'like', "%{$search}%");
+                            
+                            // Si el usuario escribe nombre y apellido separados por espacio
+                            if (count($searchTerms) > 1) {
+                                foreach ($searchTerms as $term) {
+                                    $q->orWhere('first_name', 'like', "%{$term}%")
+                                      ->orWhere('last_name', 'like', "%{$term}%");
                                 }
-                            });
+                            }
                         });
-                });
-            })
-            ->latest()
+                    });
+            });
+        }
+
+        // 6. Procesamos la paginación manteniendo vivos los parámetros correctos en la URL
+        $orders = $query->latest()
             ->paginate(15)
-            ->withQueryString(); // <--- Mantiene ?date=YYYY-MM-DD al cambiar de página
+            ->withQueryString();
 
         return view('atenciones.orders.index', compact('orders', 'search', 'date'));
     }

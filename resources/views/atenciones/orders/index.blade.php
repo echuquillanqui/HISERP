@@ -19,37 +19,61 @@
         <div class="card-body p-0">
             <div class="p-4 border-bottom bg-light-subtle">
                 <form method="GET" action="{{ route('orders.index') }}" class="row g-3 align-items-end">
-    <div class="col-md-7">
-        <label for="search" class="form-label small fw-semibold text-muted">Buscar orden o paciente</label>
-        <input
-            type="text"
-            id="search"
-            name="search"
-            value="{{ $search }}"
-            class="form-control shadow-sm"
-            placeholder="Buscar por código, DNI o nombre del paciente..."
-            autocomplete="off"
-        >
-    </div>
-    <div class="col-md-3">
-        <label for="date" class="form-label small fw-semibold text-muted">Fecha de atención</label>
-        <input
-            type="date"
-            id="date"
-            name="date"
-            value="{{ $date }}"
-            class="form-control shadow-sm"
-            onchange="this.form.submit()" >
-    </div>
-    <div class="col-md-2 d-flex gap-2">
-        <button type="submit" class="btn btn-primary-custom shadow-sm flex-fill">
-            <i class="bi bi-search me-1"></i> Buscar
-        </button>
-        <a href="{{ route('orders.index') }}" class="btn btn-outline-secondary shadow-sm" title="Limpiar filtros">
-            <i class="bi bi-x-lg"></i>
-        </a>
-    </div>
-</form>
+                    <div class="col-md-7">
+                        <label for="search" class="form-label small fw-semibold text-muted">Buscar orden o paciente</label>
+                        <div class="input-group shadow-sm">
+                            <span class="input-group-text bg-white border-end-0 text-muted">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input
+                                type="text"
+                                id="search"
+                                name="search"
+                                value="{{ $search }}"
+                                class="form-control border-start-0 ps-0"
+                                placeholder="Buscar por código, DNI, nombre o apellido..."
+                                autocomplete="off"
+                            >
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label for="date" class="form-label small fw-semibold text-muted">Filtrar por Fecha</label>
+                        <input
+                            type="date"
+                            id="date"
+                            name="date"
+                            value="{{ $date }}"
+                            class="form-control shadow-sm"
+                            onchange="this.form.submit()"
+                        >
+                    </div>
+                    
+                    <div class="col-md-2 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary-custom shadow-sm flex-fill">
+                            Filtrar
+                        </button>
+                        {{-- El botón limpiar redirige a la ruta limpia, forzando la carga de 'hoy' de nuevo --}}
+                        <a href="{{ route('orders.index') }}" class="btn btn-outline-secondary shadow-sm" title="Restablecer al día de hoy">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </a>
+                    </div>
+
+                    <div class="col-12 mt-2">
+                        <div class="small text-muted d-flex align-items-center gap-2">
+                            <span class="badge bg-secondary-subtle text-secondary border">
+                                @if($date == now()->toDateString())
+                                    Viendo registros de: HOY
+                                @elseif($date)
+                                    Viendo registros de: {{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}
+                                @else
+                                    Búsqueda generalizada
+                                @endif
+                            </span>
+                            <span>• Mostrando {{ $orders->count() }} de {{ $orders->total() }} registros totales encontrados.</span>
+                        </div>
+                    </div>
+                </form>
             </div>
 
             <div class="table-responsive">
