@@ -63,6 +63,7 @@
                     <thead class="bg-light text-muted small">
                         <tr>
                             <th class="ps-4">CÓDIGO</th>
+                            <th>FECHA</th>
                             <th>PACIENTE</th>
                             <th>DNI</th>
                             <th>TOTAL</th>
@@ -82,6 +83,7 @@
                         @endphp
                         <tr>
                             <td class="ps-4 fw-bold text-primary">{{ $order->code }}</td>
+                            <td>{{ $order->created_at->format('d/m/Y H:i') }}</td>
                             <td>
                                 <div class="fw-bold text-dark">{{ $fullName }}</div>
                                 <div class="small text-muted"><i class="bi bi-person-badge me-1"></i>{{ $order->user->name ?? 'Sistema' }}</div>
