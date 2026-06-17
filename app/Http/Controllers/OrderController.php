@@ -22,43 +22,52 @@ class OrderController extends Controller
      * Mostrar listado de órdenes - Versión Ultra Simplificada
      */
     public function index(Request $request)
-    {
-        // 1. Capturar parámetros limpiando espacios en blanco
-        $search = $request->filled('search') ? trim((string) $request->input('search')) : null;
-        $date = $request->filled('date') ? $request->input('date') : null;
+{
+    // Capturar filtros
+    $search = trim((string) $request->input('search', ''));
+    $date   = $request->input('date');
 
-        // 2. Si el usuario no ha buscado nada Y tampoco eligió fecha, por defecto es HOY
-        if (empty($search) && empty($date)) {
-            $date = now()->toDateString();
-        }
-
-        // 3. Iniciar la consulta limpia
-        $query = Order::with(['patient', 'user', 'history']);
-
-        // 4. FILTRO DE FECHA: Si hay fecha, se aplica de forma obligatoria
-        if (!empty($date)) {
-            $query->whereDate('created_at', $date);
-        }
-
-        // 5. FILTRO DE BÚSQUEDA: Si hay texto, se busca por Código o por DNI del paciente
-        if (!empty($search)) {
-            $query->where(function ($q) use ($search) {
-                $q->where('code', 'like', "%{$search}%")
-                  ->orWhereHas('patient', function ($p) use ($search) {
-                      $p->where('dni', 'like', "%{$search}%")
-                        ->orWhere('first_name', 'like', "%{$search}%")
-                        ->orWhere('last_name', 'like', "%{$search}%");
-                  });
-            });
-        }
-
-        // 6. Ejecutar paginación arrastrando los parámetros en la URL (?date=...&search=...)
-        $orders = $query->latest('id')
-            ->paginate(15)
-            ->withQueryString();
-
-        return view('atenciones.orders.index', compact('orders', 'search', 'date'));
+    // Si no hay filtros, mostrar solo HOY
+    if (empty($search) && empty($date)) {
+        $date = now()->toDateString();
     }
+
+    $query = Order::with(['patient', 'user', 'history']);
+
+    // FILTRO FECHA
+    if (!empty($date)) {
+        $query->whereBetween('created_at', [
+            $date . ' 00:00:00',
+            $date . ' 23:59:59'
+        ]);
+    }
+
+    // FILTRO BÚSQUEDA
+    if (!empty($search)) {
+        $query->where(function ($q) use ($search) {
+            $q->where('code', 'like', "%{$search}%")
+              ->orWhereHas('patient', function ($p) use ($search) {
+                  $p->where('dni', 'like', "%{$search}%")
+                    ->orWhere('first_name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%");
+              });
+        });
+    }
+
+    $orders = $query
+        ->orderByDesc('id')
+        ->paginate(15)
+        ->appends([
+            'search' => $search,
+            'date'   => $date
+        ]);
+
+    return view('atenciones.orders.index', compact(
+        'orders',
+        'search',
+        'date'
+    ));
+}
 
     /**
      * Mostrar formulario de creación
