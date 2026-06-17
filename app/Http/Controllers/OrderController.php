@@ -23,26 +23,19 @@ class OrderController extends Controller
      */
     public function index(Request $request)
 {
-    // Capturar filtros
     $search = trim((string) $request->input('search', ''));
     $date   = $request->input('date');
 
-    // Si no hay filtros, mostrar solo HOY
     if (empty($search) && empty($date)) {
         $date = now()->toDateString();
     }
 
     $query = Order::with(['patient', 'user', 'history']);
 
-    // FILTRO FECHA
     if (!empty($date)) {
-        $query->whereBetween('created_at', [
-            $date . ' 00:00:00',
-            $date . ' 23:59:59'
-        ]);
+        $query->whereDate('created_at', $date);
     }
 
-    // FILTRO BÚSQUEDA
     if (!empty($search)) {
         $query->where(function ($q) use ($search) {
             $q->where('code', 'like', "%{$search}%")
@@ -54,19 +47,11 @@ class OrderController extends Controller
         });
     }
 
-    $orders = $query
-        ->orderByDesc('id')
-        ->paginate(15)
-        ->appends([
-            'search' => $search,
-            'date'   => $date
-        ]);
-
-    return view('atenciones.orders.index', compact(
-        'orders',
-        'search',
-        'date'
-    ));
+    dd(
+        $query->toSql(),
+        $query->getBindings(),
+        $query->count()
+    );
 }
 
     /**
