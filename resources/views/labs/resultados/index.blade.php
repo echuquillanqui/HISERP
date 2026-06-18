@@ -5,14 +5,50 @@
     filterDate: '{{ $date }}', 
     filterStatus: '{{ $status }}',
     search: '{{ $search }}',
-    apply() {
+    activeTab: '{{ $activeTab }}',
+    apply(tab = null) {
+        if (tab) {
+            this.activeTab = tab;
+            if (tab === 'historial' && !this.filterDate) {
+                this.filterStatus = '';
+            }
+        }
         let url = new URL(window.location.href);
-        url.searchParams.set('date', this.filterDate);
+        url.searchParams.set('tab', this.activeTab);
+        if (this.filterDate) {
+            url.searchParams.set('date', this.filterDate);
+        } else {
+            url.searchParams.delete('date');
+        }
         url.searchParams.set('status', this.filterStatus);
         url.searchParams.set('search', this.search);
         window.location.href = url.href;
     }
 }">
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-2">
+            <ul class="nav nav-pills nav-fill gap-2" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button type="button"
+                            class="nav-link py-3 {{ $activeTab === 'actual' ? 'active' : '' }}"
+                            @click="apply('actual')">
+                        <i class="bi bi-clipboard-pulse me-2"></i>Control actual
+                        <span class="d-block small {{ $activeTab === 'actual' ? 'text-white-50' : 'text-muted' }}">Órdenes con resultados pendientes por rellenar</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button type="button"
+                            class="nav-link py-3 {{ $activeTab === 'historial' ? 'active' : '' }}"
+                            @click="apply('historial')">
+                        <i class="bi bi-clock-history me-2"></i>Historial de exámenes
+                        <span class="d-block small {{ $activeTab === 'historial' ? 'text-white-50' : 'text-muted' }}">Órdenes con todos los resultados rellenados</span>
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div>
+
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body p-4">
             <div class="row g-3">
@@ -23,6 +59,7 @@
                 <div class="col-md-3">
                     <label class="small fw-bold text-muted">FECHA DE ORDEN</label>
                     <input type="date" x-model="filterDate" @change="apply()" class="form-control">
+                    <div class="form-text" x-show="activeTab === 'historial'">Déjalo vacío para ver todo el historial.</div>
                 </div>
                 <div class="col-md-3">
                     <label class="small fw-bold text-muted">ESTADO DE LABORATORIO</label>
@@ -50,12 +87,12 @@
                         <th class="ps-4">CÓDIGO</th>
                         <th>PACIENTE</th>
                         <th>PROGRESO LAB</th>
-                        <th class="text-center">ESTADO (MIGRACIÓN)</th>
+                        <th class="text-center">ESTADO</th>
                         <th class="text-center">ACCIONES</th>
                     </tr>
                 </thead>
                 <tbody>
-    @foreach($orders as $order)
+    @forelse($orders as $order)
         @php
             // 1. Obtenemos y filtramos los resultados
             $allResults = $order->details->flatMap->labResults->filter(function($res) {
@@ -120,10 +157,21 @@
                 </div>
             </td>
         </tr>
-    @endforeach
+    @empty
+        <tr>
+            <td colspan="5" class="text-center py-5 text-muted">
+                <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                No hay órdenes para esta pestaña con los filtros seleccionados.
+            </td>
+        </tr>
+    @endforelse
 </tbody>
             </table>
         </div>
+    </div>
+
+    <div class="mt-3">
+        {{ $orders->links() }}
     </div>
 </div>
 @endsection
