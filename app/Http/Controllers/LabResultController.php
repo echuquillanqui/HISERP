@@ -19,36 +19,13 @@ class LabResultController extends Controller
      */
     public function index(Request $request)
     {
-        // 1. Capturar filtros y pestaña activa.
-        //    La pestaña actual inicia en hoy; el historial queda libre para consultar resultados antiguos.
-        $activeTab = $request->input('tab', 'actual') === 'historial' ? 'historial' : 'actual';
-        $date = $request->filled('date') ? $request->input('date') : ($activeTab === 'actual' ? now()->format('Y-m-d') : null);
+        // 1. Capturar filtros (Por defecto hoy)
+        $date = $request->input('date', now()->format('Y-m-d'));
         $status = $request->input('status');
         $search = $request->input('search');
 
-        $visibleLabResult = function ($q) {
-            $q->whereHas('catalog.area', function ($area) {
-                $area->whereNotIn(DB::raw('UPPER(name)'), ['MEDICINA', 'ADICIONALES']);
-            });
-        };
-
-        $pendingLabResult = function ($q) use ($visibleLabResult) {
-            $visibleLabResult($q);
-            $q->where(function ($pending) {
-                $pending->whereNull('result_value')
-                    ->orWhere('result_value', '');
-            });
-        };
-
         // 2. Consulta base con relaciones
-        $query = Order::with(['patient', 'details.labResults.catalog.area'])
-            ->whereHas('details.labResults', $visibleLabResult);
-
-        if ($activeTab === 'actual') {
-            $query->whereHas('details.labResults', $pendingLabResult);
-        } else {
-            $query->whereDoesntHave('details.labResults', $pendingLabResult);
-        }
+        $query = Order::with(['patient', 'details.labResults']);
 
         // 3. Filtro por Fecha de creación de la Orden
         if ($date) {
@@ -57,8 +34,7 @@ class LabResultController extends Controller
 
         // 4. Filtro por STATUS de la tabla LabResults (tu migración)
         if ($status) {
-            $query->whereHas('details.labResults', function($q) use ($status, $visibleLabResult) {
-                $visibleLabResult($q);
+            $query->whereHas('details.labResults', function($q) use ($status) {
                 $q->where('status', $status);
             });
         }
@@ -78,7 +54,7 @@ class LabResultController extends Controller
         $orders = $query->latest()->paginate(15)->withQueryString();
 
         // IMPORTANTE: Los nombres aquí deben coincidir con x-data en la vista
-        return view('labs.resultados.index', compact('orders', 'date', 'status', 'search', 'activeTab'));
+        return view('labs.resultados.index', compact('orders', 'date', 'status', 'search'));
     }
 
     // En OrderController.php (o el controlador que prefieras para Laboratorio)
