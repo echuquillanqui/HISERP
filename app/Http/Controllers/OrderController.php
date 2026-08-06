@@ -449,7 +449,7 @@ class OrderController extends Controller
         ]);
 
         $tieneHistoriaReciente = History::where('patient_id', $request->patient_id)
-            ->where('created_at', '>=', now()->subDays(30))
+            ->where('created_at', '>=', now()->subDays(self::HISTORY_BENEFIT_DAYS))
             ->exists();
 
         try {
