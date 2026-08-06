@@ -10,7 +10,7 @@
     .btn-xs { padding: 0.1rem 0.4rem; font-size: 0.75rem; }
 </style>
 
-<div class="container py-4 content-compact">
+<div class="container-fluid py-4 content-compact">
     
     <div class="row align-items-center mb-3 bg-white p-3 shadow-sm rounded border">
         <div class="col-md-6">
