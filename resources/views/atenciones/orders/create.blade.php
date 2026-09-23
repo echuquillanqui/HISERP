@@ -54,7 +54,15 @@
                                     </template>
                                     <strong class="d-block small mt-1" x-text="'Beneficio del paciente: ' + (historyInfo.benefit_label || 'Sin beneficio')"></strong>
                                     <template x-if="historyInfo.is_free">
-                                        <strong class="d-block text-uppercase small">¡Cuenta con el beneficio de atención gratuita!</strong>
+                                        <div class="form-check form-switch mt-2">
+                                            <input class="form-check-input" type="checkbox" id="apply_history_benefit"
+                                                name="apply_history_benefit" value="1" x-model="applyHistoryBenefit"
+                                                @change="applyHistoryDiscount()">
+                                            <label class="form-check-label fw-bold" for="apply_history_benefit">
+                                                Aplicar atención gratuita
+                                            </label>
+                                            <small class="d-block text-muted">Desmarque esta opción para cobrar el monto correspondiente.</small>
+                                        </div>
                                     </template>
                                 </div>
                             </div>
@@ -223,6 +231,7 @@ function orderSystem() {
             @endif
         ],
         historyInfo: null,
+        applyHistoryBenefit: false,
         selectedPatientId: null,
         patientSelect: null,
         itemSelect: null,
@@ -271,16 +280,18 @@ function orderSystem() {
             },
         onPatientChange(id) {
             this.selectedPatientId = id || null;
-            if(!id) { this.historyInfo = null; return; }
+            this.applyHistoryBenefit = false;
+            if(!id) { this.historyInfo = null; this.applyHistoryDiscount(); return; }
             fetch(`/check-patient-history/${id}`)
                 .then(r => r.json())
                 .then(data => {
                     if(data.has_history) {
                         this.historyInfo = data;
-                        this.applyHistoryDiscount(data.is_free);
+                        this.applyHistoryBenefit = data.is_free;
                     } else {
                         this.historyInfo = null;
                     }
+                    this.applyHistoryDiscount();
                 });
         },
         initItemSelect() {
@@ -331,21 +342,25 @@ function orderSystem() {
                         (item.package_items || []).forEach((pkgItem) => {
                             const uid = `${pkgItem.type}${pkgItem.id}`;
                             if (!this.cart.find(i => i.uid === uid)) {
+                                const unitPrice = parseFloat(pkgItem.unit_price ?? pkgItem.price ?? 0);
                                 this.cart.push({
                                     ...pkgItem,
                                     uid,
                                     quantity: parseInt(pkgItem.quantity || 1, 10),
-                                    unit_price: parseFloat(pkgItem.unit_price ?? pkgItem.price ?? 0)
+                                    unit_price: unitPrice,
+                                    original_unit_price: unitPrice
                                 });
                             }
                         });
+                        this.applyHistoryDiscount();
                         this.itemSelect.clear();
                         return;
                     }
 
                     if(!this.cart.find(i=>i.uid === item.uid)) {
                         
-                        if(this.historyInfo && this.historyInfo.is_free) {
+                        item.original_unit_price = parseFloat(item.unit_price ?? item.price ?? 0);
+                        if(this.historyInfo && this.historyInfo.is_free && this.applyHistoryBenefit) {
                             const palabras = ['HISTORIA', 'CONSULTA', 'EXTERNA', 'C. EXTERNA'];
                             if(palabras.some(p => item.name.toUpperCase().includes(p))) item.unit_price = 0;
                         }
@@ -399,10 +414,18 @@ function orderSystem() {
             }).finally(() => this.patientFormLoading = false);
         },
 
-        applyHistoryDiscount(isFree) {
+        applyHistoryDiscount() {
             const palabras = ['HISTORIA', 'CONSULTA', 'EXTERNA', 'C. EXTERNA'];
             this.cart.forEach(item => {
-                if (isFree && palabras.some(p => item.name.toUpperCase().includes(p))) item.unit_price = 0;
+                if (!palabras.some(p => item.name.toUpperCase().includes(p))) return;
+
+                if (item.original_unit_price === undefined) {
+                    item.original_unit_price = parseFloat(item.unit_price ?? 0);
+                }
+
+                item.unit_price = this.historyInfo?.is_free && this.applyHistoryBenefit
+                    ? 0
+                    : item.original_unit_price;
             });
         },
 
