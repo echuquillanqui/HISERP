@@ -446,14 +446,16 @@ class OrderController extends Controller
             'patient_id' => 'required',
             'items' => 'required|array|min:1',
             'total_amount' => 'required|numeric',
+            'apply_history_benefit' => 'nullable|boolean',
         ]);
 
         $tieneHistoriaReciente = History::where('patient_id', $request->patient_id)
             ->where('created_at', '>=', now()->subDays(self::HISTORY_BENEFIT_DAYS))
             ->exists();
+        $aplicarBeneficioHistoria = $tieneHistoriaReciente && $request->boolean('apply_history_benefit');
 
         try {
-            return DB::transaction(function () use ($request, $palabrasClave, $tieneHistoriaReciente) {
+            return DB::transaction(function () use ($request, $palabrasClave, $aplicarBeneficioHistoria) {
                 
                 $order = $this->createOrderWithUniqueCode($request);
 
@@ -466,7 +468,7 @@ class OrderController extends Controller
                     $cantidad = max(1, (int) ($item['quantity'] ?? 1));
                     $precioUnitario = (float) ($item['unit_price'] ?? $item['price'] ?? 0);
                     
-                    $precioAplicado = ($esAdministrativo && $tieneHistoriaReciente) ? 0 : ($precioUnitario * $cantidad);
+                    $precioAplicado = ($esAdministrativo && $aplicarBeneficioHistoria) ? 0 : ($precioUnitario * $cantidad);
                     $totalReal += $precioAplicado;
 
                     $modelType = match($item['type']) {
